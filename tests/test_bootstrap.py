@@ -30,9 +30,7 @@ def test_valid_configuration_preflights_without_live_firewall():
 
 def test_typo_suggests_actual_variable_name_without_credentials():
     env = _http_env()
-    env["OPNSENSE_OPNSENSE_MGSOFT_AP_SECRET"] = env.pop(
-        "OPNSENSE_OPNSENSE_MGSOFT_API_SECRET"
-    )
+    env["OPNSENSE_OPNSENSE_MGSOFT_AP_SECRET"] = env.pop("OPNSENSE_OPNSENSE_MGSOFT_API_SECRET")
     with patch.dict("os.environ", env, clear=True):
         with pytest.raises(ConfigError) as error:
             validate_startup_configuration()
