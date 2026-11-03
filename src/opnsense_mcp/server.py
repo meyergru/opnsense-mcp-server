@@ -116,8 +116,8 @@ from opnsense_mcp.tools import (  # noqa: E402
     haproxy,  # noqa: F401
     network,  # noqa: F401
     security,  # noqa: F401
-    snapshots,  # noqa: F401
     services,  # noqa: F401
+    snapshots,  # noqa: F401
     system,  # noqa: F401
     vpn,  # noqa: F401
 )
