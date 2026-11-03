@@ -44,7 +44,7 @@ def _validate_resource_type(resource_type: str) -> str | None:
 
 
 @mcp.tool()
-async def opn_haproxy_status(ctx: Context) -> dict[str, Any]:
+async def opn_haproxy_status(ctx: Context, site: str = "") -> dict[str, Any]:
     """Get HAProxy load balancer status and backend health.
 
     Use this when you need to check HAProxy server status, backend availability,
@@ -52,12 +52,12 @@ async def opn_haproxy_status(ctx: Context) -> dict[str, Any]:
     Note: Requires the HAProxy plugin (os-haproxy).
     Returns: dict with HAProxy status including servers and backends.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.get("haproxy.service.status")
 
 
 @mcp.tool()
-async def opn_reconfigure_haproxy(ctx: Context) -> dict[str, Any]:
+async def opn_reconfigure_haproxy(ctx: Context, site: str = "") -> dict[str, Any]:
     """Apply pending HAProxy load balancer configuration changes.
 
     Use this after making HAProxy configuration changes to apply them to the
@@ -71,10 +71,10 @@ async def opn_reconfigure_haproxy(ctx: Context) -> dict[str, Any]:
     validate the configuration syntax.
     Returns: dict with 'status' indicating success or failure.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
     result = await api.post("haproxy.service.reconfigure")
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {"status": result.get("status", "unknown"), "service": "haproxy"}
 
 
@@ -84,6 +84,7 @@ async def opn_haproxy_search(
     resource_type: str,
     search: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """Search HAProxy resources by type.
 
@@ -108,7 +109,7 @@ async def opn_haproxy_search(
         valid = ", ".join(sorted(_HAPROXY_RESOURCES))
         return {"error": f"Invalid resource_type '{resource_type}'. Must be one of: {valid}"}
 
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     endpoint = f"haproxy.settings.search_{resource_type}"
     return await api.post(
         endpoint,
@@ -121,6 +122,7 @@ async def opn_haproxy_get(
     ctx: Context,
     resource_type: str,
     uuid: str,
+    site: str = "",
 ) -> dict[str, Any]:
     """Get detailed configuration for a specific HAProxy resource.
 
@@ -138,7 +140,7 @@ async def opn_haproxy_get(
         valid = ", ".join(sorted(_HAPROXY_RESOURCES))
         return {"error": f"Invalid resource_type '{resource_type}'. Must be one of: {valid}"}
 
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     logical = _ensure_haproxy_endpoint("get", singular)
     return await api.get(logical, path_suffix=uuid)
 
@@ -148,6 +150,7 @@ async def opn_haproxy_add(
     ctx: Context,
     resource_type: str,
     config: dict[str, Any],
+    site: str = "",
 ) -> dict[str, Any]:
     """Create a new HAProxy resource.
 
@@ -187,11 +190,11 @@ async def opn_haproxy_add(
     if not config:
         return {"error": "config must not be empty"}
 
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
     logical = _ensure_haproxy_endpoint("add", singular)
     result = await api.post(logical, {singular: config})
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return result
 
 
@@ -201,6 +204,7 @@ async def opn_haproxy_update(
     resource_type: str,
     uuid: str,
     config: dict[str, Any],
+    site: str = "",
 ) -> dict[str, Any]:
     """Update an existing HAProxy resource.
 
@@ -225,11 +229,11 @@ async def opn_haproxy_update(
     if not config:
         return {"error": "config must not be empty"}
 
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
     logical = _ensure_haproxy_endpoint("set", singular)
     result = await api.post(logical, {singular: config}, path_suffix=uuid)
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return result
 
 
@@ -238,6 +242,7 @@ async def opn_haproxy_delete(
     ctx: Context,
     resource_type: str,
     uuid: str,
+    site: str = "",
 ) -> dict[str, Any]:
     """Delete a HAProxy resource by UUID.
 
@@ -258,16 +263,16 @@ async def opn_haproxy_delete(
         valid = ", ".join(sorted(_HAPROXY_RESOURCES))
         return {"error": f"Invalid resource_type '{resource_type}'. Must be one of: {valid}"}
 
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
     logical = _ensure_haproxy_endpoint("del", singular)
     result = await api.post(logical, path_suffix=uuid)
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return result
 
 
 @mcp.tool()
-async def opn_haproxy_configtest(ctx: Context) -> dict[str, Any]:
+async def opn_haproxy_configtest(ctx: Context, site: str = "") -> dict[str, Any]:
     """Validate HAProxy configuration syntax before applying.
 
     Use this BEFORE calling opn_reconfigure_haproxy to verify the configuration
@@ -275,5 +280,5 @@ async def opn_haproxy_configtest(ctx: Context) -> dict[str, Any]:
 
     Returns: dict with validation result (typically 'status' key).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.get("haproxy.service.configtest")
