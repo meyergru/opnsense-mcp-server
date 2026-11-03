@@ -17,6 +17,7 @@ services:
       OPNSENSE_MCP_TRANSPORT: "http"
       OPNSENSE_MCP_HOST: "0.0.0.0"
       OPNSENSE_MCP_PORT: "8000"
+      OPNSENSE_MCP_MAX_RESULT_BYTES: "16384"
       # Generate with: openssl rand -hex 32 (64 characters)
       OPNSENSE_MCP_AUTH_TOKEN: ""
 
