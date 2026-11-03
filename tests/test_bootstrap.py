@@ -13,7 +13,7 @@ from opnsense_mcp.config import ConfigError
 def _http_env() -> dict[str, str]:
     return {
         "OPNSENSE_MCP_TRANSPORT": "http",
-        "OPNSENSE_MCP_HOST": "0.0.0.0",
+        "OPNSENSE_MCP_HOST": "127.0.0.1",
         "OPNSENSE_MCP_AUTH_TOKEN": "a" * 64,
         "OPNSENSE_SITES": "opnsense.mgsoft",
         "OPNSENSE_OPNSENSE_MGSOFT_URL": "https://192.0.2.1/api",
