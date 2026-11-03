@@ -114,7 +114,6 @@ class TestToolRegistration:
         tools = await mcp.list_tools()
         assert len(tools) == 82, f"Expected 82 tools, got {len(tools)}"
 
-
     async def test_every_opnsense_tool_has_site_parameter(self):
         """Every site-bound tool must expose an explicit target selector."""
         from opnsense_mcp.server import mcp
