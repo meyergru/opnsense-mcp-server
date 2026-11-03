@@ -1,8 +1,8 @@
-"""Tests for native multi-target configuration and isolation."""
+"""Tests for native Compose/environment-only multi-target configuration."""
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -10,32 +10,22 @@ from opnsense_mcp.config import ConfigError
 from opnsense_mcp.targets import TargetError, TargetRegistry
 
 
-def _inventory() -> str:
-    return """
-[targets.alpha]
-url = "https://10.0.0.1/api"
-api_key_env = "API_KEY_ALPHA"
-api_secret_env = "API_SECRET_ALPHA"
-
-[targets.beta]
-url = "https://192.168.20.1:10443/api"
-api_key_env = "API_KEY_BETA"
-api_secret_env = "API_SECRET_BETA"
-"""
+def _env() -> dict[str, str]:
+    return {
+        "OPNSENSE_SITES": "alpha,beta",
+        "OPNSENSE_ALPHA_URL": "https://10.0.0.1/api",
+        "OPNSENSE_ALPHA_API_KEY": "alpha-key",
+        "OPNSENSE_ALPHA_API_SECRET": "alpha-secret",
+        "OPNSENSE_BETA_URL": "https://192.168.20.1:10443/api",
+        "OPNSENSE_BETA_API_KEY": "beta-key",
+        "OPNSENSE_BETA_API_SECRET": "beta-secret",
+        "OPNSENSE_BETA_VERIFY_SSL": "false",
+    }
 
 
 @pytest.mark.asyncio
-async def test_independent_clients_and_caches(tmp_path):
-    path = tmp_path / "targets.toml"
-    path.write_text(_inventory())
-    env = {
-        "OPNSENSE_TARGETS_FILE": str(path),
-        "API_KEY_ALPHA": "alpha-key",
-        "API_SECRET_ALPHA": "alpha-secret",
-        "API_KEY_BETA": "beta-key",
-        "API_SECRET_BETA": "beta-secret",
-    }
-    with patch.dict("os.environ", env, clear=True):
+async def test_independent_clients_and_caches():
+    with patch.dict("os.environ", _env(), clear=True):
         registry = TargetRegistry.from_environment()
     try:
         assert registry.names == ["alpha", "beta"]
@@ -46,6 +36,8 @@ async def test_independent_clients_and_caches(tmp_path):
         assert alpha.savepoint_mgr is not beta.savepoint_mgr
         assert alpha.api._config.url == "https://10.0.0.1/api"
         assert beta.api._config.url == "https://192.168.20.1:10443/api"
+        assert alpha.api._config.verify_ssl is True
+        assert beta.api._config.verify_ssl is False
         assert alpha.api._config.allow_writes is False
         assert beta.api._config.allow_writes is False
         assert "alpha-secret" not in repr(alpha.api._config)
@@ -59,7 +51,7 @@ async def test_independent_clients_and_caches(tmp_path):
 
 @pytest.mark.asyncio
 async def test_legacy_single_target(env_vars):
-    with patch.dict("os.environ", {"OPNSENSE_TARGETS_FILE": ""}):
+    with patch.dict("os.environ", {"OPNSENSE_SITES": ""}):
         registry = TargetRegistry.from_environment()
     try:
         assert registry.names == ["default"]
@@ -78,46 +70,54 @@ async def test_legacy_single_target(env_vars):
         "https://10.0.0.1:99999/api",
     ],
 )
-def test_reject_invalid_url(tmp_path, url):
-    path = tmp_path / "targets.toml"
-    path.write_text(_inventory().replace("https://10.0.0.1/api", url))
-    env = {
-        "OPNSENSE_TARGETS_FILE": str(path),
-        "API_KEY_ALPHA": "alpha-key",
-        "API_SECRET_ALPHA": "alpha-secret",
-        "API_KEY_BETA": "beta-key",
-        "API_SECRET_BETA": "beta-secret",
-    }
+def test_reject_invalid_url(url):
+    env = _env()
+    env["OPNSENSE_ALPHA_URL"] = url
     with patch.dict("os.environ", env, clear=True), pytest.raises(ConfigError):
         TargetRegistry.from_environment()
 
 
-def test_reject_missing_credentials(tmp_path):
-    path = tmp_path / "targets.toml"
-    path.write_text(_inventory())
-    with patch.dict("os.environ", {"OPNSENSE_TARGETS_FILE": str(path)}, clear=True):
-        with pytest.raises(ConfigError, match="Missing credentials"):
+def test_reject_missing_credentials():
+    env = _env()
+    env.pop("OPNSENSE_ALPHA_API_SECRET")
+    with patch.dict("os.environ", env, clear=True):
+        with pytest.raises(ConfigError, match="OPNSENSE_ALPHA_API_SECRET"):
             TargetRegistry.from_environment()
 
 
+@pytest.mark.parametrize("sites", ["alpha,alpha", "alpha,,beta", "alpha,site-two", "Alpha"])
+def test_reject_invalid_site_inventory(sites):
+    env = _env()
+    env["OPNSENSE_SITES"] = sites
+    with patch.dict("os.environ", env, clear=True), pytest.raises(ConfigError):
+        TargetRegistry.from_environment()
+
+
+def test_reject_invalid_tls_setting():
+    env = _env()
+    env["OPNSENSE_ALPHA_VERIFY_SSL"] = "maybe"
+    with patch.dict("os.environ", env, clear=True), pytest.raises(ConfigError, match="VERIFY_SSL"):
+        TargetRegistry.from_environment()
+
 
 @pytest.mark.asyncio
-async def test_helpers_route_to_same_site_state(tmp_path):
-    """API, cache and savepoint accessors cannot cross sites."""
-    from unittest.mock import MagicMock
+async def test_single_named_site_can_be_implicit():
+    env = {key: value for key, value in _env().items() if "BETA" not in key}
+    env["OPNSENSE_SITES"] = "alpha"
+    with patch.dict("os.environ", env, clear=True):
+        registry = TargetRegistry.from_environment()
+    try:
+        assert registry.resolve() is registry.resolve("alpha")
+    finally:
+        await registry.close()
 
+
+@pytest.mark.asyncio
+async def test_helpers_route_to_same_site_state():
+    """API, cache and savepoint accessors cannot cross sites."""
     from opnsense_mcp.server import get_api, get_config_cache, get_savepoint_manager
 
-    path = tmp_path / "targets.toml"
-    path.write_text(_inventory())
-    env = {
-        "OPNSENSE_TARGETS_FILE": str(path),
-        "API_KEY_ALPHA": "alpha-key",
-        "API_SECRET_ALPHA": "alpha-secret",
-        "API_KEY_BETA": "beta-key",
-        "API_SECRET_BETA": "beta-secret",
-    }
-    with patch.dict("os.environ", env, clear=True):
+    with patch.dict("os.environ", _env(), clear=True):
         registry = TargetRegistry.from_environment()
 
     try:
