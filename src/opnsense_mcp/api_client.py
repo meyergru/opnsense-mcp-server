@@ -18,6 +18,7 @@ READ_ONLY_POST_ENDPOINTS: frozenset[str] = frozenset(
     {
         "acmeclient.certs.search",
         "core.service.search",
+        "firmware.status",
         "cron.search_jobs",
         "crowdsec.alerts.search",
         "crowdsec.decisions.search",

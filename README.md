@@ -2,7 +2,7 @@
 
 A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible AI clients, including **OpenWebUI**, to several **named OPNsense firewalls** over their REST APIs. This is a fork of [lucamarien/opnsense-mcp-server](https://github.com/lucamarien/opnsense-mcp-server), with the original MIT license retained.
 
-**82 tools:** 81 upstream tools plus `opn_list_targets`; see the [tool reference](#available-tools-82).
+**83 tools:** 81 upstream tools plus `opn_list_targets` and `opn_check_firmware_updates`; see the [tool reference](#available-tools-82).
 
 ## Architecture and configuration ownership
 
@@ -101,7 +101,7 @@ opnsense-mcp
 
 Do **not** use the original author's `uhlenheide` Docker Hub image for this fork.
 
-## Available Tools (82)
+## Available Tools (83)
 
 ### Target selection (1 tool)
 
@@ -109,11 +109,12 @@ Do **not** use the original author's `uhlenheide` Docker Hub image for this fork
 | --- | --- |
 | `opn_list_targets` | List configured site aliases, without returning addresses or credentials. |
 
-### System (7 tools)
+### System (8 tools)
 
 | Tool | Description |
 | --- | --- |
-| `opn_system_status` | System info including firmware version, product name, and architecture |
+| `opn_system_status` | System info and last cached firmware status (**GET**, does not trigger a fresh update check) |
+| `opn_check_firmware_updates` | Refresh firmware update status via **POST** `/api/core/firmware/status` (no package installation or reboot). Queries configured mirrors, updates check metadata; can take several seconds. |
 | `opn_list_services` | List all services and their running status. Params: `search`, `limit` |
 | `opn_gateway_status` | Gateway availability, latency, and dpinger health checks |
 | `opn_download_config` | Raw `config.xml` export; **blocked for HTTP clients**. Legacy stdio only. |
@@ -249,6 +250,8 @@ HAProxy inspection and legacy administration tools (requires os-haproxy plugin).
 ## Read-only policy and legacy write functions
 
 In **named-target mode**, every OPNsense client is configured read-only. A central allowlist permits the known OPNsense **read/search POST** operations; other POST endpoints are rejected before any network request. OPNsense uses POST for both reads and writes, so blanket rejection of POST is not viable.
+
+The firmware update check (`opn_check_firmware_updates`) is allowed in named-target mode: it refreshes firmware check metadata without installing packages. The actual firmware update and upgrade endpoints remain blocked.
 
 The write tools remain visible in the inherited tool catalog but are **not executable against named targets**. Some state-changing diagnostics (such as job-based ping/traceroute) can also be denied by the central policy, until they have been individually reviewed.
 

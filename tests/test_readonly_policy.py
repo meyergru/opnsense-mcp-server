@@ -40,6 +40,7 @@ async def test_mutating_post_rejected_before_network(mock_api, endpoint):
     [
         "firewall.search_rule",
         "core.service.search",
+        "firmware.status",
         "kea.leases4.search",
         "diagnostics.firewall.query_states",
         "haproxy.settings.search_frontends",

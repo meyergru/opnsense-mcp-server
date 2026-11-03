@@ -14,6 +14,7 @@ class TestToolRegistration:
         expected = {
             # System
             "opn_system_status",
+            "opn_check_firmware_updates",
             "opn_list_targets",
             "opn_list_services",
             "opn_gateway_status",
@@ -112,7 +113,7 @@ class TestToolRegistration:
         from opnsense_mcp.server import mcp
 
         tools = await mcp.list_tools()
-        assert len(tools) == 82, f"Expected 82 tools, got {len(tools)}"
+        assert len(tools) == 83, f"Expected 83 tools, got {len(tools)}"
 
     async def test_every_opnsense_tool_has_site_parameter(self):
         """Every site-bound tool must expose an explicit target selector."""

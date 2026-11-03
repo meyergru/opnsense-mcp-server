@@ -47,6 +47,22 @@ async def opn_system_status(ctx: Context, site: str = "") -> dict[str, Any]:
 
 
 @mcp.tool()
+async def opn_check_firmware_updates(ctx: Context, site: str = "") -> dict[str, Any]:
+    """Check OPNsense firmware repositories for available updates without installing any.
+
+    This explicitly calls POST /api/core/firmware/status, unlike the cached
+    GET used by opn_system_status. OPNsense runs a synchronous firmware probe
+    and returns its refreshed status and available package updates.
+
+    The check contacts the configured firmware mirrors and updates local
+    update-check metadata on OPNsense. It does NOT install packages, apply
+    configuration changes, or reboot. The API call may take several seconds.
+    """
+    api = get_api(ctx, site)
+    return await api.post("firmware.status")
+
+
+@mcp.tool()
 async def opn_list_services(
     ctx: Context,
     search: str = "",
