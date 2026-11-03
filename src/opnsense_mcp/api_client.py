@@ -37,6 +37,11 @@ READ_ONLY_GET_ENDPOINTS: frozenset[str] = frozenset(
         "firewall.log",
         "firmware.info",
         "firmware.status",
+        "firmware.running",
+        "firmware.upgradestatus",
+        "snapshots.is_supported",
+        "snapshots.search",
+        "snapshots.get",
         "gateway.status",
         "haproxy.service.status",
         "interface.arp",
@@ -131,6 +136,8 @@ READ_ONLY_POST_ENDPOINTS: frozenset[str] = frozenset(
 # until they are added to this reviewed catalogue.
 WRITE_OPERATIONS: frozenset[tuple[str, str]] = frozenset(
     {
+        ("POST", "snapshots.add"),
+        ("POST", "firmware.update"),
         ("POST", "firewall.savepoint"),
         ("POST", "firewall.apply"),
         ("POST", "firewall.cancel_rollback"),
@@ -216,7 +223,6 @@ BLOCKED_ENDPOINTS: frozenset[str] = frozenset(
         "core/system/halt",
         "core/system/reboot",
         "core/firmware/poweroff",
-        "core/firmware/update",
         "core/firmware/upgrade",
     }
 )
@@ -225,6 +231,13 @@ BLOCKED_ENDPOINTS: frozenset[str] = frozenset(
 ENDPOINT_REGISTRY: dict[str, tuple[str, str]] = {
     # Firmware (unchanged across versions)
     "firmware.status": ("core/firmware/status", "core/firmware/status"),
+    "firmware.running": ("core/firmware/running", "core/firmware/running"),
+    "firmware.upgradestatus": ("core/firmware/upgradestatus", "core/firmware/upgradestatus"),
+    # ZFS boot-environment snapshots
+    "snapshots.is_supported": ("core/snapshots/is_supported", "core/snapshots/is_supported"),
+    "snapshots.search": ("core/snapshots/search", "core/snapshots/search"),
+    "snapshots.get": ("core/snapshots/get", "core/snapshots/get"),
+    "snapshots.add": ("core/snapshots/add", "core/snapshots/add"),
     # Diagnostics / Interfaces
     "interface.arp": (
         "diagnostics/interface/getArp",

@@ -2,7 +2,7 @@
 
 A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible AI clients, including **OpenWebUI**, to several **named OPNsense firewalls** over their REST APIs. This is a fork of [lucamarien/opnsense-mcp-server](https://github.com/lucamarien/opnsense-mcp-server), with the original MIT license retained.
 
-**83 tools:** 81 upstream tools plus `opn_list_targets` and `opn_check_firmware_updates`; see the [tool reference](#available-tools-82).
+**91 tools:** 81 upstream tools, target selection, firmware check, and eight additional ZFS snapshot / firmware maintenance tools; see the [tool reference](#available-tools-91).
 
 ## Architecture and configuration ownership
 
@@ -105,7 +105,7 @@ opnsense-mcp
 
 Do **not** use the original author's `uhlenheide` Docker Hub image for this fork.
 
-## Available Tools (83)
+## Available Tools (91)
 
 ### Target selection (1 tool)
 
@@ -125,6 +125,26 @@ Do **not** use the original author's `uhlenheide` Docker Hub image for this fork
 | `opn_scan_config` | Scan the full configuration, parse it into sections, and collect runtime inventory (firmware, plugins, DHCP, DNS, interfaces, services). Results are cached separately per site. Params: `force` |
 | `opn_get_config_section` | Raw config-section lookup; **blocked for HTTP clients**. Legacy stdio only. |
 | `opn_mcp_info` | MCP server version, write mode status, detected OPNsense version, API style, and whether firewall writes still get savepoint/rollback protection |
+
+### ZFS snapshots (4 tools)
+
+| Tool | Description |
+| --- | --- |
+| `opn_snapshot_supported` | Check whether ZFS boot-environment snapshots are available on a site. |
+| `opn_list_snapshots` | List snapshots and boot/active states. Read-only. |
+| `opn_get_snapshot` | Inspect an existing snapshot by UUID. Read-only. |
+| `opn_create_snapshot` | Create one named snapshot. **WRITE**; verifies ZFS support, never activates it, no reboot. Caller verifies creation separately. |
+
+### Firmware maintenance (4 tools)
+
+| Tool | Description |
+| --- | --- |
+| `opn_firmware_update_running` | Read firmware backend running indicator (low-level). |
+| `opn_firmware_update_progress` | Read the raw upgrade status/log (low-level). |
+| `opn_monitor_firmware_update` | **Recommended monitor:** poll in a bounded call (1–3 checks), tolerate temporary network outages, report backend completion/reboot requirement, and attempt to verify the installed version. Repeat the monitor call for longer updates; it never starts updates or reboots. |
+| `opn_start_firmware_update` | **WRITE:** start a minor/package update only with `confirm=true` and explicit no-reboot indicators from a fresh firmware check. Returns the asynchronous job response, not completion. Does not create a snapshot or initiate a major upgrade. |
+
+The firmware monitor cannot correlate `upgradestatus` to the job UUID: a `backend_done` state is not proof that the specific requested update succeeded. The OPNsense firmware controller can itself reboot or interrupt services during updating; the MCP server cannot promise a no-reboot outcome. Compare the version and check for remaining updates after completion. Transient connection loss yields `temporarily_unreachable`, **not** an inferred update failure.
 
 ### Network (5 tools)
 

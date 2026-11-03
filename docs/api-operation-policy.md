@@ -6,12 +6,12 @@ or future releases.
 
 ## Coverage
 
-- **106** static logical endpoints in `ENDPOINT_REGISTRY`.
+- **113** static logical endpoints in `ENDPOINT_REGISTRY`.
 - **36** dynamically constructed HAProxy resource endpoints (nine resource
   kinds × get/add/set/del), with validated resource identifiers.
 - Some logical endpoints have **multiple differently classified HTTP
   operations** (e.g. GET vs POST `core/firmware/status`).
-- **83 MCP tools** are a separate count: a single tool may call several
+- **91 MCP tools** are a separate count: a single tool may call several
   API operations, and a single operation may serve multiple tools.
 
 The current policy is defined in `api_client.py`:
@@ -43,6 +43,10 @@ operations for that site; unknown operations are never automatically allowed.
 | Operation | Current class | Reason |
 | --- | --- | --- |
 | GET `firmware.status` | READ | Read last check result |
+| GET `firmware.running`, `firmware.upgradestatus` | READ | Read backend execution state and log; neither confirms a specific job ID |
+| GET `snapshots.is_supported`, `snapshots.search`, `snapshots.get` | READ | Check availability, list or inspect ZFS boot environments |
+| POST `snapshots.add` | WRITE | Create a new boot-environment snapshot without activating it |
+| POST `firmware.update` | WRITE | Start minor/package update asynchronously; limited by confirmation and explicit no-reboot check |
 | POST `firmware.status` | DIAGNOSTIC | Refresh update metadata via `firmware probe`, without package installation |
 | GET `haproxy.service.configtest` | DIAGNOSTIC | Run a syntax check, not activate a config |
 | POST `diagnostics.ping.set/start/remove` | DIAGNOSTIC | Creates/starts/removes temporary jobs and sends network probes; explicitly allowed in read-only mode |
@@ -71,6 +75,20 @@ It is **not** an automated semantic proof of safety, nor does it enumerate
 APIs not implemented by this MCP server. New OPNsense core/plugin endpoints
 require separate implementation, verification against their versioned
 controller actions, and a deliberate entry in the operation catalogue.
+
+## Monitoring and transient outages
+
+`opn_monitor_firmware_update` is intentionally a **bounded polling helper**,
+not a full update workflow. It performs at most three progress checks and
+returns quickly with a status that can be polled again. A temporary TCP/API
+outage while the firewall restarts is not treated as a definitive update error.
+Successful reconnection is not proof that packages were updated.
+
+The OPNsense backend's `upgradestatus` endpoint exposes a global progress log,
+not a job-ID-addressable status endpoint. Even a `***DONE***` marker is
+reported as `backend_done`, not as confirmation that a *specific* requested
+job completed. Use the product version and subsequent update check as
+separate verification; this is still not a guarantee against service restarts.
 
 See the [official OPNsense API reference](https://docs.opnsense.org/development/api.html),
 which covers many additional core and plugin modules and explains that its

@@ -75,7 +75,6 @@ class TestBlocklist:
             "core/system/halt",
             "core/system/reboot",
             "core/firmware/poweroff",
-            "core/firmware/update",
             "core/firmware/upgrade",
         }
         assert BLOCKED_ENDPOINTS == expected
