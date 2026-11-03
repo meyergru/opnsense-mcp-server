@@ -23,7 +23,7 @@ from opnsense_mcp.api_client import OPNsenseAPI, SavepointManager
 from opnsense_mcp.config import ConfigError, OPNsenseConfig, load_config, mcp_read_only_enabled
 from opnsense_mcp.config_cache import ConfigCache
 
-_SITE_PATTERN = re.compile(r"[a-z][a-z0-9_]{0,63}\Z")
+_SITE_PATTERN = re.compile(r"[a-z](?:[a-z0-9_]|\.(?=[a-z0-9])){0,63}\Z")
 
 
 class TargetError(ValueError):
@@ -110,13 +110,18 @@ class TargetRegistry:
 
         names = [name.strip() for name in sites_raw.split(",")]
         if any(not _SITE_PATTERN.fullmatch(name) for name in names):
-            raise ConfigError("OPNSENSE_SITES must be comma-separated lower-case names (a-z, 0-9, _)")
+            raise ConfigError("OPNSENSE_SITES must be comma-separated lower-case aliases (a-z, 0-9, _, .)")
         if len(set(names)) != len(names):
             raise ConfigError("OPNSENSE_SITES must not contain duplicate site names")
+        # Dotted aliases use underscore-separated environment prefixes. Make
+        # ambiguities such as opnsense.mgsoft and opnsense_mgsoft fail closed.
+        env_names = [name.upper().replace(".", "_") for name in names]
+        if len(set(env_names)) != len(env_names):
+            raise ConfigError("OPNSENSE_SITES aliases map to conflicting environment prefixes")
 
         configs: dict[str, OPNsenseConfig] = {}
         for name in names:
-            prefix = f"OPNSENSE_{name.upper()}_"
+            prefix = f"OPNSENSE_{name.upper().replace('.', '_')}_"
             required = ("URL", "API_KEY", "API_SECRET")
             values = {part: os.environ.get(prefix + part, "").strip() for part in required}
             if not all(values.values()):
