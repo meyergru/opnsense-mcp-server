@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
 from fastmcp.tools import ToolResult
