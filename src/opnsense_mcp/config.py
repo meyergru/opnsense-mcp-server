@@ -63,7 +63,7 @@ def mcp_read_only_enabled(site: str = "") -> bool:
     global_name = "OPNSENSE_MCP_READ_ONLY"
     global_read_only = _parse_bool(os.environ.get(global_name, "true").strip(), global_name)
     if site:
-        name = f"OPNSENSE_{site.upper()}_READ_ONLY"
+        name = f"OPNSENSE_{site.upper().replace('.', '_')}_READ_ONLY"
         raw = os.environ.get(name)
         if raw is not None:
             return _parse_bool(raw.strip(), name)
