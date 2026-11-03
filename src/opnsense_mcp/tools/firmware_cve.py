@@ -91,7 +91,10 @@ def _parse_audit_log(log: str) -> dict[str, Any]:
         "cves": cves_all[:100],
         "cves_truncated": len(cves_all) > 100,
         "report_excerpt": log[-650:],
-        "note": "OPNsense VuXML findings: known database entries, not proof of exploitability or absence of other flaws",
+        "note": (
+            "OPNsense VuXML findings: known database entries, "
+            "not proof of exploitability or absence of other flaws"
+        ),
     }
 
 
