@@ -94,7 +94,12 @@ async def test_busy_backend_never_starts_second_audit(mock_api, mock_ctx):
 async def test_scan_runs_to_completion_in_followup(mock_api, mock_ctx):
     old = {"status": "done", "log": "old log"}
     mock_api.get = AsyncMock(
-        side_effect=[{"status": "idle"}, old, {"status": "running", "log": _AUDIT_MARKER}, {"status": "done", "log": _CLEAN}]
+        side_effect=[
+            {"status": "idle"},
+            old,
+            {"status": "running", "log": _AUDIT_MARKER},
+            {"status": "done", "log": _CLEAN},
+        ]
     )
     mock_api.post = AsyncMock(return_value={"status": "ok", "msg_uuid": "scan-new"})
     start = await opn_firmware_cve_audit(mock_ctx, max_checks=1)
@@ -166,5 +171,5 @@ async def test_polling_is_bounded(mock_api, mock_ctx):
     with patch("opnsense_mcp.tools.firmware_cve.asyncio.sleep", new_callable=AsyncMock) as sleeping:
         result = await opn_firmware_cve_audit(mock_ctx, max_checks=3, poll_interval_seconds=1)
     assert result["state"] == "running"
-    sleeping.assert_await_count == 2
+    assert sleeping.await_count == 2
     assert mock_api.get.await_count == 5  # running + baseline + three progress samples
