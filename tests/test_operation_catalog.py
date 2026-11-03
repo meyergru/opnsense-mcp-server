@@ -79,11 +79,10 @@ async def test_firmware_update_reaches_correct_rest_path_on_writable_target(mock
     """Exercise actual API client/registry resolution, not a mocked api.post."""
     api = mock_api_writes
     api._use_snake_case = snake_case
-    api._client.post.return_value.status_code = 200
-    api._client.post.return_value.json.return_value = {
-        "status": "ok",
-        "msg_uuid": "example-job",
-    }
+    response = MagicMock()
+    response.status_code = 200
+    response.json.return_value = {"status": "ok", "msg_uuid": "example-job"}
+    api._client.post.return_value = response
 
     result = await api.post("firmware.update")
 
