@@ -121,6 +121,77 @@ READ_ONLY_POST_ENDPOINTS: frozenset[str] = frozenset(
 )
 
 
+# Explicit reviewed write/state-changing operations. The HTTP method alone
+# grants nothing. Even writable targets deny newly introduced operations
+# until they are added to this reviewed catalogue.
+WRITE_OPERATIONS: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("POST", "firewall.savepoint"),
+        ("POST", "firewall.apply"),
+        ("POST", "firewall.cancel_rollback"),
+        ("POST", "firewall.add_rule"),
+        ("POST", "firewall.set_rule"),
+        ("POST", "firewall.del_rule"),
+        ("POST", "firewall.toggle_rule"),
+        ("POST", "firewall.alias.add"),
+        ("POST", "firewall.alias.set"),
+        ("POST", "firewall.alias.del"),
+        ("POST", "firewall.alias.toggle"),
+        ("POST", "firewall.category.add"),
+        ("POST", "firewall.category.set"),
+        ("POST", "firewall.category.del"),
+        ("POST", "unbound.service.reconfigure"),
+        ("POST", "haproxy.service.reconfigure"),
+        ("POST", "diagnostics.ping.set"),
+        ("POST", "diagnostics.ping.start"),
+        ("POST", "diagnostics.ping.remove"),
+        ("POST", "diagnostics.traceroute.set"),
+        ("POST", "diagnostics.dns_diagnostics.set"),
+        ("POST", "nat.dnat.add_rule"),
+        ("POST", "nat.dnat.set_rule"),
+        ("POST", "nat.dnat.del_rule"),
+        ("POST", "unbound.add_host_override"),
+        ("POST", "unbound.set_host_override"),
+        ("POST", "unbound.del_host_override"),
+        ("POST", "unbound.set_dnsbl"),
+        ("POST", "unbound.add_dnsbl"),
+        ("POST", "unbound.del_dnsbl"),
+        ("POST", "unbound.toggle_dnsbl"),
+        ("POST", "unbound.update_blocklist"),
+        ("POST", "unbound.service.dnsbl"),
+        ("POST", "dyndns.accounts.add"),
+        ("POST", "dyndns.accounts.set"),
+        ("POST", "dyndns.accounts.del"),
+        ("POST", "dyndns.service.reconfigure"),
+        ("POST", "dnsmasq.settings.add_range"),
+        ("POST", "dnsmasq.settings.set_range"),
+        ("POST", "dnsmasq.settings.del_range"),
+        ("POST", "dnsmasq.service.reconfigure"),
+        ("POST", "mdnsrepeater.settings.set"),
+        ("POST", "mdnsrepeater.service.reconfigure"),
+        ("POST", "mdnsrepeater.service.start"),
+        ("POST", "mdnsrepeater.service.stop"),
+
+        # Dynamically registered HAProxy CRUD endpoints for validated types.
+        *{
+            ("POST", f"haproxy.settings.{verb}_{name}")
+            for verb in ("add", "set", "del")
+            for name in (
+                "frontend",
+                "backend",
+                "server",
+                "action",
+                "acl",
+                "healthcheck",
+                "errorfile",
+                "resolver",
+                "mailer",
+            )
+        },
+    }
+)
+
+
 def operation_effect(method: str, endpoint: str) -> OperationEffect:
     """Classify a specific API operation, not an endpoint path or HTTP verb.
 
@@ -134,6 +205,8 @@ def operation_effect(method: str, endpoint: str) -> OperationEffect:
         return OperationEffect.READ
     if method == "POST" and endpoint in READ_ONLY_POST_ENDPOINTS:
         return OperationEffect.READ
+    if (method, endpoint) in WRITE_OPERATIONS:
+        return OperationEffect.WRITE
     return OperationEffect.WRITE
 
 
@@ -602,8 +675,14 @@ class OPNsenseAPI:
         # Retain the unconditional blocklist, including for writable targets.
         # Validate registry membership and its pre-version endpoint path first.
         self._check_blocklist(self._resolve_endpoint(endpoint))
-        if not self._config.allow_writes and operation_effect(method, endpoint) is OperationEffect.WRITE:
-            raise WriteDisabledError(f"{method} operation not permitted in read-only mode: {endpoint}")
+        classification = operation_effect(method, endpoint)
+        if classification is OperationEffect.WRITE:
+            if (method, endpoint) not in WRITE_OPERATIONS:
+                raise WriteDisabledError(
+                    f"Unclassified {method} operation denied, including for writable targets: {endpoint}"
+                )
+            if not self._config.allow_writes:
+                raise WriteDisabledError(f"{method} operation not permitted in read-only mode: {endpoint}")
 
     async def get(
         self,
