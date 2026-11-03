@@ -91,16 +91,11 @@ def _parse_audit_log(log: str) -> dict[str, Any]:
         "cves": cves_all[:100],
         "cves_truncated": len(cves_all) > 100,
         "report_excerpt": log[-650:],
-        "note": (
-            "OPNsense VuXML findings: known database entries, "
-            "not proof of exploitability or absence of other flaws"
-        ),
+        "note": "VuXML matches known advisories; no findings cannot exclude unknown vulnerabilities.",
     }
 
 
-async def _poll(
-    api: OPNsenseAPI, state: _AuditSession, max_checks: int, poll_interval_seconds: int
-) -> dict[str, Any]:
+async def _poll(api: OPNsenseAPI, state: _AuditSession, max_checks: int, poll_interval_seconds: int) -> dict[str, Any]:
     """Bounded sampling; errors do not silently become an empty CVE report."""
     last_state = "running"
     for i in range(max_checks):
