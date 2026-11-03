@@ -41,6 +41,62 @@ def test_every_static_registry_entry_has_a_reviewed_operation():
     assert ENDPOINT_REGISTRY.keys() <= approved
 
 
+def test_every_classified_operation_has_a_resolvable_path():
+    """Catch missing registry entries in both directions, including firmware.update.
+
+    HAProxy resource endpoints are the only names assembled dynamically
+    inside reviewed HAProxy tools; every other approved endpoint must be in
+    ENDPOINT_REGISTRY so authorization never succeeds before resolution fails.
+    """
+    resources = (
+        "frontend",
+        "backend",
+        "server",
+        "action",
+        "acl",
+        "healthcheck",
+        "errorfile",
+        "resolver",
+        "mailer",
+    )
+    dynamic = {
+        f"haproxy.settings.{operation}_{resource}"
+        for operation in ("get", "add", "set", "del")
+        for resource in resources
+    }
+    classified = {endpoint for _, endpoint in _catalog()}
+    assert classified <= ENDPOINT_REGISTRY.keys() | dynamic
+    assert ("POST", "firmware.update") in WRITE_OPERATIONS
+    assert ENDPOINT_REGISTRY["firmware.update"] == (
+        "core/firmware/update",
+        "core/firmware/update",
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("snake_case", [False, True])
+async def test_firmware_update_reaches_correct_rest_path_on_writable_target(mock_api_writes, snake_case):
+    """Exercise actual API client/registry resolution, not a mocked api.post."""
+    api = mock_api_writes
+    api._use_snake_case = snake_case
+    response = MagicMock()
+    response.status_code = 200
+    response.json.return_value = {"status": "ok", "msg_uuid": "example-job"}
+    api._client.post.return_value = response
+
+    result = await api.post("firmware.update")
+
+    assert result["msg_uuid"] == "example-job"
+    api._client.post.assert_awaited_once_with("/core/firmware/update", json=None)
+
+
+@pytest.mark.asyncio
+async def test_firmware_update_rejected_in_readonly_mode_before_network(mock_api):
+    with pytest.raises(WriteDisabledError, match="read-only mode"):
+        await mock_api.post("firmware.update")
+    mock_api._client.post.assert_not_awaited()
+
+
 def test_all_operation_classes_are_disjoint():
     groups = [
         {("GET", x) for x in READ_ONLY_GET_ENDPOINTS},
