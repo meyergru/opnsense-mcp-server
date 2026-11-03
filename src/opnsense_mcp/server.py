@@ -6,7 +6,7 @@ Registers all tool modules and starts the STDIO server.
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from typing import Any
+from typing import Any, cast
 
 from fastmcp import Context, FastMCP
 from fastmcp.server.lifespan import lifespan
@@ -50,7 +50,7 @@ def get_api(ctx: Context, site: str = "") -> OPNsenseAPI:
         RuntimeError: If the API client is not initialized.
     """
     if "targets" in ctx.lifespan_context:
-        return ctx.lifespan_context["targets"].resolve(site).api
+        return cast(TargetRegistry, ctx.lifespan_context["targets"]).resolve(site).api
     api: Any = ctx.lifespan_context.get("api")
     if not isinstance(api, OPNsenseAPI):
         msg = "OPNsense API client not initialized"
@@ -71,7 +71,7 @@ def get_config_cache(ctx: Context, site: str = "") -> ConfigCache:
         RuntimeError: If the config cache is not initialized.
     """
     if "targets" in ctx.lifespan_context:
-        return ctx.lifespan_context["targets"].resolve(site).config_cache
+        return cast(TargetRegistry, ctx.lifespan_context["targets"]).resolve(site).config_cache
     cache: Any = ctx.lifespan_context.get("config_cache")
     if not isinstance(cache, ConfigCache):
         msg = "Config cache not initialized"
@@ -92,7 +92,7 @@ def get_savepoint_manager(ctx: Context, site: str = "") -> SavepointManager:
         RuntimeError: If the savepoint manager is not initialized.
     """
     if "targets" in ctx.lifespan_context:
-        return ctx.lifespan_context["targets"].resolve(site).savepoint_mgr
+        return cast(TargetRegistry, ctx.lifespan_context["targets"]).resolve(site).savepoint_mgr
     mgr: Any = ctx.lifespan_context.get("savepoint_mgr")
     if not isinstance(mgr, SavepointManager):
         msg = "Savepoint manager not initialized"
