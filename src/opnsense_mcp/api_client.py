@@ -172,7 +172,6 @@ WRITE_OPERATIONS: frozenset[tuple[str, str]] = frozenset(
         ("POST", "mdnsrepeater.service.reconfigure"),
         ("POST", "mdnsrepeater.service.start"),
         ("POST", "mdnsrepeater.service.stop"),
-
         # Dynamically registered HAProxy CRUD endpoints for validated types.
         *{
             ("POST", f"haproxy.settings.{verb}_{name}")
