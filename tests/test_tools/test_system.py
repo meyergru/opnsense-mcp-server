@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 
 from opnsense_mcp.api_client import OPNsenseAPIError
 from opnsense_mcp.tools.system import (
+    opn_check_firmware_updates,
     opn_download_config,
     opn_gateway_status,
     opn_get_config_section,
@@ -24,6 +25,34 @@ class TestOpnSystemStatus:
         result = await opn_system_status(mock_ctx)
         mock_api.get.assert_called_once_with("firmware.status")
         assert result == {"product_version": "25.1.2"}
+
+
+class TestOpnCheckFirmwareUpdates:
+    """A firmware probe is an explicitly allowed POST, never an update."""
+
+    async def test_forces_synchronous_probe_and_returns_result(self, mock_api, mock_ctx):
+        from unittest.mock import AsyncMock
+
+        response = {"status": "none", "status_msg": "There are no updates available."}
+        mock_api.post = AsyncMock(return_value=response)
+        mock_api.get = AsyncMock()
+
+        result = await opn_check_firmware_updates(mock_ctx)
+
+        assert result == response
+        mock_api.post.assert_awaited_once_with("firmware.status")
+        mock_api.get.assert_not_awaited()
+
+    async def test_existing_status_stays_get_only(self, mock_api, mock_ctx):
+        from unittest.mock import AsyncMock
+
+        mock_api.get = AsyncMock(return_value={"status": "none"})
+        mock_api.post = AsyncMock()
+
+        await opn_system_status(mock_ctx)
+
+        mock_api.get.assert_awaited_once_with("firmware.status")
+        mock_api.post.assert_not_awaited()
 
 
 class TestOpnListServices:
