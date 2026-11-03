@@ -581,7 +581,10 @@ class OPNsenseAPI:
             WriteDisabledError: If OPNSENSE_ALLOW_WRITES is not true.
         """
         if not self._config.allow_writes:
-            msg = "Write operations disabled (OPNSENSE_MCP_READ_ONLY / per-site READ_ONLY; legacy OPNSENSE_ALLOW_WRITES)."
+            msg = (
+                "Writes disabled: OPNSENSE_MCP_READ_ONLY / per-site READ_ONLY "
+                "(or legacy OPNSENSE_ALLOW_WRITES for stdio)."
+            )
             raise WriteDisabledError(msg)
 
     def _authorize_operation(self, method: str, endpoint: str) -> None:
