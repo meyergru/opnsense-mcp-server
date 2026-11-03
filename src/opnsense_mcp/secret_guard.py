@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any
-
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
 from fastmcp.tools import ToolResult
@@ -42,7 +40,7 @@ _SENSITIVE = frozenset(
 )
 
 
-def contains_secret_fields(value: Any, depth: int = 0) -> bool:
+def contains_secret_fields(value: object, depth: int = 0) -> bool:
     """Look for secret-shaped dictionary keys, including nested JSON values."""
     if depth > 100:
         return True
