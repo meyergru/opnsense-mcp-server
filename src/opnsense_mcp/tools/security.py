@@ -1515,7 +1515,6 @@ async def opn_security_audit(ctx: Context, site: str = "") -> dict[str, Any]:
     }
 
 
-
 @mcp.tool()
 async def opn_configuration_audit(ctx: Context, site: str = "") -> dict[str, Any]:
     """Review OPNsense configuration/hardening heuristics, NOT installed package CVEs.
