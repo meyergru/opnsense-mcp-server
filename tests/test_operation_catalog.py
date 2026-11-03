@@ -92,6 +92,19 @@ def test_tool_api_calls_are_all_explicitly_classified():
             if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
                 continue
             method = node.func.attr
+            if (
+                method == "_fetch_all_pages"
+                and node.args
+                and isinstance(node.args[0], ast.Name)
+                and node.args[0].id == "api"
+                and len(node.args) >= 2
+                and isinstance(node.args[1], ast.Constant)
+                and isinstance(node.args[1].value, str)
+            ):
+                assert ("POST", node.args[1].value) in approved, (
+                    f"{source_path.name}:{node.lineno}: unreviewed paginated search"
+                )
+                continue
             if method not in {"get", "post", "get_text"}:
                 continue
             if not isinstance(node.func.value, ast.Name) or node.func.value.id != "api":
@@ -138,3 +151,32 @@ async def test_known_write_operation_still_requires_writable_site(mock_api_write
     result = await mock_api_writes.post("firewall.add_rule", {"rule": {"description": "test"}})
     assert result == {"result": "ok"}
     mock_api_writes._client.post.assert_awaited_once()
+
+
+def test_paginated_security_audit_endpoints_are_classified():
+    """Security audits use one dynamic helper; all callsites must be reviewed."""
+    source = (_SOURCE / "tools" / "security.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    endpoints: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+            continue
+        if node.func.id != "_fetch_all_pages":
+            continue
+        assert len(node.args) >= 2
+        assert isinstance(node.args[1], ast.Constant)
+        assert isinstance(node.args[1].value, str)
+        endpoints.add(node.args[1].value)
+    assert endpoints
+    assert {("POST", x) for x in endpoints} <= _catalog()
+
+
+def test_tools_do_not_call_raw_api_transport():
+    """Only the shared API client may access the underlying HTTP transport."""
+    for source_path in (_SOURCE / "tools").glob("*.py"):
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute):
+                assert node.attr not in {"_request", "_request_text", "_client"}, (
+                    f"{source_path.name}:{node.lineno} bypasses the API operation policy"
+                )
