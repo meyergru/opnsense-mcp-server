@@ -1,15 +1,15 @@
+# Disabled pending own publication configuration. No tag triggers, and publish job is blocked.
 name: Publish to PyPI
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
 
 permissions:
   id-token: write
 
 jobs:
   publish:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     environment: release
     steps:
