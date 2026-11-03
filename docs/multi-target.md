@@ -6,7 +6,7 @@ One MCP server process manages several named OPNsense API targets, without an ex
 
 All configuration, **including API keys and secrets**, comes from Docker Compose environment variables. No separate targets.toml or secrets mount is required.
 
-Example Compose `environment:` section (the production network listener is not ready yet):
+Example Compose `environment:` section:
 
 ```yaml
 environment:
