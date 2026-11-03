@@ -12,6 +12,48 @@ import httpx
 
 from opnsense_mcp.config import OPNsenseConfig
 
+# Allow read/search POST endpoints only. OPNsense uses POST for many searches.
+# Never equate HTTP method alone with a write or trust endpoint name prefixes.
+READ_ONLY_POST_ENDPOINTS: frozenset[str] = frozenset(
+    {
+        "acmeclient.certs.search",
+        "core.service.search",
+        "cron.search_jobs",
+        "crowdsec.alerts.search",
+        "crowdsec.decisions.search",
+        "diagnostics.firewall.query_states",
+        "dnsmasq.leases.search",
+        "dnsmasq.settings.search_range",
+        "dyndns.accounts.search",
+        "firewall.alias.search",
+        "firewall.category.search",
+        "firewall.search_rule",
+        "haproxy.settings.search_acls",
+        "haproxy.settings.search_actions",
+        "haproxy.settings.search_backends",
+        "haproxy.settings.search_errorfiles",
+        "haproxy.settings.search_frontends",
+        "haproxy.settings.search_healthchecks",
+        "haproxy.settings.search_mailers",
+        "haproxy.settings.search_resolvers",
+        "haproxy.settings.search_servers",
+        "ipsec.sessions.phase1",
+        "ipsec.sessions.phase2",
+        "kea.leases4.search",
+        "nat.dnat.search_rule",
+        "openvpn.instances",
+        "openvpn.routes",
+        "openvpn.sessions",
+        "routes.search",
+        "unbound.search_dnsbl",
+        "unbound.search_forward",
+        "unbound.search_override",
+        "wireguard.client.search_client",
+        "wireguard.server.search_server",
+    }
+)
+
+
 # --- Dangerous endpoints that execute immediately with no confirmation ---
 BLOCKED_ENDPOINTS: frozenset[str] = frozenset(
     {
@@ -449,7 +491,7 @@ class OPNsenseAPI:
             auth=httpx.BasicAuth(config.api_key, config.api_secret),
             verify=config.verify_ssl,
             timeout=httpx.Timeout(30.0),
-            follow_redirects=True,
+            follow_redirects=False,
         )
         self._detected_version: tuple[int, int] | None = None
         self._use_snake_case: bool = False
@@ -518,6 +560,8 @@ class OPNsenseAPI:
             BlockedEndpointError: If the endpoint is on the blocklist.
             OPNsenseAPIError: If the API returns an error.
         """
+        if not self._config.allow_writes and endpoint not in READ_ONLY_POST_ENDPOINTS:
+            raise WriteDisabledError(f"POST endpoint not allowed in read-only mode: {endpoint}")
         await self._ensure_version_detected()
         path = self._resolve_endpoint(endpoint)
         if path_suffix:

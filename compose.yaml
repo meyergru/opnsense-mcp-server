@@ -1,0 +1,56 @@
+# Portainer Stack for dedicated VM "mcp".
+# First deployment: publish your reviewed image to GHCR, then fill in credentials.
+# All target settings and tokens deliberately live in this Compose file.
+name: opnsense-mcp
+
+services:
+  opnsense-mcp:
+    image: ghcr.io/meyergru/opnsense-mcp-server:dev
+    restart: unless-stopped
+    init: true
+
+    # Bind only to a trusted host interface or limit the port externally.
+    ports:
+      - "8000:8000"
+
+    environment:
+      OPNSENSE_MCP_TRANSPORT: "http"
+      OPNSENSE_MCP_HOST: "0.0.0.0"
+      OPNSENSE_MCP_PORT: "8000"
+      OPNSENSE_MCP_MAX_RESULT_BYTES: "16384"
+      # Generate with: openssl rand -hex 32 (64 characters)
+      OPNSENSE_MCP_AUTH_TOKEN: ""
+
+      # Add further comma-separated aliases and matching environment variables.
+      OPNSENSE_SITES: "local"
+      OPNSENSE_LOCAL_URL: "https://192.168.10.1/api"
+      OPNSENSE_LOCAL_API_KEY: ""
+      OPNSENSE_LOCAL_API_SECRET: ""
+      OPNSENSE_LOCAL_VERIFY_SSL: "true"
+
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    user: "65532:65532"
+    pids_limit: 128
+    mem_limit: 512m
+
+    # Do not let Watchtower silently replace an audited MCP image.
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+
+    # TCP reachability only. It does not prove auth or OPNsense connectivity.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import socket; s=socket.create_connection(('127.0.0.1', 8000), 2); s.close()"
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3

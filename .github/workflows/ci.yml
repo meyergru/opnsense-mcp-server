@@ -52,3 +52,51 @@ jobs:
         run: ruff check src/ --select S105,S106,S107 --no-fix
       - name: Check for insecure SSL usage
         run: ruff check src/ --select S501 --no-fix
+
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build the image
+        run: docker build --pull -t opnsense-mcp:ci .
+      - name: Start HTTP server and verify mandatory authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run -d --name opnsense-mcp-ci \
+            --read-only --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+            --cap-drop ALL --security-opt no-new-privileges \
+            -p 127.0.0.1:18000:8000 \
+            -e OPNSENSE_MCP_TRANSPORT=http \
+            -e OPNSENSE_MCP_HOST=0.0.0.0 \
+            -e OPNSENSE_MCP_PORT=8000 \
+            -e OPNSENSE_MCP_AUTH_TOKEN=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+            -e OPNSENSE_SITES=lab \
+            -e OPNSENSE_LAB_URL=https://192.0.2.1/api \
+            -e OPNSENSE_LAB_API_KEY=test-key \
+            -e OPNSENSE_LAB_API_SECRET=test-secret \
+            opnsense-mcp:ci
+
+          trap 'docker logs opnsense-mcp-ci || true; docker rm -f opnsense-mcp-ci || true' EXIT
+          status=000
+          for attempt in $(seq 1 30); do
+            status=$(curl -s -o /dev/null -w '%{http_code}' \
+              --max-time 3 -X POST http://127.0.0.1:18000/mcp \
+              -H 'Content-Type: application/json' \
+              -H 'Accept: application/json, text/event-stream' \
+              -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' || true)
+            if [[ "$status" == "401" ]]; then break; fi
+            sleep 1
+          done
+          echo "Unauthenticated request: HTTP $status"
+          test "$status" = "401"
+
+          accepted=$(curl -s -o /dev/null -w '%{http_code}' \
+            --max-time 5 -X POST http://127.0.0.1:18000/mcp \
+            -H 'Authorization: Bearer aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' \
+            -H 'Content-Type: application/json' \
+            -H 'Accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' || true)
+          echo "Authenticated request: HTTP $accepted"
+          [[ "$accepted" == "200" || "$accepted" == "400" ]]
