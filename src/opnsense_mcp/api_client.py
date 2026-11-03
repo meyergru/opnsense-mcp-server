@@ -6,11 +6,67 @@ endpoint blocklist, and error response parsing.
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any
 
 import httpx
 
 from opnsense_mcp.config import OPNsenseConfig
+
+class OperationEffect(str, Enum):
+    """Impact of an OPNsense API operation, not inferred from HTTP verb."""
+
+    READ = "read"
+    DIAGNOSTIC = "diagnostic"
+    WRITE = "write"
+
+
+# Explicitly reviewed read-only GET operations. GET alone does not imply safety.
+# Config backup can carry credentials; the remote MCP tools prohibit raw export.
+READ_ONLY_GET_ENDPOINTS: frozenset[str] = frozenset(
+    {
+        "core.backup.download",
+        "crowdsec.service.status",
+        "dhcpv4.leases.search",
+        "diagnostics.ping.search_jobs",
+        "dnsmasq.leases.search",
+        "dnsmasq.service.status",
+        "dnsmasq.settings.get",
+        "firewall.alias.get",
+        "firewall.log",
+        "firmware.info",
+        "firmware.status",
+        "gateway.status",
+        "haproxy.service.status",
+        "interface.arp",
+        "interface.config",
+        "interface.names",
+        "interface.ndp",
+        "interface.statistics",
+        "ipsec.service.status",
+        "kea.dhcpv4.get",
+        "kea.service.status",
+        "mdnsrepeater.service.status",
+        "mdnsrepeater.settings.get",
+        "unbound.get_dnsbl",
+        "unbound.settings.get",
+        "unbound.stats",
+        "wireguard.service.show",
+        *{f"haproxy.settings.get_{name}" for name in (
+            "frontend", "backend", "server", "action", "acl",
+            "healthcheck", "errorfile", "resolver", "mailer",
+        )},
+    }
+)
+
+# Safe diagnostics may update ephemeral check state without installing/applying.
+DIAGNOSTIC_OPERATIONS: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("POST", "firmware.status"),  # synchronous firmware probe, not upgrade
+        ("GET", "haproxy.service.configtest"),  # syntax validation
+    }
+)
+
 
 # Allow read/search POST endpoints only. OPNsense uses POST for many searches.
 # Never equate HTTP method alone with a write or trust endpoint name prefixes.
@@ -18,7 +74,6 @@ READ_ONLY_POST_ENDPOINTS: frozenset[str] = frozenset(
     {
         "acmeclient.certs.search",
         "core.service.search",
-        "firmware.status",
         "cron.search_jobs",
         "crowdsec.alerts.search",
         "crowdsec.decisions.search",
@@ -53,6 +108,22 @@ READ_ONLY_POST_ENDPOINTS: frozenset[str] = frozenset(
         "wireguard.server.search_server",
     }
 )
+
+
+def operation_effect(method: str, endpoint: str) -> OperationEffect:
+    """Classify a specific API operation, not an endpoint path or HTTP verb.
+
+    Missing entries default to WRITE (fail closed in read-only deployments).
+    A single URL can have different effects for GET and POST, e.g. firmware
+    status: GET reads cached state while POST starts a repository probe.
+    """
+    if (method, endpoint) in DIAGNOSTIC_OPERATIONS:
+        return OperationEffect.DIAGNOSTIC
+    if method == "GET" and endpoint in READ_ONLY_GET_ENDPOINTS:
+        return OperationEffect.READ
+    if method == "POST" and endpoint in READ_ONLY_POST_ENDPOINTS:
+        return OperationEffect.READ
+    return OperationEffect.WRITE
 
 
 # --- Dangerous endpoints that execute immediately with no confirmation ---
@@ -509,8 +580,16 @@ class OPNsenseAPI:
             WriteDisabledError: If OPNSENSE_ALLOW_WRITES is not true.
         """
         if not self._config.allow_writes:
-            msg = "Write operations disabled. Set OPNSENSE_ALLOW_WRITES=true to enable."
+            msg = "Write operations disabled by this OPNsense target\u0027s read-only policy."
             raise WriteDisabledError(msg)
+
+    def _authorize_operation(self, method: str, endpoint: str) -> None:
+        """Prevent unclassified/mutating calls before any network activity."""
+        # Retain the unconditional blocklist, including for writable targets.
+        # Validate registry membership and its pre-version endpoint path first.
+        self._check_blocklist(self._resolve_endpoint(endpoint))
+        if not self._config.allow_writes and operation_effect(method, endpoint) is OperationEffect.WRITE:
+            raise WriteDisabledError(f"{method} operation not permitted in read-only mode: {endpoint}")
 
     async def get(
         self,
@@ -532,6 +611,7 @@ class OPNsenseAPI:
             BlockedEndpointError: If the endpoint is on the blocklist.
             OPNsenseAPIError: If the API returns an error.
         """
+        self._authorize_operation("GET", endpoint)
         await self._ensure_version_detected()
         path = self._resolve_endpoint(endpoint)
         if path_suffix:
@@ -561,8 +641,7 @@ class OPNsenseAPI:
             BlockedEndpointError: If the endpoint is on the blocklist.
             OPNsenseAPIError: If the API returns an error.
         """
-        if not self._config.allow_writes and endpoint not in READ_ONLY_POST_ENDPOINTS:
-            raise WriteDisabledError(f"POST endpoint not allowed in read-only mode: {endpoint}")
+        self._authorize_operation("POST", endpoint)
         await self._ensure_version_detected()
         path = self._resolve_endpoint(endpoint)
         if path_suffix:
@@ -583,6 +662,7 @@ class OPNsenseAPI:
             BlockedEndpointError: If the endpoint is on the blocklist.
             OPNsenseAPIError: If the API returns an error.
         """
+        self._authorize_operation("GET", endpoint)
         await self._ensure_version_detected()
         path = self._resolve_endpoint(endpoint)
         self._check_blocklist(path)
