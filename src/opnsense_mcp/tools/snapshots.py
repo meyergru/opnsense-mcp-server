@@ -45,9 +45,7 @@ async def opn_get_snapshot(ctx: Context, uuid: str, site: str = "") -> dict[str,
 
 
 @mcp.tool()
-async def opn_create_snapshot(
-    ctx: Context, name: str, site: str = "", note: str = ""
-) -> dict[str, Any]:
+async def opn_create_snapshot(ctx: Context, name: str, site: str = "", note: str = "") -> dict[str, Any]:
     """Create a new ZFS boot-environment snapshot with the requested name.
 
     Requires write access on this site. Uses POST /api/core/snapshots/add with
