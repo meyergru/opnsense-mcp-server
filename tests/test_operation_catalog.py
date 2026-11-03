@@ -236,3 +236,17 @@ def test_tools_do_not_call_raw_api_transport():
                 assert node.attr not in {"_request", "_request_text", "_client"}, (
                     f"{source_path.name}:{node.lineno} bypasses the API operation policy"
                 )
+
+
+@pytest.mark.asyncio
+async def test_native_firmware_cve_audit_resolves_to_real_endpoint_in_read_only_mode(mock_api):
+    """Exercise the actual API client/route, not just a mocked tool method."""
+    response = MagicMock()
+    response.status_code = 200
+    response.json.return_value = {"status": "ok", "msg_uuid": "test-vuxml-job"}
+    mock_api._client.post.return_value = response
+
+    result = await mock_api.post("firmware.audit")
+
+    assert result["msg_uuid"] == "test-vuxml-job"
+    mock_api._client.post.assert_awaited_once_with("/core/firmware/audit", json=None)
