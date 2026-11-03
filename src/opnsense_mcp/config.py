@@ -6,7 +6,8 @@ Environment variables:
     OPNSENSE_API_SECRET: API secret (required)
     OPNSENSE_VERIFY_SSL: Verify SSL certificate (default: true)
     OPNSENSE_ALLOW_WRITES: Enable legacy write operations (default: false)
-    OPNSENSE_MCP_READ_ONLY: Override to prohibit changes (default: true for HTTP)
+    OPNSENSE_MCP_READ_ONLY: Default read-only policy for named targets (default: true)
+    OPNSENSE_<SITE>_READ_ONLY: Optional site override of global read-only policy
 """
 
 from __future__ import annotations
@@ -53,17 +54,20 @@ def _parse_bool(value: str, var_name: str) -> bool:
     raise ConfigError(msg)
 
 
-def mcp_read_only_enabled() -> bool:
-    """Return the global hard read-only lock for all OPNsense API clients.
+def mcp_read_only_enabled(site: str = "") -> bool:
+    """Resolve the global read-only default with an optional site override.
 
-    HTTP deployments are locked by default, even when the Compose setting
-    is omitted. For compatibility, stdio retains the legacy write opt-in
-    via OPNSENSE_ALLOW_WRITES, unless this global lock is explicitly enabled.
+    The policy is loaded only when the server creates its target clients.
+    Unknown/invalid boolean values are rejected at startup, not coerced.
     """
-    raw = os.environ.get("OPNSENSE_MCP_READ_ONLY")
-    if raw is not None:
-        return _parse_bool(raw.strip(), "OPNSENSE_MCP_READ_ONLY")
-    return os.environ.get("OPNSENSE_MCP_TRANSPORT", "stdio").strip().lower() == "http"
+    global_name = "OPNSENSE_MCP_READ_ONLY"
+    global_read_only = _parse_bool(os.environ.get(global_name, "true").strip(), global_name)
+    if site:
+        name = f"OPNSENSE_{site.upper()}_READ_ONLY"
+        raw = os.environ.get(name)
+        if raw is not None:
+            return _parse_bool(raw.strip(), name)
+    return global_read_only
 
 
 def load_config() -> OPNsenseConfig:
@@ -93,6 +97,11 @@ def load_config() -> OPNsenseConfig:
 
     allow_writes_raw = os.environ.get("OPNSENSE_ALLOW_WRITES", "false").strip()
     allow_writes = _parse_bool(allow_writes_raw, "OPNSENSE_ALLOW_WRITES")
+    # Explicit global read-only policy overrides the legacy single-target flag.
+    # Without it, keep backward-compatible stdio behavior; HTTP cannot use
+    # legacy single-target mode (enforced by TargetRegistry).
+    if "OPNSENSE_MCP_READ_ONLY" in os.environ:
+        allow_writes = not mcp_read_only_enabled()
 
     return OPNsenseConfig(
         url=url,
