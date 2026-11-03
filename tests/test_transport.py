@@ -69,3 +69,16 @@ def test_reject_unexpected_transport(transport):
     with patch.dict("os.environ", {"OPNSENSE_MCP_TRANSPORT": transport}, clear=True):
         with pytest.raises(ValueError, match="TRANSPORT"):
             load_transport_config()
+
+
+@pytest.mark.parametrize("limit", ["0", "1023", "131073", "invalid"])
+def test_reject_invalid_response_limit(limit):
+    with patch.dict("os.environ", {"OPNSENSE_MCP_MAX_RESULT_BYTES": limit}, clear=True):
+        with pytest.raises(ValueError, match="MAX_RESULT_BYTES"):
+            load_transport_config()
+
+
+def test_response_limit_from_environment():
+    with patch.dict("os.environ", {"OPNSENSE_MCP_MAX_RESULT_BYTES": "8192"}, clear=True):
+        settings = load_transport_config()
+    assert settings.max_result_bytes == 8192
