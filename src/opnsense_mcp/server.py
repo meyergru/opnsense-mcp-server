@@ -1,6 +1,6 @@
 """OPNsense MCP Server — FastMCP entrypoint.
 
-Registers all tool modules and starts the STDIO server.
+Registers all tool modules and starts STDIO or authenticated Streamable HTTP.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from opnsense_mcp import __version__
 from opnsense_mcp.api_client import OPNsenseAPI, SavepointManager
 from opnsense_mcp.config_cache import ConfigCache
 from opnsense_mcp.targets import TargetRegistry
+from opnsense_mcp.transport import build_auth, load_transport_config
 
 
 @lifespan
@@ -27,7 +28,8 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
         await targets.close()
 
 
-mcp = FastMCP("opnsense", version=__version__, lifespan=app_lifespan)
+_transport = load_transport_config()
+mcp = FastMCP("opnsense", version=__version__, lifespan=app_lifespan, auth=build_auth(_transport))
 
 
 @mcp.tool()
@@ -117,7 +119,16 @@ from opnsense_mcp.tools import (  # noqa: E402
 
 def main() -> None:
     """Entry point for the OPNsense MCP server."""
-    mcp.run(transport="stdio")
+    if _transport.transport == "stdio":
+        mcp.run(transport="stdio")
+    else:
+        mcp.run(
+            transport="http",
+            host=_transport.host,
+            port=_transport.port,
+            path="/mcp",
+            stateless_http=True,
+        )
 
 
 if __name__ == "__main__":
