@@ -10,7 +10,7 @@ from opnsense_mcp.server import get_api, mcp
 
 
 @mcp.tool()
-async def opn_wireguard_status(ctx: Context) -> dict[str, Any]:
+async def opn_wireguard_status(ctx: Context, site: str = "") -> dict[str, Any]:
     """Get WireGuard VPN tunnel and peer status.
 
     Use this when you need to check WireGuard tunnel health, peer handshake
@@ -18,12 +18,12 @@ async def opn_wireguard_status(ctx: Context) -> dict[str, Any]:
     Note: Requires the WireGuard plugin (os-wireguard).
     Returns: dict with tunnel and peer details including endpoints and transfer stats.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.get("wireguard.service.show")
 
 
 @mcp.tool()
-async def opn_ipsec_status(ctx: Context) -> dict[str, Any]:
+async def opn_ipsec_status(ctx: Context, site: str = "") -> dict[str, Any]:
     """Get IPsec VPN tunnel status (IKE and ESP phases).
 
     Use this when you need to check IPsec site-to-site tunnel health,
@@ -32,7 +32,7 @@ async def opn_ipsec_status(ctx: Context) -> dict[str, Any]:
     Note: Requires IPsec to be configured. Based on strongSwan (OPNsense 23.1+).
     Returns: dict with 'service_status', 'phase1' (IKE sessions), and 'phase2' (tunnels).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     _search = {"current": 1, "rowCount": 500, "searchPhrase": ""}
     status = await api.get("ipsec.service.status")
     phase1 = await api.post("ipsec.sessions.phase1", _search)
@@ -45,7 +45,7 @@ async def opn_ipsec_status(ctx: Context) -> dict[str, Any]:
 
 
 @mcp.tool()
-async def opn_openvpn_status(ctx: Context) -> dict[str, Any]:
+async def opn_openvpn_status(ctx: Context, site: str = "") -> dict[str, Any]:
     """Get OpenVPN connection status (instances, sessions, routes).
 
     Use this when you need to check OpenVPN server/client status, see
@@ -53,7 +53,7 @@ async def opn_openvpn_status(ctx: Context) -> dict[str, Any]:
     Note: OpenVPN is built-in (no plugin needed) but must be configured.
     Returns: dict with 'instances', 'sessions' (connected clients), and 'routes'.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     _search = {"current": 1, "rowCount": 500, "searchPhrase": ""}
     instances = await api.post("openvpn.instances", _search)
     sessions = await api.post("openvpn.sessions", _search)
