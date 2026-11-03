@@ -29,7 +29,7 @@ Issues = "https://github.com/lucamarien/opnsense-mcp-server/issues"
 Changelog = "https://github.com/lucamarien/opnsense-mcp-server/blob/main/CHANGELOG.md"
 
 [project.scripts]
-opnsense-mcp = "opnsense_mcp.server:main"
+opnsense-mcp = "opnsense_mcp.bootstrap:main"
 
 [project.optional-dependencies]
 dev = [
