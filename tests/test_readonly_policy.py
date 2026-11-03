@@ -7,8 +7,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from opnsense_mcp.api_client import (
-    ENDPOINT_REGISTRY,
     DIAGNOSTIC_OPERATIONS,
+    ENDPOINT_REGISTRY,
     READ_ONLY_GET_ENDPOINTS,
     READ_ONLY_POST_ENDPOINTS,
     OperationEffect,
