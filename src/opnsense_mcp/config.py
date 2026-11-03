@@ -5,7 +5,8 @@ Environment variables:
     OPNSENSE_API_KEY: API key (required)
     OPNSENSE_API_SECRET: API secret (required)
     OPNSENSE_VERIFY_SSL: Verify SSL certificate (default: true)
-    OPNSENSE_ALLOW_WRITES: Enable write operations (default: false)
+    OPNSENSE_ALLOW_WRITES: Enable legacy write operations (default: false)
+    OPNSENSE_MCP_READ_ONLY: Override to prohibit changes (default: true for HTTP)
 """
 
 from __future__ import annotations
@@ -50,6 +51,19 @@ def _parse_bool(value: str, var_name: str) -> bool:
         return False
     msg = f"{var_name} must be true/false, 1/0, or yes/no (got {value!r})"
     raise ConfigError(msg)
+
+
+def mcp_read_only_enabled() -> bool:
+    """Return the global hard read-only lock for all OPNsense API clients.
+
+    HTTP deployments are locked by default, even when the Compose setting
+    is omitted. For compatibility, stdio retains the legacy write opt-in
+    via OPNSENSE_ALLOW_WRITES, unless this global lock is explicitly enabled.
+    """
+    raw = os.environ.get("OPNSENSE_MCP_READ_ONLY")
+    if raw is not None:
+        return _parse_bool(raw.strip(), "OPNSENSE_MCP_READ_ONLY")
+    return os.environ.get("OPNSENSE_MCP_TRANSPORT", "stdio").strip().lower() == "http"
 
 
 def load_config() -> OPNsenseConfig:
