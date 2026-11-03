@@ -1,4 +1,4 @@
-# Native multi-target mode (development branch)
+# Native multi-target mode
 
 One MCP server process manages several named OPNsense API targets, without an external gateway or worker processes.
 
@@ -42,9 +42,16 @@ The registry allocates one API client, connection pool, savepoint manager, and c
 
 ## Transport and deployment status
 
-**This development branch is not yet a network-ready OpenWebUI service.** The current Docker entrypoint uses upstream stdio. An authenticated Streamable HTTP transport and bounded/redacted responses must be implemented before production use.
+The fork provides native **authenticated Streamable HTTP** at `/mcp`, with
+a mandatory bearer token, configurable response limits and a basic
+credential-field guard. Local stdio remains available.
 
-Once implemented, the same pinned image and Compose environment configuration can move from dedicated VM `mcp` to another Docker host without changing application code.
+Read [the main README](../README.md) and [HTTP/Portainer deployment](http-compose.md)
+for current setup instructions. Live OPNsense integration has **not** yet been
+verified; use least-privilege credentials and externally enforced egress rules.
+
+The same reviewed image and Compose environment can move between Docker hosts
+without changing application code.
 
 ## Security boundary
 
