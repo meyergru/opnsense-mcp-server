@@ -6,14 +6,15 @@ endpoint blocklist, and error response parsing.
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 import httpx
 
 from opnsense_mcp.config import OPNsenseConfig
 
-class OperationEffect(str, Enum):
+
+class OperationEffect(StrEnum):
     """Impact of an OPNsense API operation, not inferred from HTTP verb."""
 
     READ = "read"
@@ -580,7 +581,7 @@ class OPNsenseAPI:
             WriteDisabledError: If OPNSENSE_ALLOW_WRITES is not true.
         """
         if not self._config.allow_writes:
-            msg = "Write operations disabled by this OPNsense target\u0027s read-only policy."
+            msg = "Write operations disabled (OPNSENSE_MCP_READ_ONLY / per-site READ_ONLY; legacy OPNSENSE_ALLOW_WRITES)."
             raise WriteDisabledError(msg)
 
     def _authorize_operation(self, method: str, endpoint: str) -> None:
