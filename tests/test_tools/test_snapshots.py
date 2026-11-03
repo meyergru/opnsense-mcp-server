@@ -35,9 +35,7 @@ async def test_get_snapshot_validates_uuid(mock_api, mock_ctx):
     mock_api.get.assert_not_awaited()
     result = await opn_get_snapshot(mock_ctx, "123e4567-e89b-12d3-a456-426614174000")
     assert result["name"] == "26.7.8_2"
-    mock_api.get.assert_awaited_once_with(
-        "snapshots.get", path_suffix="123e4567-e89b-12d3-a456-426614174000"
-    )
+    mock_api.get.assert_awaited_once_with("snapshots.get", path_suffix="123e4567-e89b-12d3-a456-426614174000")
 
 
 async def test_snapshot_creation_is_denied_in_read_only_mode(mock_api, mock_ctx):
