@@ -1,20 +1,21 @@
-# Streamable HTTP + Portainer deployment (development)
+# Streamable HTTP + Portainer deployment
 
 Native FastMCP HTTP transport listens on port 8000 at `/mcp`. There is no
 stdio-to-HTTP gateway, reverse proxy, database, or extra worker process.
 
 ## Review and build
 
-1. Review the PR and require all three CI jobs (lint, tests, security) to pass.
-2. Merge to `main` when approved.
-3. In GitHub Actions, manually run **Publish reviewed MCP image to GHCR**
-   on the `main` branch. This publishes `ghcr.io/meyergru/opnsense-mcp-server:dev`
-   and a `sha-<commit>` tag. No build runs automatically on commits or tags.
-4. In Portainer on VM `mcp`, create a new **Web editor** Stack by copying
-   `compose.yaml`. Fill in credentials there; do NOT commit them to public Git.
-5. Allow the OpenWebUI host to reach VM `mcp` on TCP/8000. Restrict that
-   inbound port at the VM/Proxmox firewall. Explicitly restrict the VM's
-   outbound traffic to the configured OPNsense IP/port pairs.
+1. Review the code and current CI results (lint, tests, security and Docker smoke).
+2. Run **Publish reviewed MCP image to GHCR** manually on the `main`
+   branch from GitHub Actions. The workflow publishes both
+   `ghcr.io/meyergru/opnsense-mcp-server:dev` and a commit-specific
+   `sha-<commit>` tag. No automatic publication occurs.
+3. In Portainer on VM `mcp`, paste [compose.yaml](../compose.yaml) into a
+   **Web editor** Stack and enter target/API credentials there. Do not
+   commit real credentials to the public repository.
+4. Allow OpenWebUI to reach the VM on TCP/8000; enforce an externally managed
+   outbound allowlist of exact OPNsense API IP/port pairs before connecting
+   real firewalls.
 
 ## Compose settings
 
@@ -53,17 +54,20 @@ The Compose container runs as an unprivileged UID with no capabilities,
 a read-only root filesystem, a small tmpfs, and Watchtower opt-out.
 These container settings do **not** replace host-enforced outbound firewalling.
 
-**Do not deploy to production yet.** Although the HTTP listener is authenticated,
-upstream raw configuration tools and the per-endpoint read/write policy still
-need a fail-closed security review to ensure no secrets or mutations leak
-through MCP. API users must independently have read-only OPNsense privileges.
+**Security caveat:** The server blocks raw configuration exports and arbitrary
+configuration sections over HTTP. Named targets are read-only; a central
+allowlist restricts POST operations, and a response middleware suppresses
+common credential-shaped fields. These defenses do **not** prove that
+all plugin-specific responses are secret-safe. Use least-privileged
+OPNsense API credentials and externally enforced network egress rules.
+No live OPNsense integration testing has been completed.
 
 ## Local validation
 
 Run `pytest`, `ruff check src/ tests/`, `ruff format --check src/ tests/`,
-and `mypy src/`. A local smoke test can launch `python -m opnsense_mcp`
+and `mypy src/`. A local smoke test can launch `opnsense-mcp`
 with `OPNSENSE_MCP_TRANSPORT=http`, one named target, and the bearer token.
 Without the header, the MCP endpoint must reject the request.
 
-CI tests do not contact live firewalls. A real OpenWebUI handshake test
+CI tests do not contact live firewalls. Docker smoke tests confirmed HTTP 401 without the bearer token and 200 with a valid token. A real OpenWebUI handshake test
 requires both systems to be reachable in the DMZ.
