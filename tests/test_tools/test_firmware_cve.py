@@ -133,7 +133,8 @@ async def test_different_firmware_job_not_accepted_as_cve_scan(mock_api, mock_ct
     old = {"status": "done", "log": "old"}
     mock_api.get = AsyncMock(
         side_effect=[
-            {"status": "idle"}, old,
+            {"status": "idle"},
+            old,
             {"status": "done", "log": "Firmware update finished\n***DONE***"},
         ]
     )
@@ -144,10 +145,13 @@ async def test_different_firmware_job_not_accepted_as_cve_scan(mock_api, mock_ct
 
 
 async def test_transient_outage_preserves_session(mock_api, mock_ctx):
-    mock_api.get = AsyncMock(side_effect=[
-        {"status": "idle"}, {"status": "error", "log": ""},
-        TimeoutError("temporary timeout"),
-    ])
+    mock_api.get = AsyncMock(
+        side_effect=[
+            {"status": "idle"},
+            {"status": "error", "log": ""},
+            TimeoutError("temporary timeout"),
+        ]
+    )
     mock_api.post = AsyncMock(return_value={"status": "ok", "msg_uuid": "scan-789"})
     result = await opn_firmware_cve_audit(mock_ctx, max_checks=1)
     assert result["state"] == "temporarily_unreachable"
