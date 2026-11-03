@@ -85,8 +85,15 @@ def test_explicit_operation_classification_is_independent_of_http_method():
     assert READ_ONLY_GET_ENDPOINTS <= ENDPOINT_REGISTRY.keys() | {
         f"haproxy.settings.get_{x}"
         for x in (
-            "frontend", "backend", "server", "action", "acl",
-            "healthcheck", "errorfile", "resolver", "mailer",
+            "frontend",
+            "backend",
+            "server",
+            "action",
+            "acl",
+            "healthcheck",
+            "errorfile",
+            "resolver",
+            "mailer",
         )
     }
 
