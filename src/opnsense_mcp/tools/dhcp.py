@@ -10,7 +10,7 @@ from opnsense_mcp.server import get_api, get_config_cache, mcp
 
 
 @mcp.tool()
-async def opn_list_dhcp_leases(ctx: Context) -> dict[str, Any]:
+async def opn_list_dhcp_leases(ctx: Context, site: str = "") -> dict[str, Any]:
     """List current DHCPv4 leases from the ISC DHCP server (legacy).
 
     Use this when the OPNsense instance uses the ISC DHCP plugin (os-isc-dhcp).
@@ -18,7 +18,7 @@ async def opn_list_dhcp_leases(ctx: Context) -> dict[str, Any]:
     Use opn_scan_config first to check which DHCP backend is active.
     Returns: dict with DHCP lease entries including address, mac, and hostname fields.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.get("dhcpv4.leases.search")
 
 
@@ -27,6 +27,7 @@ async def opn_list_kea_leases(
     ctx: Context,
     search: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """List current DHCPv4 leases from the Kea DHCP server.
 
@@ -35,7 +36,7 @@ async def opn_list_kea_leases(
     Use opn_scan_config first to check which DHCP backend is active.
     Returns: dict with 'rows' (list of leases) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.post(
         "kea.leases4.search",
         {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
@@ -47,6 +48,7 @@ async def opn_list_dnsmasq_leases(
     ctx: Context,
     search: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """List current DHCPv4 and DHCPv6 leases from the dnsmasq DNS/DHCP server.
 
@@ -56,7 +58,7 @@ async def opn_list_dnsmasq_leases(
     Use opn_scan_config first to check which DHCP backend is active.
     Returns: dict with 'rows' (list of leases) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.post(
         "dnsmasq.leases.search",
         {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
@@ -71,6 +73,7 @@ async def opn_list_dnsmasq_ranges(
     ctx: Context,
     search: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """List dnsmasq DHCP ranges (both DHCPv4 and DHCPv6 with RA config).
 
@@ -85,7 +88,7 @@ async def opn_list_dnsmasq_ranges(
     Note: Requires the dnsmasq DNS/DHCP server (os-dnsmasq-dns or built-in).
     Returns: dict with 'rows' (list of ranges) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.post(
         "dnsmasq.settings.search_range",
         {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
@@ -102,6 +105,7 @@ async def opn_add_dnsmasq_range(
     ra_mode: str = "",
     lease_time: str = "24h",
     description: str = "",
+    site: str = "",
 ) -> dict[str, Any]:
     """Create a new dnsmasq DHCP range and apply the configuration.
 
@@ -140,7 +144,7 @@ async def opn_add_dnsmasq_range(
     if not end_addr.strip():
         return {"error": "end_addr must not be empty"}
 
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
 
     range_config: dict[str, str] = {
@@ -160,7 +164,7 @@ async def opn_add_dnsmasq_range(
     add_result = await api.post("dnsmasq.settings.add_range", {"range": range_config})
 
     reconfigure_result = await api.post("dnsmasq.service.reconfigure")
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
 
     return {
         "result": add_result.get("result", "unknown"),
@@ -181,6 +185,7 @@ async def opn_update_dnsmasq_range(
     lease_time: str | None = None,
     description: str | None = None,
     enabled: bool | None = None,
+    site: str = "",
 ) -> dict[str, Any]:
     """Update a dnsmasq DHCP range by UUID and apply the configuration.
 
@@ -205,7 +210,7 @@ async def opn_update_dnsmasq_range(
 
     Returns: dict with 'result' (str), 'uuid' (str), and 'reconfigure_status'.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
 
     range_config: dict[str, str] = {}
@@ -228,7 +233,7 @@ async def opn_update_dnsmasq_range(
 
     result = await api.post("dnsmasq.settings.set_range", {"range": range_config}, path_suffix=uuid)
     reconfigure_result = await api.post("dnsmasq.service.reconfigure")
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
 
     return {
         "result": result.get("result", ""),
@@ -241,6 +246,7 @@ async def opn_update_dnsmasq_range(
 async def opn_delete_dnsmasq_range(
     ctx: Context,
     uuid: str,
+    site: str = "",
 ) -> dict[str, Any]:
     """Delete a dnsmasq DHCP range by UUID and apply the configuration.
 
@@ -248,11 +254,11 @@ async def opn_delete_dnsmasq_range(
     Use opn_list_dnsmasq_ranges first to find the UUID.
     Returns: dict with 'result' (str), 'uuid' (str), and 'reconfigure_status'.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
     result = await api.post("dnsmasq.settings.del_range", path_suffix=uuid)
     reconfigure_result = await api.post("dnsmasq.service.reconfigure")
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
 
     return {
         "result": result.get("result", ""),
@@ -262,7 +268,7 @@ async def opn_delete_dnsmasq_range(
 
 
 @mcp.tool()
-async def opn_reconfigure_dnsmasq(ctx: Context) -> dict[str, Any]:
+async def opn_reconfigure_dnsmasq(ctx: Context, site: str = "") -> dict[str, Any]:
     """Apply pending dnsmasq DNS/DHCP configuration changes.
 
     Use this after manually editing dnsmasq settings to apply the changes
@@ -274,8 +280,8 @@ async def opn_reconfigure_dnsmasq(ctx: Context) -> dict[str, Any]:
     Note: Requires the dnsmasq DNS/DHCP server.
     Returns: dict with 'status' indicating success or failure.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
     result = await api.post("dnsmasq.service.reconfigure")
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {"status": result.get("status", "unknown"), "service": "dnsmasq"}
