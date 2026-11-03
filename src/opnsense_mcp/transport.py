@@ -24,6 +24,7 @@ class TransportConfig:
     host: str
     port: int
     token: str | None
+    max_result_bytes: int
 
     def __repr__(self) -> str:
         return f"TransportConfig(transport={self.transport!r}, host={self.host!r}, port={self.port})"
@@ -34,8 +35,14 @@ def load_transport_config() -> TransportConfig:
     value = os.environ.get("OPNSENSE_MCP_TRANSPORT", "stdio").strip().lower()
     if value not in {"stdio", "http"}:
         raise ValueError("OPNSENSE_MCP_TRANSPORT must be stdio or http")
+    try:
+        max_bytes = int(os.environ.get("OPNSENSE_MCP_MAX_RESULT_BYTES", "16384"))
+    except ValueError as exc:
+        raise ValueError("OPNSENSE_MCP_MAX_RESULT_BYTES must be an integer") from exc
+    if not 1024 <= max_bytes <= 131072:
+        raise ValueError("OPNSENSE_MCP_MAX_RESULT_BYTES must be between 1024 and 131072")
     if value == "stdio":
-        return TransportConfig(transport="stdio", host="", port=0, token=None)
+        return TransportConfig(transport="stdio", host="", port=0, token=None, max_result_bytes=max_bytes)
 
     token = os.environ.get("OPNSENSE_MCP_AUTH_TOKEN", "")
     if not _TOKEN_PATTERN.fullmatch(token):
@@ -50,7 +57,7 @@ def load_transport_config() -> TransportConfig:
         raise ValueError("OPNSENSE_MCP_PORT must be an integer") from exc
     if port < 1 or port > 65535:
         raise ValueError("OPNSENSE_MCP_PORT must be between 1 and 65535")
-    return TransportConfig(transport="http", host=host, port=port, token=token)
+    return TransportConfig(transport="http", host=host, port=port, token=token, max_result_bytes=max_bytes)
 
 
 def build_auth(config: TransportConfig) -> StaticTokenVerifier | None:
