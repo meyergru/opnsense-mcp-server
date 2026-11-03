@@ -75,6 +75,10 @@ READ_ONLY_GET_ENDPOINTS: frozenset[str] = frozenset(
 DIAGNOSTIC_OPERATIONS: frozenset[tuple[str, str]] = frozenset(
     {
         ("POST", "firmware.status"),  # synchronous firmware probe, not upgrade
+        ("POST", "diagnostics.ping.set"),
+        ("POST", "diagnostics.ping.start"),
+        ("POST", "diagnostics.ping.remove"),
+        ("POST", "diagnostics.dns_diagnostics.set"),
         ("GET", "haproxy.service.configtest"),  # syntax validation
     }
 )
@@ -143,11 +147,7 @@ WRITE_OPERATIONS: frozenset[tuple[str, str]] = frozenset(
         ("POST", "firewall.category.del"),
         ("POST", "unbound.service.reconfigure"),
         ("POST", "haproxy.service.reconfigure"),
-        ("POST", "diagnostics.ping.set"),
-        ("POST", "diagnostics.ping.start"),
-        ("POST", "diagnostics.ping.remove"),
         ("POST", "diagnostics.traceroute.set"),
-        ("POST", "diagnostics.dns_diagnostics.set"),
         ("POST", "nat.dnat.add_rule"),
         ("POST", "nat.dnat.set_rule"),
         ("POST", "nat.dnat.del_rule"),
@@ -680,7 +680,8 @@ class OPNsenseAPI:
         if classification is OperationEffect.WRITE:
             if (method, endpoint) not in WRITE_OPERATIONS:
                 raise WriteDisabledError(
-                    f"Unclassified {method} operation denied by read-only safety policy (even on writable targets): {endpoint}"
+                    "Unclassified API operation denied by read-only safety policy: "
+                    f"{method} {endpoint} (even for writable sites)"
                 )
             if not self._config.allow_writes:
                 raise WriteDisabledError(f"{method} operation not permitted in read-only mode: {endpoint}")
