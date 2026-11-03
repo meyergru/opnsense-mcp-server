@@ -15,6 +15,9 @@ services:
 
     environment:
       OPNSENSE_MCP_TRANSPORT: "http"
+      # Keep invalidly configured container unhealthy instead of restart-looping.
+      # Redeploy after fixing Compose; normal runtime crashes still auto-restart.
+      OPNSENSE_MCP_CONFIG_ERROR_HOLD: "true"
       OPNSENSE_MCP_HOST: "0.0.0.0"
       OPNSENSE_MCP_PORT: "8000"
       OPNSENSE_MCP_MAX_RESULT_BYTES: "16384"
