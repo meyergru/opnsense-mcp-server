@@ -155,6 +155,4 @@ async def test_monitor_empty_log_is_indeterminate_not_failed(mock_api, mock_ctx)
 @pytest.mark.parametrize("max_checks,interval", [(0, 2), (4, 2), (2, 0), (2, 4)])
 async def test_monitor_rejects_unbounded_polling(mock_ctx, max_checks, interval):
     with pytest.raises(ValueError):
-        await opn_monitor_firmware_update(
-            mock_ctx, max_checks=max_checks, poll_interval_seconds=interval
-        )
+        await opn_monitor_firmware_update(mock_ctx, max_checks=max_checks, poll_interval_seconds=interval)
