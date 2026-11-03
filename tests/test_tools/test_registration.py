@@ -109,6 +109,9 @@ class TestToolRegistration:
             "opn_configure_mdns_repeater",
             # Security
             "opn_security_audit",
+            "opn_configuration_audit",
+            "opn_firmware_cve_audit",
+            "opn_firmware_cve_audit_result",
             # Diagnostics
             "opn_ping",
             "opn_traceroute",
@@ -121,7 +124,7 @@ class TestToolRegistration:
         from opnsense_mcp.server import mcp
 
         tools = await mcp.list_tools()
-        assert len(tools) == 91, f"Expected 91 tools, got {len(tools)}"
+        assert len(tools) == 94, f"Expected 94 tools, got {len(tools)}"
 
     async def test_every_opnsense_tool_has_site_parameter(self):
         """Every site-bound tool must expose an explicit target selector."""

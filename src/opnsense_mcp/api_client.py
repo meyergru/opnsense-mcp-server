@@ -80,6 +80,7 @@ READ_ONLY_GET_ENDPOINTS: frozenset[str] = frozenset(
 DIAGNOSTIC_OPERATIONS: frozenset[tuple[str, str]] = frozenset(
     {
         ("POST", "firmware.status"),  # synchronous firmware probe, not upgrade
+        ("POST", "firmware.audit"),  # VuXML package-CVE scan; writes only audit logs
         ("POST", "diagnostics.ping.set"),
         ("POST", "diagnostics.ping.start"),
         ("POST", "diagnostics.ping.remove"),
@@ -231,6 +232,7 @@ BLOCKED_ENDPOINTS: frozenset[str] = frozenset(
 ENDPOINT_REGISTRY: dict[str, tuple[str, str]] = {
     # Firmware (unchanged across versions)
     "firmware.status": ("core/firmware/status", "core/firmware/status"),
+    "firmware.audit": ("core/firmware/audit", "core/firmware/audit"),
     "firmware.update": ("core/firmware/update", "core/firmware/update"),
     "firmware.running": ("core/firmware/running", "core/firmware/running"),
     "firmware.upgradestatus": ("core/firmware/upgradestatus", "core/firmware/upgradestatus"),

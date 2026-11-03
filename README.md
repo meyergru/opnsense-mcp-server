@@ -2,7 +2,7 @@
 
 A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible AI clients, including **OpenWebUI**, to several **named OPNsense firewalls** over their REST APIs. This is a fork of [lucamarien/opnsense-mcp-server](https://github.com/lucamarien/opnsense-mcp-server), with the original MIT license retained.
 
-**91 tools:** 81 upstream tools, target selection, firmware check, and eight additional ZFS snapshot / firmware maintenance tools; see the [tool reference](#available-tools-91).
+**94 tools:** 81 upstream tools plus target selection, snapshot, firmware and native package-CVE audit tools; see the [tool reference](#available-tools-94).
 
 ## Architecture and configuration ownership
 
@@ -105,7 +105,7 @@ opnsense-mcp
 
 Do **not** use the original author's `uhlenheide` Docker Hub image for this fork.
 
-## Available Tools (91)
+## Available Tools (94)
 
 ### Target selection (1 tool)
 
@@ -135,10 +135,12 @@ Do **not** use the original author's `uhlenheide` Docker Hub image for this fork
 | `opn_get_snapshot` | Inspect an existing snapshot by UUID. Read-only. |
 | `opn_create_snapshot` | Create one named snapshot. **WRITE**; verifies ZFS support, never activates it, no reboot. Caller verifies creation separately. |
 
-### Firmware maintenance (4 tools)
+### Firmware maintenance (6 tools)
 
 | Tool | Description |
 | --- | --- |
+| `opn_firmware_cve_audit` | **Original OPNsense VuXML security audit**: starts a package vulnerability scan and polls briefly, returning known affected packages/CVEs or a job ID to continue. Allowed even for read-only sites; never installs updates. |
+| `opn_firmware_cve_audit_result` | Collect a running CVE audit by job ID. Reject stale logs; only mark clean if the new scan explicitly reports zero package problems. |
 | `opn_firmware_update_running` | Read firmware backend running indicator (low-level). |
 | `opn_firmware_update_progress` | Read the raw upgrade status/log (low-level). |
 | `opn_monitor_firmware_update` | **Recommended monitor:** poll in a bounded call (1–3 checks), tolerate temporary network outages, report backend completion/reboot requirement, and attempt to verify the installed version. Repeat the monitor call for longer updates; it never starts updates or reboots. |
@@ -265,11 +267,13 @@ HAProxy inspection and legacy administration tools (requires os-haproxy plugin).
 | `opn_dns_lookup` | DNS lookup from the firewall. Params: `hostname`, `server` (optional custom DNS server) |
 | `opn_pf_states` | Query active PF state table. Params: `search`, `limit` (max 1000) |
 
-### Security (1 tool)
+### Security (2 tools)
 
 | Tool | Description |
 | --- | --- |
-| `opn_security_audit` | Comprehensive 11-area security audit: firmware, firewall rules (MVC + legacy, port grouping, insecure protocols), NAT forwarding, DNS security (DNSSEC, DoT), system hardening (SSH, HTTPS, syslog), services, certificates (ACME + system + CAs), VPN (WireGuard config, IPsec, OpenVPN), HAProxy (headers, health checks), gateways. Findings tagged with PCI DSS v4.0, BSI IT-Grundschutz, NIST 800-41, CIS compliance references. |
+| `opn_security_audit` | **Heuristic configuration hardening review, NOT a CVE audit**: firmware status, firewall rules (MVC + legacy, port grouping, insecure protocols), NAT forwarding, DNS security (DNSSEC, DoT), system hardening (SSH, HTTPS, syslog), services, certificates (ACME + system + CAs), VPN (WireGuard config, IPsec, OpenVPN), HAProxy (headers, health checks), gateways. Findings tagged with PCI DSS v4.0, BSI IT-Grundschutz, NIST 800-41, CIS compliance references; these are recommendations, not independently proven exploits. |
+
+| `opn_configuration_audit` | Clear alias for the existing heuristic `opn_security_audit`. For installed package vulnerabilities use `opn_firmware_cve_audit`. |
 
 ## Read-only policy and legacy write functions
 
@@ -332,7 +336,7 @@ ruff format --check src/ tests/
 mypy src/
 ```
 
-See [multi-target details](docs/multi-target.md), [HTTP/Portainer deployment](docs/http-compose.md) and [CI](.github/workflows/ci.yml). CI builds the Docker image and checks the HTTP authentication handshake with no live firewall connection.
+See [OPNsense Core 26.7 API coverage and remaining gaps](docs/core-api-coverage-26.7.md), [multi-target details](docs/multi-target.md), [HTTP/Portainer deployment](docs/http-compose.md) and [CI](.github/workflows/ci.yml). CI builds the Docker image and checks the HTTP authentication handshake with no live firewall connection.
 
 ## Upstream and license
 

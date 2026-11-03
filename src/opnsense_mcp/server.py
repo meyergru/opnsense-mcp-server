@@ -113,6 +113,7 @@ from opnsense_mcp.tools import (  # noqa: E402
     dns,  # noqa: F401
     firewall,  # noqa: F401
     firmware,  # noqa: F401
+    firmware_cve,  # noqa: F401
     haproxy,  # noqa: F401
     network,  # noqa: F401
     security,  # noqa: F401
