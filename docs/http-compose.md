@@ -25,6 +25,7 @@ TOML/secret file or writable data volume.
 - `OPNSENSE_MCP_TRANSPORT=http` switches from legacy stdio to HTTP.
 - `OPNSENSE_MCP_HOST=0.0.0.0` binds inside Docker.
 - `OPNSENSE_MCP_PORT=8000` and the Docker `ports:` declaration expose the port.
+- `OPNSENSE_MCP_MAX_RESULT_BYTES=16384`: bound all tool responses using native FastMCP middleware. Large results are truncated; narrow searches or lower limits when needed.
 - `OPNSENSE_MCP_AUTH_TOKEN`: generate 32 random bytes as 64 hex chars with
   `openssl rand -hex 32`. The server rejects an absent/short token at startup.
 - `OPNSENSE_SITES=local,remote` selects named OPNsense endpoints.
