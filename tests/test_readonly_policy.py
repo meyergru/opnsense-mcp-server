@@ -30,7 +30,6 @@ def test_all_readonly_post_operations_are_known():
         "firewall.toggle_rule",
         "unbound.service.reconfigure",
         "unbound.set_dnsbl",
-        "diagnostics.ping.start",
         "dnsmasq.settings.add_range",
         "dyndns.accounts.del",
         "mdnsrepeater.service.start",
@@ -123,3 +122,25 @@ async def test_get_text_to_mutating_operation_denied_before_network(mock_api):
     with pytest.raises(WriteDisabledError, match="read-only"):
         await mock_api.get_text("firewall.add_rule")
     mock_api._client.get.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "diagnostics.ping.set",
+        "diagnostics.ping.start",
+        "diagnostics.ping.remove",
+        "diagnostics.dns_diagnostics.set",
+        "firmware.status",
+    ],
+)
+async def test_limited_diagnostics_allowed_in_read_only_mode(mock_api, endpoint):
+    assert operation_effect("POST", endpoint) is OperationEffect.DIAGNOSTIC
+    response = MagicMock()
+    response.status_code = 200
+    response.json.return_value = {"status": "ok"}
+    mock_api._client.post.return_value = response
+    result = await mock_api.post(endpoint)
+    assert result == {"status": "ok"}
+    mock_api._client.post.assert_awaited_once()
