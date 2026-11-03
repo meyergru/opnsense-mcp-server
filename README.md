@@ -307,7 +307,7 @@ The upstream server supports OPNsense 24.7+ and automatically chooses camelCase 
 
 | Symptom | Likely cause / check |
 | --- | --- |
-| Container exits immediately | Missing/short MCP token, invalid site names or missing URL/key/secret. Check Portainer logs. |
+| Container stays `unhealthy` and MCP port is closed | Configuration failed preflight. Check the single `CONFIGURATION ERROR` line in Portainer logs, correct the named Compose variable, and **redeploy**. With `OPNSENSE_MCP_CONFIG_ERROR_HOLD=true`, the container deliberately stays alive to prevent `restart: unless-stopped` loops. |
 | HTTP 401 from `/mcp` | Missing or incorrect MCP bearer token, **not** an OPNsense API error. |
 | TCP connection refused | Wrong VM hostname/port, Docker port mapping, or VM firewall. |
 | OPNsense API timeout/401/403 | Check selected `site`, URL/port, TLS, outbound firewall and API privileges. |

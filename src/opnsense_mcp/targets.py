@@ -17,6 +17,7 @@ from __future__ import annotations
 import os
 import re
 from dataclasses import dataclass
+from difflib import get_close_matches
 from urllib.parse import urlsplit
 
 from opnsense_mcp.api_client import OPNsenseAPI, SavepointManager
@@ -100,13 +101,13 @@ class TargetRegistry:
             await state.api.close()
 
     @classmethod
-    def from_environment(cls) -> TargetRegistry:
-        """Create target clients from Docker Compose-style environment variables."""
+    def configs_from_environment(cls) -> dict[str, OPNsenseConfig]:
+        """Validate all Compose target settings before allocating any API clients."""
         sites_raw = os.environ.get("OPNSENSE_SITES", "").strip()
         if not sites_raw:
             if os.environ.get("OPNSENSE_MCP_TRANSPORT", "stdio").strip().lower() == "http":
                 raise ConfigError("HTTP mode requires OPNSENSE_SITES for explicit per-site policy")
-            return cls({"default": load_config()})
+            return {"default": load_config()}
 
         names = [name.strip() for name in sites_raw.split(",")]
         if any(not _SITE_PATTERN.fullmatch(name) for name in names):
@@ -126,7 +127,15 @@ class TargetRegistry:
             values = {part: os.environ.get(prefix + part, "").strip() for part in required}
             if not all(values.values()):
                 missing = [prefix + part for part in required if not values[part]]
-                raise ConfigError(f"Missing configuration variable(s): {', '.join(missing)}")
+                # Show likely misspelled variable NAMES only, never values.
+                candidates = [key for key in os.environ if key.startswith(prefix)]
+                hints = [
+                    f"{key} (did you mean {matches[0]}?)"
+                    if (matches := get_close_matches(key, candidates, n=1, cutoff=0.75))
+                    else key
+                    for key in missing
+                ]
+                raise ConfigError(f"Missing configuration variable(s): {', '.join(hints)}")
             ssl_value = os.environ.get(prefix + "VERIFY_SSL", "true").strip().lower()
             if ssl_value not in {"true", "false"}:
                 raise ConfigError(f"{prefix}VERIFY_SSL must be true or false")
@@ -137,4 +146,9 @@ class TargetRegistry:
                 verify_ssl=ssl_value == "true",
                 allow_writes=not mcp_read_only_enabled(name),
             )
-        return cls(configs)
+        return configs
+
+    @classmethod
+    def from_environment(cls) -> TargetRegistry:
+        """Create target clients from the validated Compose target settings."""
+        return cls(cls.configs_from_environment())

@@ -100,3 +100,34 @@ jobs:
             -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' || true)
           echo "Authenticated request: HTTP $accepted"
           [[ "$accepted" == "200" || "$accepted" == "400" ]]
+
+      - name: Invalid Compose config is unhealthy without restarting
+        shell: bash
+        run: |
+          set -euo pipefail
+          # This reproduces a typo in OPNSENSE_LAB_API_SECRET.
+          docker run -d --name opnsense-mcp-invalid-ci \
+            --restart unless-stopped \
+            --read-only --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+            --cap-drop ALL --security-opt no-new-privileges \
+            -e OPNSENSE_MCP_TRANSPORT=http \
+            -e OPNSENSE_MCP_CONFIG_ERROR_HOLD=true \
+            -e OPNSENSE_MCP_AUTH_TOKEN=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+            -e OPNSENSE_SITES=lab \
+            -e OPNSENSE_LAB_URL=https://192.0.2.1/api \
+            -e OPNSENSE_LAB_API_KEY=test-key \
+            -e OPNSENSE_LAB_AP_SECRET=test-secret \
+            opnsense-mcp:ci
+          trap 'docker rm -f opnsense-mcp-invalid-ci || true' EXIT
+          sleep 3
+          state=$(docker inspect -f '{{.State.Status}}' opnsense-mcp-invalid-ci)
+          restarts=$(docker inspect -f '{{.RestartCount}}' opnsense-mcp-invalid-ci)
+          logs=$(docker logs opnsense-mcp-invalid-ci 2>&1)
+          printf '%s\n' "$logs"
+          test "$state" = "running"
+          test "$restarts" = "0"
+          grep -q 'CONFIGURATION ERROR' <<< "$logs"
+          grep -q 'OPNSENSE_LAB_API_SECRET' <<< "$logs"
+          grep -q 'OPNSENSE_LAB_AP_SECRET' <<< "$logs"
+          grep -q 'MCP server NOT started' <<< "$logs"
+          if grep -q Traceback <<< "$logs"; then exit 1; fi

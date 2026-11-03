@@ -24,6 +24,7 @@ All target addresses, credentials, and the MCP HTTP token are inline under
 TOML/secret file or writable data volume.
 
 - `OPNSENSE_MCP_TRANSPORT=http` switches from legacy stdio to HTTP.
+- `OPNSENSE_MCP_CONFIG_ERROR_HOLD=true` preserves the container without starting the MCP listener if configuration validation fails. This prevents restart loops with `restart: unless-stopped` and makes the container report `unhealthy` after its healthcheck. Correct the Portainer Stack and redeploy; the container does not dynamically reread environment variables.
 - `OPNSENSE_MCP_HOST=0.0.0.0` binds inside Docker.
 - `OPNSENSE_MCP_PORT=8000` and the Docker `ports:` declaration expose the port.
 - `OPNSENSE_MCP_MAX_RESULT_BYTES=16384`: bound all tool responses using native FastMCP middleware. Large results are truncated; narrow searches or lower limits when needed.

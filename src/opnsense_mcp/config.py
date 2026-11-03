@@ -50,7 +50,7 @@ def _parse_bool(value: str, var_name: str) -> bool:
         return True
     if lower in _FALSY:
         return False
-    msg = f"{var_name} must be true/false, 1/0, or yes/no (got {value!r})"
+    msg = f"{var_name} must be true/false, 1/0, or yes/no (invalid value omitted)"
     raise ConfigError(msg)
 
 
