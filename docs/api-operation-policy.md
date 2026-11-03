@@ -45,13 +45,14 @@ operations for that site; unknown operations are never automatically allowed.
 | GET `firmware.status` | READ | Read last check result |
 | POST `firmware.status` | DIAGNOSTIC | Refresh update metadata via `firmware probe`, without package installation |
 | GET `haproxy.service.configtest` | DIAGNOSTIC | Run a syntax check, not activate a config |
-| POST `diagnostics.ping.set/start/remove` | WRITE | Creates/starts/removes temporary jobs and sends network probes |
+| POST `diagnostics.ping.set/start/remove` | DIAGNOSTIC | Creates/starts/removes temporary jobs and sends network probes; explicitly allowed in read-only mode |
 | POST `diagnostics.traceroute.set` | WRITE | Initiates outgoing network probes |
-| POST `diagnostics.dns_diagnostics.set` | WRITE | Sends DNS requests from the firewall |
+| POST `diagnostics.dns_diagnostics.set` | DIAGNOSTIC | Sends DNS queries from the firewall; explicitly allowed in read-only mode |
 | GET `core.backup.download` | READ | Sensitive export risk: raw backup is **blocked for HTTP MCP clients** despite being non-mutating |
 
-The diagnostic networking operations are deliberately disabled on read-only
-sites until their destination and operational risks have been assessed. No
+These selected network diagnostics are intentionally allowed on read-only sites;
+they can send traffic to user-specified destinations. Traceroute remains
+classified as WRITE and blocked on read-only sites pending separate review. No
 claim is made that `READ` results are automatically free of passwords,
 keys or other sensitive information: output filtering and OPNsense API
 privileges are separate security controls.
