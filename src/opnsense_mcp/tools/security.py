@@ -1460,7 +1460,9 @@ async def opn_security_audit(ctx: Context, site: str = "") -> dict[str, Any]:
     (critical, warning, info).  Each finding includes a recommendation and
     applicable compliance framework references.
 
-    For CVEs in installed packages, use opn_firmware_cve_audit instead.\n\n    Use this when you need to assess the security posture of the firewall,
+    For CVEs in installed packages, use opn_firmware_cve_audit instead.
+
+    Use this when you need to assess the security posture of the firewall,
     identify misconfigurations, or perform a routine health check.
     """
     api = get_api(ctx, site)
