@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import os
 import re
+from difflib import get_close_matches
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
@@ -126,7 +127,15 @@ class TargetRegistry:
             values = {part: os.environ.get(prefix + part, "").strip() for part in required}
             if not all(values.values()):
                 missing = [prefix + part for part in required if not values[part]]
-                raise ConfigError(f"Missing configuration variable(s): {', '.join(missing)}")
+                # Show likely misspelled variable NAMES only, never values.
+                candidates = [key for key in os.environ if key.startswith(prefix)]
+                hints = [
+                    f"{key} (did you mean {matches[0]}?)"
+                    if (matches := get_close_matches(key, candidates, n=1, cutoff=0.75))
+                    else key
+                    for key in missing
+                ]
+                raise ConfigError(f"Missing configuration variable(s): {', '.join(hints)}")
             ssl_value = os.environ.get(prefix + "VERIFY_SSL", "true").strip().lower()
             if ssl_value not in {"true", "false"}:
                 raise ConfigError(f"{prefix}VERIFY_SSL must be true or false")
