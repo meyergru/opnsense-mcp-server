@@ -53,10 +53,20 @@ READ_ONLY_GET_ENDPOINTS: frozenset[str] = frozenset(
         "unbound.settings.get",
         "unbound.stats",
         "wireguard.service.show",
-        *{f"haproxy.settings.get_{name}" for name in (
-            "frontend", "backend", "server", "action", "acl",
-            "healthcheck", "errorfile", "resolver", "mailer",
-        )},
+        *{
+            f"haproxy.settings.get_{name}"
+            for name in (
+                "frontend",
+                "backend",
+                "server",
+                "action",
+                "acl",
+                "healthcheck",
+                "errorfile",
+                "resolver",
+                "mailer",
+            )
+        },
     }
 )
 
@@ -582,7 +592,7 @@ class OPNsenseAPI:
         """
         if not self._config.allow_writes:
             msg = (
-                "Writes disabled: OPNSENSE_MCP_READ_ONLY / per-site READ_ONLY "
+                "Write operations disabled: OPNSENSE_MCP_READ_ONLY / per-site READ_ONLY "
                 "(or legacy OPNSENSE_ALLOW_WRITES for stdio)."
             )
             raise WriteDisabledError(msg)
