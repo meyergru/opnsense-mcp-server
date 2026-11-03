@@ -223,7 +223,7 @@ BLOCKED_ENDPOINTS: frozenset[str] = frozenset(
         "core/system/halt",
         "core/system/reboot",
         "core/firmware/poweroff",
-            "core/firmware/upgrade",
+        "core/firmware/upgrade",
     }
 )
 
