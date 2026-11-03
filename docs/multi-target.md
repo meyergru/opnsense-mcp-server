@@ -27,7 +27,7 @@ environment:
   OPNSENSE_REMOTE_VERIFY_SSL: "true"
 ```
 
-Target names are lower-case ASCII letters, digits and underscores, starting with a letter. Environment variable prefixes use the upper-case name. Duplicate names are rejected.
+Target names start with a lower-case ASCII letter and support digits, underscores, and interior dots (up to 64 characters). Environment variable prefixes normalize dots to underscores and uppercase, e.g. `opnsense.mgsoft` uses `OPNSENSE_OPNSENSE_MGSOFT_URL`, `_API_KEY`, `_API_SECRET` and `_READ_ONLY`. `opnsense.mgsoft` and `opnsense_mgsoft` may not coexist because the environment prefixes collide. Duplicate names are rejected.
 
 To include literal dollar signs inside Compose values, escape them as `$$`. Avoid committing a stack containing real credentials to a public Git repository. Portainer and users with Docker administration permissions can inspect the environment, including the secrets.
 
@@ -42,7 +42,7 @@ Each named target inherits `OPNSENSE_MCP_READ_ONLY=true` by default; override a 
 
 With multiple configured sites, the site parameter is mandatory for API operations, and there is no globally mutable current target. With one site, omission is allowed. When `OPNSENSE_SITES` is unset, the original single-site variables `OPNSENSE_URL`, `OPNSENSE_API_KEY`, and `OPNSENSE_API_SECRET` are still accepted.
 
-The API client classifies every permitted call by its endpoint + action rather than trusting HTTP GET or POST. Unknown operations are denied in read-only mode. The registry allocates one API client, connection pool, savepoint manager, and configuration cache per target. Target names are fixed at service startup. The model cannot supply an arbitrary target URL.
+The API client classifies every permitted call by its endpoint + action rather than trusting HTTP GET or POST. Unknown operations are denied **even on writable sites**. The registry allocates one API client, connection pool, savepoint manager, and configuration cache per target. Target names are fixed at service startup. The model cannot supply an arbitrary target URL.
 
 ## Transport and deployment status
 
