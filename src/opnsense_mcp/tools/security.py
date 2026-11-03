@@ -1445,7 +1445,7 @@ async def _check_gateways(
 
 
 @mcp.tool()
-async def opn_security_audit(ctx: Context) -> dict[str, Any]:
+async def opn_security_audit(ctx: Context, site: str = "") -> dict[str, Any]:
     """Run a comprehensive security audit of the OPNsense firewall.
 
     Checks 11 security areas: firmware, firewall rules (MVC + legacy), NAT/port
@@ -1463,8 +1463,8 @@ async def opn_security_audit(ctx: Context) -> dict[str, Any]:
     Use this when you need to assess the security posture of the firewall,
     identify misconfigurations, or perform a routine health check.
     """
-    api = get_api(ctx)
-    cache = get_config_cache(ctx)
+    api = get_api(ctx, site)
+    cache = get_config_cache(ctx, site)
 
     # Pre-load config cache for system hardening / legacy rule checks
     try:

@@ -25,6 +25,7 @@ async def opn_list_dns_overrides(
     ctx: Context,
     search: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """List Unbound DNS host overrides (local DNS records).
 
@@ -32,7 +33,7 @@ async def opn_list_dns_overrides(
     IP addresses in the local DNS resolver.
     Returns: dict with 'rows' (list of overrides) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.post(
         "unbound.search_override",
         {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
@@ -44,6 +45,7 @@ async def opn_list_dns_forwards(
     ctx: Context,
     search: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """List Unbound DNS forward zones (domain-specific DNS servers).
 
@@ -51,7 +53,7 @@ async def opn_list_dns_forwards(
     upstream DNS servers or DNS-over-TLS resolvers.
     Returns: dict with 'rows' (list of forward zones) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.post(
         "unbound.search_forward",
         {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
@@ -59,19 +61,19 @@ async def opn_list_dns_forwards(
 
 
 @mcp.tool()
-async def opn_dns_stats(ctx: Context) -> dict[str, Any]:
+async def opn_dns_stats(ctx: Context, site: str = "") -> dict[str, Any]:
     """Get Unbound DNS resolver statistics (queries, cache hits, uptime).
 
     Use this when you need to check DNS resolver performance, cache hit rates,
     or troubleshoot DNS resolution issues.
     Returns: dict with resolver statistics fields.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.get("unbound.stats")
 
 
 @mcp.tool()
-async def opn_reconfigure_unbound(ctx: Context) -> dict[str, Any]:
+async def opn_reconfigure_unbound(ctx: Context, site: str = "") -> dict[str, Any]:
     """Apply pending Unbound DNS resolver configuration changes.
 
     Use this after making DNS configuration changes (adding overrides, forward
@@ -82,10 +84,10 @@ async def opn_reconfigure_unbound(ctx: Context) -> dict[str, Any]:
     immediately and cannot be auto-reverted. Verify settings before calling.
     Returns: dict with 'status' indicating success or failure.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
     result = await api.post("unbound.service.reconfigure")
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {"status": result.get("status", "unknown"), "service": "unbound"}
 
 
@@ -96,6 +98,7 @@ async def opn_add_dns_override(
     domain: str,
     server: str,
     description: str = "",
+    site: str = "",
 ) -> dict[str, Any]:
     """Add an Unbound DNS host override (A/AAAA record) and apply immediately.
 
@@ -122,7 +125,7 @@ async def opn_add_dns_override(
     if not server or not _IP_RE.match(server):
         return {"error": f"Invalid server IP '{server}'. Must be an IPv4 or IPv6 address."}
 
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
 
     result = await api.post(
@@ -139,7 +142,7 @@ async def opn_add_dns_override(
     )
 
     reconfigure = await api.post("unbound.service.reconfigure")
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
 
     return {
         "result": result.get("result", ""),
@@ -159,6 +162,7 @@ async def opn_update_dns_override(
     server: str | None = None,
     description: str | None = None,
     enabled: bool | None = None,
+    site: str = "",
 ) -> dict[str, Any]:
     """Update an Unbound DNS host override by UUID and apply immediately.
 
@@ -187,7 +191,7 @@ async def opn_update_dns_override(
     if server is not None and not _IP_RE.match(server):
         return {"error": f"Invalid server IP '{server}'. Must be an IPv4 or IPv6 address."}
 
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
 
     host: dict[str, str] = {}
@@ -204,7 +208,7 @@ async def opn_update_dns_override(
 
     result = await api.post("unbound.set_host_override", {"host": host}, path_suffix=uuid)
     reconfigure = await api.post("unbound.service.reconfigure")
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
 
     return {
         "result": result.get("result", ""),
@@ -217,6 +221,7 @@ async def opn_update_dns_override(
 async def opn_delete_dns_override(
     ctx: Context,
     uuid: str,
+    site: str = "",
 ) -> dict[str, Any]:
     """Delete an Unbound DNS host override by UUID and apply immediately.
 
@@ -225,11 +230,11 @@ async def opn_delete_dns_override(
     Use opn_list_dns_overrides first to find the UUID.
     Returns: dict with 'result' (str), 'uuid' (str), and 'applied' status.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
     result = await api.post("unbound.del_host_override", path_suffix=uuid)
     reconfigure = await api.post("unbound.service.reconfigure")
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
 
     return {
         "result": result.get("result", ""),
@@ -267,17 +272,17 @@ def _extract_dnsbl_values(form: dict[str, Any]) -> dict[str, str]:
     return result
 
 
-async def _apply_dnsbl(ctx: Context) -> dict[str, str]:
+async def _apply_dnsbl(ctx: Context, site: str = "") -> dict[str, str]:
     """Regenerate DNSBL blocklist files and restart Unbound to apply them.
 
     Calls ``service/dnsbl`` to regenerate blocklist files on disk, then
     ``service/reconfigure`` to restart Unbound so the new lists are loaded
     and the DNS cache is flushed.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     dnsbl_result = await api.post("unbound.service.dnsbl")
     reconfigure_result = await api.post("unbound.service.reconfigure")
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {
         "dnsbl_status": dnsbl_result.get("status", "unknown").strip(),
         "service_status": reconfigure_result.get("status", "unknown").strip(),
@@ -289,6 +294,7 @@ async def opn_list_dnsbl(
     ctx: Context,
     search: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """List DNSBL (DNS Blocklist) configurations with providers and status.
 
@@ -297,7 +303,7 @@ async def opn_list_dnsbl(
     Use opn_get_dnsbl with a UUID from the results for full details.
     Returns: dict with 'rows' (list of blocklist configs) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.post(
         "unbound.search_dnsbl",
         {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
@@ -308,6 +314,7 @@ async def opn_list_dnsbl(
 async def opn_get_dnsbl(
     ctx: Context,
     uuid: str,
+    site: str = "",
 ) -> dict[str, Any]:
     """Get full DNSBL configuration for a specific blocklist by UUID.
 
@@ -318,7 +325,7 @@ async def opn_get_dnsbl(
     Returns: dict with 'selected_providers', 'available_providers',
     'allowlists', 'blocklists', 'wildcards', and config fields.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     raw = await api.get("unbound.get_dnsbl", path_suffix=uuid)
     form = raw.get("blocklist", {})
 
@@ -370,6 +377,7 @@ async def opn_set_dnsbl(
     nxdomain: bool | None = None,
     cache_ttl: int | None = None,
     description: str | None = None,
+    site: str = "",
 ) -> dict[str, Any]:
     """Update a DNSBL blocklist configuration (read-modify-write).
 
@@ -394,7 +402,7 @@ async def opn_set_dnsbl(
 
     Returns: dict with 'result', 'dnsbl_status', and 'service_status'.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
 
     # Read current config
@@ -426,7 +434,7 @@ async def opn_set_dnsbl(
 
     # Write + apply (regenerate blocklists and restart Unbound)
     result = await api.post("unbound.set_dnsbl", {"blocklist": current}, path_suffix=uuid)
-    apply = await _apply_dnsbl(ctx)
+    apply = await _apply_dnsbl(ctx, site)
 
     return {
         "result": result.get("result", ""),
@@ -439,6 +447,7 @@ async def opn_add_dnsbl_allowlist(
     ctx: Context,
     uuid: str,
     domains: str,
+    site: str = "",
 ) -> dict[str, Any]:
     """Add domains to a DNSBL allowlist (whitelist) without overwriting existing entries.
 
@@ -458,7 +467,7 @@ async def opn_add_dnsbl_allowlist(
     if not domains.strip():
         return {"error": "No domains provided."}
 
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
 
     # Parse input domains
@@ -481,7 +490,7 @@ async def opn_add_dnsbl_allowlist(
 
     # Write + apply (regenerate blocklists and restart Unbound)
     result = await api.post("unbound.set_dnsbl", {"blocklist": current}, path_suffix=uuid)
-    apply = await _apply_dnsbl(ctx)
+    apply = await _apply_dnsbl(ctx, site)
 
     return {
         "result": result.get("result", ""),
@@ -496,6 +505,7 @@ async def opn_remove_dnsbl_allowlist(
     ctx: Context,
     uuid: str,
     domains: str,
+    site: str = "",
 ) -> dict[str, Any]:
     """Remove domains from a DNSBL allowlist.
 
@@ -514,7 +524,7 @@ async def opn_remove_dnsbl_allowlist(
     if not domains.strip():
         return {"error": "No domains provided."}
 
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
 
     # Parse input domains
@@ -537,7 +547,7 @@ async def opn_remove_dnsbl_allowlist(
 
     # Write + apply (regenerate blocklists and restart Unbound)
     result = await api.post("unbound.set_dnsbl", {"blocklist": current}, path_suffix=uuid)
-    apply = await _apply_dnsbl(ctx)
+    apply = await _apply_dnsbl(ctx, site)
 
     return {
         "result": result.get("result", ""),
@@ -548,7 +558,7 @@ async def opn_remove_dnsbl_allowlist(
 
 
 @mcp.tool()
-async def opn_update_dnsbl(ctx: Context) -> dict[str, Any]:
+async def opn_update_dnsbl(ctx: Context, site: str = "") -> dict[str, Any]:
     """Reload DNSBL blocklist files and restart Unbound to apply them.
 
     Use this when DNSBL lists need to be refreshed without changing the
@@ -561,6 +571,6 @@ async def opn_update_dnsbl(ctx: Context) -> dict[str, Any]:
     immediately and cannot be auto-reverted.
     Returns: dict with 'dnsbl_status' and 'service_status'.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
-    return await _apply_dnsbl(ctx)
+    return await _apply_dnsbl(ctx, site)

@@ -18,6 +18,7 @@ async def opn_list_ddns_accounts(
     ctx: Context,
     search: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """List Dynamic DNS (DDNS) accounts and their update status.
 
@@ -34,7 +35,7 @@ async def opn_list_ddns_accounts(
     Note: Requires the Dynamic DNS plugin (os-ddclient).
     Returns: dict with 'rows' (list of accounts) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     result = await api.post(
         "dyndns.accounts.search",
         {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
@@ -57,6 +58,7 @@ async def opn_add_ddns_account(
     checkip: str = "web_dyndns",
     interface: str = "",
     description: str = "",
+    site: str = "",
 ) -> dict[str, Any]:
     """Create a new Dynamic DNS account and apply the configuration.
 
@@ -88,7 +90,7 @@ async def opn_add_ddns_account(
     if not hostname.strip():
         return {"error": "hostname must not be empty"}
 
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
 
     account_config: dict[str, str] = {
@@ -109,7 +111,7 @@ async def opn_add_ddns_account(
     add_result = await api.post("dyndns.accounts.add", {"account": account_config})
 
     reconfigure_result = await api.post("dyndns.service.reconfigure")
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
 
     return {
         "result": add_result.get("result", "unknown"),
@@ -130,6 +132,7 @@ async def opn_update_ddns_account(
     interface: str | None = None,
     description: str | None = None,
     enabled: bool | None = None,
+    site: str = "",
 ) -> dict[str, Any]:
     """Update a Dynamic DNS account by UUID and apply the configuration.
 
@@ -154,7 +157,7 @@ async def opn_update_ddns_account(
 
     Returns: dict with 'result' (str), 'uuid' (str), and 'reconfigure_status'.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
 
     account_config: dict[str, str] = {}
@@ -177,7 +180,7 @@ async def opn_update_ddns_account(
 
     result = await api.post("dyndns.accounts.set", {"account": account_config}, path_suffix=uuid)
     reconfigure_result = await api.post("dyndns.service.reconfigure")
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
 
     return {
         "result": result.get("result", ""),
@@ -190,6 +193,7 @@ async def opn_update_ddns_account(
 async def opn_delete_ddns_account(
     ctx: Context,
     uuid: str,
+    site: str = "",
 ) -> dict[str, Any]:
     """Delete a Dynamic DNS account by UUID and apply the configuration.
 
@@ -197,11 +201,11 @@ async def opn_delete_ddns_account(
     Use opn_list_ddns_accounts first to find the UUID.
     Returns: dict with 'result' (str), 'uuid' (str), and 'reconfigure_status'.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
     result = await api.post("dyndns.accounts.del", path_suffix=uuid)
     reconfigure_result = await api.post("dyndns.service.reconfigure")
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
 
     return {
         "result": result.get("result", ""),
@@ -211,7 +215,7 @@ async def opn_delete_ddns_account(
 
 
 @mcp.tool()
-async def opn_reconfigure_ddclient(ctx: Context) -> dict[str, Any]:
+async def opn_reconfigure_ddclient(ctx: Context, site: str = "") -> dict[str, Any]:
     """Apply pending Dynamic DNS configuration changes.
 
     Use this after manually editing DDNS account settings to apply the
@@ -223,10 +227,10 @@ async def opn_reconfigure_ddclient(ctx: Context) -> dict[str, Any]:
     Note: Requires the Dynamic DNS plugin (os-ddclient).
     Returns: dict with 'status' indicating success or failure.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
     result = await api.post("dyndns.service.reconfigure")
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {"status": result.get("status", "unknown"), "service": "ddclient"}
 
 
@@ -235,6 +239,7 @@ async def opn_list_acme_certs(
     ctx: Context,
     search: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """List ACME (Let's Encrypt) certificates and their status.
 
@@ -243,7 +248,7 @@ async def opn_list_acme_certs(
     Note: Requires the ACME client plugin (os-acme-client).
     Returns: dict with 'rows' (list of certificates) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.post(
         "acmeclient.certs.search",
         {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
@@ -255,6 +260,7 @@ async def opn_list_cron_jobs(
     ctx: Context,
     search: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """List scheduled cron jobs configured in OPNsense.
 
@@ -262,7 +268,7 @@ async def opn_list_cron_jobs(
     their frequency, or which commands they run.
     Returns: dict with 'rows' (list of cron jobs) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.post(
         "cron.search_jobs",
         {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
@@ -270,7 +276,7 @@ async def opn_list_cron_jobs(
 
 
 @mcp.tool()
-async def opn_crowdsec_status(ctx: Context) -> dict[str, Any]:
+async def opn_crowdsec_status(ctx: Context, site: str = "") -> dict[str, Any]:
     """Get CrowdSec security engine status and active decisions summary.
 
     Use this when you need to check if CrowdSec is running, see how many
@@ -279,7 +285,7 @@ async def opn_crowdsec_status(ctx: Context) -> dict[str, Any]:
     Note: Requires the CrowdSec plugin (os-crowdsec).
     Returns: dict with 'service_status', 'decisions_count', and 'alerts_count'.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     _search = {"current": 1, "rowCount": 500, "searchPhrase": ""}
     status = await api.get("crowdsec.service.status")
     decisions = await api.post("crowdsec.decisions.search", _search)
@@ -302,6 +308,7 @@ async def opn_crowdsec_alerts(
     ctx: Context,
     search: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """List CrowdSec security alerts (detected threats and attacks).
 
@@ -310,7 +317,7 @@ async def opn_crowdsec_alerts(
     Note: Requires the CrowdSec plugin (os-crowdsec).
     Returns: dict with 'rows' (list of alerts) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.post(
         "crowdsec.alerts.search",
         {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
@@ -321,7 +328,7 @@ async def opn_crowdsec_alerts(
 
 
 @mcp.tool()
-async def opn_mdns_repeater_status(ctx: Context) -> dict[str, Any]:
+async def opn_mdns_repeater_status(ctx: Context, site: str = "") -> dict[str, Any]:
     """Get mDNS Repeater service status and configuration.
 
     Use this to check if the mDNS Repeater is installed, enabled, running,
@@ -334,7 +341,7 @@ async def opn_mdns_repeater_status(ctx: Context) -> dict[str, Any]:
     Note: Requires the mDNS Repeater plugin (os-mdns-repeater).
     Returns: dict with 'service_running', 'enabled', 'interfaces', 'blocklist'.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     settings = await api.get("mdnsrepeater.settings.get")
     status = await api.get("mdnsrepeater.service.status")
 
@@ -353,6 +360,7 @@ async def opn_configure_mdns_repeater(
     ctx: Context,
     enabled: bool = True,
     interfaces: str = "lan",
+    site: str = "",
 ) -> dict[str, Any]:
     """Enable and configure the mDNS Repeater to relay multicast DNS between interfaces.
 
@@ -369,7 +377,7 @@ async def opn_configure_mdns_repeater(
     Note: Requires the mDNS Repeater plugin (os-mdns-repeater) to be installed.
     Returns: dict with 'result' and 'reconfigure_status'.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
 
     settings_payload = {
@@ -380,7 +388,7 @@ async def opn_configure_mdns_repeater(
     }
     set_result = await api.post("mdnsrepeater.settings.set", settings_payload)
     reconfigure_result = await api.post("mdnsrepeater.service.reconfigure")
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
 
     return {
         "result": set_result.get("result", "unknown"),

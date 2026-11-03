@@ -1,0 +1,62 @@
+# Native multi-target mode (development branch)
+
+One MCP server process manages several named OPNsense API targets, without an external gateway or worker processes.
+
+## Compose / Portainer configuration
+
+All configuration, **including API keys and secrets**, comes from Docker Compose environment variables. No separate targets.toml or secrets mount is required.
+
+Example Compose `environment:` section (the production network listener is not ready yet):
+
+```yaml
+environment:
+  OPNSENSE_SITES: "local,remote"
+
+  OPNSENSE_LOCAL_URL: "https://192.168.10.1/api"
+  OPNSENSE_LOCAL_API_KEY: "replace-with-key"
+  OPNSENSE_LOCAL_API_SECRET: "replace-with-secret"
+  OPNSENSE_LOCAL_VERIFY_SSL: "true"
+
+  OPNSENSE_REMOTE_URL: "https://192.168.20.1:10443/api"
+  OPNSENSE_REMOTE_API_KEY: "replace-with-key"
+  OPNSENSE_REMOTE_API_SECRET: "replace-with-secret"
+  OPNSENSE_REMOTE_VERIFY_SSL: "true"
+```
+
+Target names are lower-case ASCII letters, digits and underscores, starting with a letter. Environment variable prefixes use the upper-case name. Duplicate names are rejected.
+
+To include literal dollar signs inside Compose values, escape them as `$$`. Avoid committing a stack containing real credentials to a public Git repository. Portainer and users with Docker administration permissions can inspect the environment, including the secrets.
+
+Each named target is **read-only** in this initial implementation irrespective of `OPNSENSE_ALLOW_WRITES`. Use separate least-privileged API users on each firewall. TLS verification defaults to true.
+
+## MCP tools
+
+- `opn_list_targets()` returns only site names, without URL or credentials.
+- `opn_scan_config(site="local")` inventories one firewall.
+- `opn_list_kea_leases(site="remote", limit=20)` queries a second firewall.
+- All 81 upstream tools accept an optional `site` argument.
+
+With multiple configured sites, the site parameter is mandatory for API operations, and there is no globally mutable current target. With one site, omission is allowed. When `OPNSENSE_SITES` is unset, the original single-site variables `OPNSENSE_URL`, `OPNSENSE_API_KEY`, and `OPNSENSE_API_SECRET` are still accepted.
+
+The registry allocates one API client, connection pool, savepoint manager, and configuration cache per target. Target names are fixed at service startup. The model cannot supply an arbitrary target URL.
+
+## Transport and deployment status
+
+**This development branch is not yet a network-ready OpenWebUI service.** The current Docker entrypoint uses upstream stdio. An authenticated Streamable HTTP transport and bounded/redacted responses must be implemented before production use.
+
+Once implemented, the same pinned image and Compose environment configuration can move from dedicated VM `mcp` to another Docker host without changing application code.
+
+## Security boundary
+
+Enforce outbound firewall policy outside Docker: allow only the exact approved OPNsense API destinations/ports, and deny arbitrary RFC1918, DNS, IPv6 and public Internet egress. Code running in a container must not be able to modify these rules.
+
+Moving the service onto the OpenWebUI VM is technically possible but weakens the threat boundary. Auditing our code does not fully exclude a compromised dependency or a malicious future update; keep the dedicated VM if the no-exfiltration requirement remains important.
+
+## Testing
+
+```sh
+python -m pytest tests/test_targets.py tests/test_tools/test_registration.py -q
+python -m pytest -q
+```
+
+These unit tests do not contact live firewalls.
