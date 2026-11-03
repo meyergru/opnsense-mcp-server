@@ -10,6 +10,7 @@ from typing import Any, cast
 
 from fastmcp import Context, FastMCP
 from fastmcp.server.lifespan import lifespan
+from fastmcp.server.middleware.response_limiting import ResponseLimitingMiddleware
 
 from opnsense_mcp import __version__
 from opnsense_mcp.api_client import OPNsenseAPI, SavepointManager
@@ -30,6 +31,7 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
 
 _transport = load_transport_config()
 mcp = FastMCP("opnsense", version=__version__, lifespan=app_lifespan, auth=build_auth(_transport))
+mcp.add_middleware(ResponseLimitingMiddleware(max_size=_transport.max_result_bytes))
 
 
 @mcp.tool()
