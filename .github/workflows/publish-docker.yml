@@ -1,12 +1,12 @@
+# Disabled pending own publication configuration. No tag triggers, and publish job is blocked.
 name: Publish to Docker Hub
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
 
 jobs:
   publish:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
