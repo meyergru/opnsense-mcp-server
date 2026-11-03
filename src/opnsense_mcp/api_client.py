@@ -46,6 +46,7 @@ READ_ONLY_GET_ENDPOINTS: frozenset[str] = frozenset(
         "interface.statistics",
         "ipsec.service.status",
         "kea.dhcpv4.get",
+        "kea.leases4.search",
         "kea.service.status",
         "mdnsrepeater.service.status",
         "mdnsrepeater.settings.get",
@@ -679,7 +680,7 @@ class OPNsenseAPI:
         if classification is OperationEffect.WRITE:
             if (method, endpoint) not in WRITE_OPERATIONS:
                 raise WriteDisabledError(
-                    f"Unclassified {method} operation denied, including for writable targets: {endpoint}"
+                    f"Unclassified {method} operation denied by read-only safety policy (even on writable targets): {endpoint}"
                 )
             if not self._config.allow_writes:
                 raise WriteDisabledError(f"{method} operation not permitted in read-only mode: {endpoint}")
