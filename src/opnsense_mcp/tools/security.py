@@ -1446,9 +1446,9 @@ async def _check_gateways(
 
 @mcp.tool()
 async def opn_security_audit(ctx: Context, site: str = "") -> dict[str, Any]:
-    """Run a comprehensive security audit of the OPNsense firewall.
+    """Run a heuristic CONFIGURATION HARDENING review, not a package CVE audit.
 
-    Checks 11 security areas: firmware, firewall rules (MVC + legacy), NAT/port
+    Checks configuration/security posture in 10 areas: firmware, firewall rules (MVC + legacy), NAT/port
     forwarding, DNS resolver security, system hardening (SSH, HTTPS, syslog),
     services, certificates, VPN status (incl. WireGuard config audit),
     HAProxy reverse proxy security, and gateway health.
@@ -1460,7 +1460,7 @@ async def opn_security_audit(ctx: Context, site: str = "") -> dict[str, Any]:
     (critical, warning, info).  Each finding includes a recommendation and
     applicable compliance framework references.
 
-    Use this when you need to assess the security posture of the firewall,
+    For CVEs in installed packages, use opn_firmware_cve_audit instead.\n\n    Use this when you need to assess the security posture of the firewall,
     identify misconfigurations, or perform a routine health check.
     """
     api = get_api(ctx, site)
@@ -1511,3 +1511,15 @@ async def opn_security_audit(ctx: Context, site: str = "") -> dict[str, Any]:
             "manual_review_needed": _MANUAL_REVIEW_ITEMS,
         },
     }
+
+
+
+@mcp.tool()
+async def opn_configuration_audit(ctx: Context, site: str = "") -> dict[str, Any]:
+    """Review OPNsense configuration/hardening heuristics, NOT installed package CVEs.
+
+    A clearer alias for the original opn_security_audit. Results are context-
+    dependent recommendations, not verified vulnerabilities or a compliance
+    certification. For actual VuXML CVE checks use opn_firmware_cve_audit.
+    """
+    return await opn_security_audit(ctx, site)
