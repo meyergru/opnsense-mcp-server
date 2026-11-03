@@ -15,6 +15,7 @@ from fastmcp.server.middleware.response_limiting import ResponseLimitingMiddlewa
 from opnsense_mcp import __version__
 from opnsense_mcp.api_client import OPNsenseAPI, SavepointManager
 from opnsense_mcp.config_cache import ConfigCache
+from opnsense_mcp.secret_guard import SecretOutputGuard
 from opnsense_mcp.targets import TargetRegistry
 from opnsense_mcp.transport import build_auth, load_transport_config
 
@@ -32,6 +33,7 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
 _transport = load_transport_config()
 mcp = FastMCP("opnsense", version=__version__, lifespan=app_lifespan, auth=build_auth(_transport))
 mcp.add_middleware(ResponseLimitingMiddleware(max_size=_transport.max_result_bytes))
+mcp.add_middleware(SecretOutputGuard())
 
 
 @mcp.tool()
