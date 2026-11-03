@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import os
 import re
-from difflib import get_close_matches
 from dataclasses import dataclass
+from difflib import get_close_matches
 from urllib.parse import urlsplit
 
 from opnsense_mcp.api_client import OPNsenseAPI, SavepointManager
