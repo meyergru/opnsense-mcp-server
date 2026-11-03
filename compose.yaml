@@ -18,6 +18,8 @@ services:
       OPNSENSE_MCP_HOST: "0.0.0.0"
       OPNSENSE_MCP_PORT: "8000"
       OPNSENSE_MCP_MAX_RESULT_BYTES: "16384"
+      # Global operation policy: true means no configuration changes on any site.
+      OPNSENSE_MCP_READ_ONLY: "true"
       # Generate with: openssl rand -hex 32 (64 characters)
       OPNSENSE_MCP_AUTH_TOKEN: ""
 
@@ -27,6 +29,8 @@ services:
       OPNSENSE_LOCAL_API_KEY: ""
       OPNSENSE_LOCAL_API_SECRET: ""
       OPNSENSE_LOCAL_VERIFY_SSL: "true"
+      # Optional per-site override (leave unset to inherit global policy):
+      # OPNSENSE_LOCAL_READ_ONLY: "true"
 
     read_only: true
     tmpfs:
