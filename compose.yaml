@@ -23,7 +23,9 @@ services:
       # Generate with: openssl rand -hex 32 (64 characters)
       OPNSENSE_MCP_AUTH_TOKEN: ""
 
-      # Add further comma-separated aliases and matching environment variables.
+      # Add comma-separated aliases; dots in names become underscores in env vars.
+      # E.g. opnsense.mgsoft -> OPNSENSE_OPNSENSE_MGSOFT_URL / _API_KEY / _API_SECRET.
+      # Avoid aliases that normalize to the same prefix (opnsense.mgsoft vs opnsense_mgsoft).
       OPNSENSE_SITES: "local"
       OPNSENSE_LOCAL_URL: "https://192.168.10.1/api"
       OPNSENSE_LOCAL_API_KEY: ""

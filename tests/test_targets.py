@@ -189,3 +189,61 @@ def test_http_requires_explicit_named_targets():
     with patch.dict("os.environ", env, clear=True):
         with pytest.raises(ConfigError, match="OPNSENSE_SITES"):
             TargetRegistry.from_environment()
+
+
+@pytest.mark.asyncio
+async def test_dns_style_alias_uses_normalized_environment_names():
+    env = {
+        "OPNSENSE_MCP_READ_ONLY": "true",
+        "OPNSENSE_SITES": "opnsense.mgsoft",
+        "OPNSENSE_OPNSENSE_MGSOFT_URL": "https://10.0.0.1/api",
+        "OPNSENSE_OPNSENSE_MGSOFT_API_KEY": "test-key",
+        "OPNSENSE_OPNSENSE_MGSOFT_API_SECRET": "test-secret",
+        "OPNSENSE_OPNSENSE_MGSOFT_READ_ONLY": "false",
+    }
+    with patch.dict("os.environ", env, clear=True):
+        registry = TargetRegistry.from_environment()
+    try:
+        assert registry.names == ["opnsense.mgsoft"]
+        assert registry.resolve("opnsense.mgsoft").api._config.allow_writes is True
+        with pytest.raises(TargetError):
+            registry.resolve("opnsense_mgsoft")
+    finally:
+        await registry.close()
+
+
+def test_dotted_alias_collides_with_underscored_alias():
+    env = {
+        **_env(),
+        "OPNSENSE_SITES": "opnsense.mgsoft,opnsense_mgsoft",
+    }
+    with patch.dict("os.environ", env, clear=True):
+        with pytest.raises(ConfigError, match="conflicting environment prefixes"):
+            TargetRegistry.from_environment()
+
+
+@pytest.mark.parametrize(
+    "site",
+    ["opnsense..mgsoft", "opnsense.", ".mgsoft", "opnsense.-test", "a" * 65],
+)
+def test_reject_malformed_dotted_alias(site):
+    with patch.dict("os.environ", {**_env(), "OPNSENSE_SITES": site}, clear=True):
+        with pytest.raises(ConfigError, match="OPNSENSE_SITES"):
+            TargetRegistry.from_environment()
+
+
+@pytest.mark.asyncio
+async def test_dotted_alias_inherits_global_read_only_by_default():
+    env = {
+        "OPNSENSE_MCP_READ_ONLY": "true",
+        "OPNSENSE_SITES": "opnsense.mgsoft",
+        "OPNSENSE_OPNSENSE_MGSOFT_URL": "https://10.0.0.1/api",
+        "OPNSENSE_OPNSENSE_MGSOFT_API_KEY": "key",
+        "OPNSENSE_OPNSENSE_MGSOFT_API_SECRET": "secret",
+    }
+    with patch.dict("os.environ", env, clear=True):
+        registry = TargetRegistry.from_environment()
+    try:
+        assert registry.resolve("opnsense.mgsoft").api._config.allow_writes is False
+    finally:
+        await registry.close()

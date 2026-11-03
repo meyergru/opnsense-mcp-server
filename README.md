@@ -86,7 +86,7 @@ environment:
 | `OPNSENSE_<SITE>_API_SECRET` | *required* | API secret of this target. |
 | `OPNSENSE_<SITE>_VERIFY_SSL` | `true` | Verify the HTTPS certificate. |
 
-Site aliases start with a lower-case letter and may contain lower-case letters, digits and underscores; variable prefixes use upper case (`local` → `OPNSENSE_LOCAL_URL`). Named targets inherit `OPNSENSE_MCP_READ_ONLY=true` by default, with optional per-site overrides. `OPNSENSE_ALLOW_WRITES` is legacy-only and does not control named targets.
+Site aliases start with a lower-case letter and may contain lower-case letters, digits, underscores and interior dots. Environment prefixes are upper-case with dots normalized to underscores: `opnsense.mgsoft` → `OPNSENSE_OPNSENSE_MGSOFT_URL` (and `_API_KEY`, `_API_SECRET`, `_VERIFY_SSL`, `_READ_ONLY`). Aliases that would normalize to the same prefix (such as `opnsense.mgsoft` and `opnsense_mgsoft`) are rejected. Named targets inherit `OPNSENSE_MCP_READ_ONLY=true` by default, with optional per-site overrides. `OPNSENSE_ALLOW_WRITES` is legacy-only and does not control named targets.
 
 ### Local stdio mode (optional)
 
@@ -255,7 +255,7 @@ HAProxy inspection and legacy administration tools (requires os-haproxy plugin).
 
 In **named-target mode**, `OPNSENSE_MCP_READ_ONLY=true` (default) prevents configuration changes on every site. The optional `OPNSENSE_<SITE>_READ_ONLY` setting overrides the global choice for one explicitly named target. For example, `OPNSENSE_LOCAL_READ_ONLY=false` permits write-classified operations *only on `local`* when the global setting is true. The user must deliberately opt into this risk; the MCP bearer token grants access to the entire server and is **not** a per-user authorization mechanism.
 
-The API client explicitly classifies **operations**, not HTTP methods: a read or diagnostic operation can use GET or POST; a potentially mutating/unclassified operation is denied before any network request in read-only mode, even when it uses GET. Read-only classification includes limited diagnostics such as the firmware repository check, which refreshes probe metadata but does not install packages.
+The API client explicitly classifies **operations**, not HTTP methods: a read or diagnostic operation can use GET or POST. A potentially mutating operation is denied before any network request in read-only mode, even when it uses GET. **Unknown operations are denied on all sites**, including those deliberately configured as writable. The complete reviewed operation catalogue and exceptions are described in [API operation policy](docs/api-operation-policy.md). Read-only classification includes limited diagnostics such as the firmware repository check, which refreshes probe metadata but does not install packages.
 
 The firmware update check (`opn_check_firmware_updates`) is allowed in named-target mode: it refreshes firmware check metadata without installing packages. The actual firmware update and upgrade endpoints remain blocked.
 
