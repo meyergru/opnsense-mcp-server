@@ -86,7 +86,7 @@ environment:
 | `OPNSENSE_<SITE>_API_SECRET` | *required* | API secret of this target. |
 | `OPNSENSE_<SITE>_VERIFY_SSL` | `true` | Verify the HTTPS certificate. |
 
-Site aliases start with a lower-case letter and may contain lower-case letters, digits and underscores; variable prefixes use upper case (`local` → `OPNSENSE_LOCAL_URL`). Named targets inherit `OPNSENSE_MCP_READ_ONLY=true` by default, with optional per-site overrides. `OPNSENSE_ALLOW_WRITES` is legacy-only and does not control named targets.
+Site aliases start with a lower-case letter and may contain lower-case letters, digits, underscores and interior dots. Environment prefixes are upper-case with dots normalized to underscores: `opnsense.mgsoft` → `OPNSENSE_OPNSENSE_MGSOFT_URL` (and `_API_KEY`, `_API_SECRET`, `_VERIFY_SSL`, `_READ_ONLY`). Aliases that would normalize to the same prefix (such as `opnsense.mgsoft` and `opnsense_mgsoft`) are rejected. Named targets inherit `OPNSENSE_MCP_READ_ONLY=true` by default, with optional per-site overrides. `OPNSENSE_ALLOW_WRITES` is legacy-only and does not control named targets.
 
 ### Local stdio mode (optional)
 
