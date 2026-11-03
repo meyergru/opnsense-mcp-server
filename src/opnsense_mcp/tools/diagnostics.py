@@ -28,6 +28,7 @@ async def opn_ping(
     ctx: Context,
     host: str,
     count: int = 3,
+    site: str = "",
 ) -> dict[str, Any]:
     """Ping a host from the OPNsense firewall to test connectivity.
 
@@ -39,7 +40,7 @@ async def opn_ping(
     if err := _validate_hostname(host):
         return {"error": err}
     count = max(1, min(count, 10))
-    api = get_api(ctx)
+    api = get_api(ctx, site)
 
     # Create and configure the ping job
     result = await api.post(
@@ -85,6 +86,7 @@ async def opn_traceroute(
     host: str,
     protocol: str = "ICMP",
     ip_version: str = "4",
+    site: str = "",
 ) -> dict[str, Any]:
     """Trace the network path from OPNsense to a destination host.
 
@@ -99,7 +101,7 @@ async def opn_traceroute(
     if ip_version not in ("4", "6"):
         return {"error": f"Invalid ip_version '{ip_version}'. Use '4' or '6'."}
 
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     result = await api.post(
         "diagnostics.traceroute.set",
         {
@@ -119,6 +121,7 @@ async def opn_dns_lookup(
     ctx: Context,
     hostname: str,
     server: str = "",
+    site: str = "",
 ) -> dict[str, Any]:
     """Perform a DNS lookup from the OPNsense firewall.
 
@@ -131,7 +134,7 @@ async def opn_dns_lookup(
         return {"error": err}
     if server and (err := _validate_hostname(server)):
         return {"error": f"Invalid DNS server: {err}"}
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     result = await api.post(
         "diagnostics.dns_diagnostics.set",
         {"dns": {"settings": {"hostname": hostname, "server": server}}},
@@ -144,6 +147,7 @@ async def opn_pf_states(
     ctx: Context,
     search: str = "",
     limit: int = 200,
+    site: str = "",
 ) -> dict[str, Any]:
     """Query the active PF (packet filter) state table.
 
@@ -151,7 +155,7 @@ async def opn_pf_states(
     debug NAT issues, or identify which hosts are communicating.
     Returns: dict with 'rows' (list of state entries) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.post(
         "diagnostics.firewall.query_states",
         {"current": 1, "rowCount": min(limit, 1000), "searchPhrase": search},
