@@ -98,3 +98,36 @@ def test_reject_missing_credentials(tmp_path):
     with patch.dict("os.environ", {"OPNSENSE_TARGETS_FILE": str(path)}, clear=True):
         with pytest.raises(ConfigError, match="Missing credentials"):
             TargetRegistry.from_environment()
+
+
+
+@pytest.mark.asyncio
+async def test_helpers_route_to_same_site_state(tmp_path):
+    """API, cache and savepoint accessors cannot cross sites."""
+    from unittest.mock import MagicMock
+
+    from opnsense_mcp.server import get_api, get_config_cache, get_savepoint_manager
+
+    path = tmp_path / "targets.toml"
+    path.write_text(_inventory())
+    env = {
+        "OPNSENSE_TARGETS_FILE": str(path),
+        "API_KEY_ALPHA": "alpha-key",
+        "API_SECRET_ALPHA": "alpha-secret",
+        "API_KEY_BETA": "beta-key",
+        "API_SECRET_BETA": "beta-secret",
+    }
+    with patch.dict("os.environ", env, clear=True):
+        registry = TargetRegistry.from_environment()
+
+    try:
+        ctx = MagicMock()
+        ctx.lifespan_context = {"targets": registry}
+        assert get_api(ctx, "alpha") is registry.resolve("alpha").api
+        assert get_api(ctx, "beta") is registry.resolve("beta").api
+        assert get_config_cache(ctx, "alpha") is registry.resolve("alpha").config_cache
+        assert get_savepoint_manager(ctx, "beta") is registry.resolve("beta").savepoint_mgr
+        with pytest.raises(TargetError, match="site is required"):
+            get_api(ctx)
+    finally:
+        await registry.close()
