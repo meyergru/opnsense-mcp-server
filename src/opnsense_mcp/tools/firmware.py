@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from asyncio import TimeoutError, sleep, wait_for
+from asyncio import sleep, wait_for
 from typing import Any
 
 import httpx
 from fastmcp import Context
 
 from opnsense_mcp.api_client import OPNsenseAPIError
-
 from opnsense_mcp.server import get_api, mcp
 
 
