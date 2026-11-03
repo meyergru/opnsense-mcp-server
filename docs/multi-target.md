@@ -17,6 +17,10 @@ environment:
   OPNSENSE_LOCAL_API_SECRET: "replace-with-secret"
   OPNSENSE_LOCAL_VERIFY_SSL: "true"
 
+  OPNSENSE_MCP_READ_ONLY: "true"
+  # Optional: allow writes only on one site (dangerous):
+  # OPNSENSE_LOCAL_READ_ONLY: "false"
+
   OPNSENSE_REMOTE_URL: "https://192.168.20.1:10443/api"
   OPNSENSE_REMOTE_API_KEY: "replace-with-key"
   OPNSENSE_REMOTE_API_SECRET: "replace-with-secret"
@@ -27,7 +31,7 @@ Target names are lower-case ASCII letters, digits and underscores, starting with
 
 To include literal dollar signs inside Compose values, escape them as `$$`. Avoid committing a stack containing real credentials to a public Git repository. Portainer and users with Docker administration permissions can inspect the environment, including the secrets.
 
-Each named target is **read-only** in this initial implementation irrespective of `OPNSENSE_ALLOW_WRITES`. Use separate least-privileged API users on each firewall. TLS verification defaults to true.
+Each named target inherits `OPNSENSE_MCP_READ_ONLY=true` by default; override a specific site with `OPNSENSE_<SITE>_READ_ONLY=false` **only when explicitly permitting writes**. `OPNSENSE_ALLOW_WRITES` controls only legacy single-target configuration and does not override named target policy. Use separate least-privileged API users on each firewall. TLS verification defaults to true.
 
 ## MCP tools
 
@@ -38,7 +42,7 @@ Each named target is **read-only** in this initial implementation irrespective o
 
 With multiple configured sites, the site parameter is mandatory for API operations, and there is no globally mutable current target. With one site, omission is allowed. When `OPNSENSE_SITES` is unset, the original single-site variables `OPNSENSE_URL`, `OPNSENSE_API_KEY`, and `OPNSENSE_API_SECRET` are still accepted.
 
-The registry allocates one API client, connection pool, savepoint manager, and configuration cache per target. Target names are fixed at service startup. The model cannot supply an arbitrary target URL.
+The API client classifies every permitted call by its endpoint + action rather than trusting HTTP GET or POST. Unknown operations are denied in read-only mode. The registry allocates one API client, connection pool, savepoint manager, and configuration cache per target. Target names are fixed at service startup. The model cannot supply an arbitrary target URL.
 
 ## Transport and deployment status
 
