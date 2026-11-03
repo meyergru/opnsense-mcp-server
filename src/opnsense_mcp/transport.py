@@ -41,7 +41,7 @@ def load_transport_config() -> TransportConfig:
     if not _TOKEN_PATTERN.fullmatch(token):
         raise ValueError("OPNSENSE_MCP_AUTH_TOKEN must be 32-256 ASCII token characters")
 
-    host = os.environ.get("OPNSENSE_MCP_HOST", "0.0.0.0").strip()
+    host = os.environ.get("OPNSENSE_MCP_HOST", "127.0.0.1").strip()
     if not host:
         raise ValueError("OPNSENSE_MCP_HOST must not be empty")
     try:
