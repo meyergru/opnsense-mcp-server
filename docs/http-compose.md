@@ -31,8 +31,9 @@ TOML/secret file or writable data volume.
   `openssl rand -hex 32`. The server rejects an absent/short token at startup.
 - `OPNSENSE_SITES=local,remote` selects named OPNsense endpoints.
 - `OPNSENSE_<NAME>_URL`, `_API_KEY`, `_API_SECRET`, `_VERIFY_SSL`: one set per site.
-- `OPNSENSE_ALLOW_WRITES` has no effect on named target profiles: they are
-  forced read-only in the current implementation.
+- `OPNSENSE_MCP_READ_ONLY=true` is the global default and disallows write-classified actions across all sites.
+- `OPNSENSE_<NAME>_READ_ONLY` optionally overrides that setting per site. Set `false` **only** for a site that deliberately allows modifications; the default is safer.
+- `OPNSENSE_ALLOW_WRITES` is a legacy single-target flag and does not govern named sites. The API client classifies endpoint operations individually; neither GET nor POST implies safety.
 
 Use Portainer's Web editor rather than Git-backed Stack mode if you want
 credentials directly in Compose **without committing them to the repository**.
@@ -55,7 +56,7 @@ a read-only root filesystem, a small tmpfs, and Watchtower opt-out.
 These container settings do **not** replace host-enforced outbound firewalling.
 
 **Security caveat:** The server blocks raw configuration exports and arbitrary
-configuration sections over HTTP. Named targets are read-only; a central
+configuration sections over HTTP. Named targets are read-only by default; a central
 allowlist restricts POST operations, and a response middleware suppresses
 common credential-shaped fields. These defenses do **not** prove that
 all plugin-specific responses are secret-safe. Use least-privileged

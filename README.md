@@ -51,6 +51,7 @@ environment:
   OPNSENSE_MCP_HOST: "0.0.0.0"
   OPNSENSE_MCP_PORT: "8000"
   OPNSENSE_MCP_MAX_RESULT_BYTES: "16384"
+  OPNSENSE_MCP_READ_ONLY: "true"
   OPNSENSE_MCP_AUTH_TOKEN: "replace-with-64-random-hex-characters"
 
   OPNSENSE_SITES: "local,remote"
@@ -58,6 +59,7 @@ environment:
   OPNSENSE_LOCAL_API_KEY: "replace-with-key"
   OPNSENSE_LOCAL_API_SECRET: "replace-with-secret"
   OPNSENSE_LOCAL_VERIFY_SSL: "true"
+  # OPNSENSE_LOCAL_READ_ONLY: "true"  # optional
 
   OPNSENSE_REMOTE_URL: "https://192.168.20.1:10443/api"
   OPNSENSE_REMOTE_API_KEY: "replace-with-key"
@@ -76,13 +78,15 @@ environment:
 | `OPNSENSE_MCP_PORT` | `8000` | HTTP port. |
 | `OPNSENSE_MCP_AUTH_TOKEN` | *none* | Required for HTTP; 32–256 permitted ASCII token characters. |
 | `OPNSENSE_MCP_MAX_RESULT_BYTES` | `16384` | Tool response limit, 1,024–131,072 bytes. |
+| `OPNSENSE_MCP_READ_ONLY` | `true` | Global read-only policy for all named targets. |
+| `OPNSENSE_<SITE>_READ_ONLY` | *inherits global* | Optional per-site override (`true` / `false`). |
 | `OPNSENSE_SITES` | *unset* | Comma-separated names, e.g. `local,remote`. |
 | `OPNSENSE_<SITE>_URL` | *required* | HTTPS URL ending in `/api`, optional nonstandard port. |
 | `OPNSENSE_<SITE>_API_KEY` | *required* | API key of this target. |
 | `OPNSENSE_<SITE>_API_SECRET` | *required* | API secret of this target. |
 | `OPNSENSE_<SITE>_VERIFY_SSL` | `true` | Verify the HTTPS certificate. |
 
-Site aliases start with a lower-case letter and may contain lower-case letters, digits and underscores; variable prefixes use upper case (`local` → `OPNSENSE_LOCAL_URL`). Named targets always set `allow_writes=False`, regardless of `OPNSENSE_ALLOW_WRITES`.
+Site aliases start with a lower-case letter and may contain lower-case letters, digits and underscores; variable prefixes use upper case (`local` → `OPNSENSE_LOCAL_URL`). Named targets inherit `OPNSENSE_MCP_READ_ONLY=true` by default, with optional per-site overrides. `OPNSENSE_ALLOW_WRITES` is legacy-only and does not control named targets.
 
 ### Local stdio mode (optional)
 
@@ -249,11 +253,13 @@ HAProxy inspection and legacy administration tools (requires os-haproxy plugin).
 
 ## Read-only policy and legacy write functions
 
-In **named-target mode**, every OPNsense client is configured read-only. A central allowlist permits the known OPNsense **read/search POST** operations; other POST endpoints are rejected before any network request. OPNsense uses POST for both reads and writes, so blanket rejection of POST is not viable.
+In **named-target mode**, `OPNSENSE_MCP_READ_ONLY=true` (default) prevents configuration changes on every site. The optional `OPNSENSE_<SITE>_READ_ONLY` setting overrides the global choice for one explicitly named target. For example, `OPNSENSE_LOCAL_READ_ONLY=false` permits write-classified operations *only on `local`* when the global setting is true. The user must deliberately opt into this risk; the MCP bearer token grants access to the entire server and is **not** a per-user authorization mechanism.
+
+The API client explicitly classifies **operations**, not HTTP methods: a read or diagnostic operation can use GET or POST; a potentially mutating/unclassified operation is denied before any network request in read-only mode, even when it uses GET. Read-only classification includes limited diagnostics such as the firmware repository check, which refreshes probe metadata but does not install packages.
 
 The firmware update check (`opn_check_firmware_updates`) is allowed in named-target mode: it refreshes firmware check metadata without installing packages. The actual firmware update and upgrade endpoints remain blocked.
 
-The write tools remain visible in the inherited tool catalog but are **not executable against named targets**. Some state-changing diagnostics (such as job-based ping/traceroute) can also be denied by the central policy, until they have been individually reviewed.
+Write tools remain visible in the inherited tool catalog but are **not executable on read-only targets**. If a site is explicitly configured as writable, these tools become callable subject to the absolute endpoint blocklist, target API permissions, and individual tool checks; OPNsense 26.7+ has no automatic firewall rollback. Some state-changing diagnostics (such as job-based ping/traceroute) can also be denied by the central policy, until they have been individually reviewed.
 
 For **legacy single-target stdio only**, the inherited `OPNSENSE_ALLOW_WRITES=true` option still exists. Do not enable this for an AI-connected production firewall. In OPNsense **26.7+**, the older savepoint/60-second rollback API was removed; potentially disruptive changes will not automatically revert.
 
@@ -263,7 +269,7 @@ Over HTTP, `opn_download_config` and `opn_get_config_section` return an error ra
 
 - **HTTP authentication:** FastMCP checks a mandatory bearer token. Clients knowing that token can potentially query **all** configured sites; individual client/site authorization has not been implemented.
 - **Separate VM:** Enforce an **external** egress allowlist allowing only the selected OPNsense API IP/port pairs. Block unrestricted public Internet, other internal hosts, DNS and IPv6 paths. Never trust container-local firewall rules against malicious container code.
-- **API least privilege:** Use dedicated OPNsense read-only API accounts with only the permissions required for the selected tools.
+- **API least privilege:** Use dedicated OPNsense read-only API accounts with only the permissions required for the selected tools. OPNsense API privileges do not reliably distinguish GET from POST or harmless from mutating operations. The MCP policy adds operation-level control.
 - **Output control:** FastMCP caps tool-response size (default 16 KiB); a middleware suppresses structured responses with common secret-shaped keys. These heuristics **do not prove that all secrets are removed**.
 - **No direct SSH or shell:** Requests use the OPNsense REST API. The container is configured as non-root, with read-only root filesystem and dropped capabilities.
 - **Controlled updates:** Watchtower opt-out; the GHCR publishing workflow must be started manually. Audit dependencies and prefer SHA-tagged images rather than automatic updates.
@@ -286,7 +292,7 @@ The upstream server supports OPNsense 24.7+ and automatically chooses camelCase 
 | TCP connection refused | Wrong VM hostname/port, Docker port mapping, or VM firewall. |
 | OPNsense API timeout/401/403 | Check selected `site`, URL/port, TLS, outbound firewall and API privileges. |
 | `site is required` | More than one named target exists; supply the site alias in the tool call. |
-| Write operation denied | Expected for named read-only targets. `OPNSENSE_ALLOW_WRITES` does not override the policy. |
+| Write operation denied | Expected when global or site read-only is true. `OPNSENSE_ALLOW_WRITES` does not control named targets. |
 | Raw `config.xml` denied | Expected for HTTP mode. Use inventory and dedicated inspection tools. |
 | Tool output suppressed/truncated | A sensitive field name or size limit was encountered; narrow the query or limit. |
 | GUI firewall rules not listed | MVC rule search does not necessarily include legacy GUI rules. |

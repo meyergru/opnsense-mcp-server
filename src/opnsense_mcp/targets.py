@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from urllib.parse import urlsplit
 
 from opnsense_mcp.api_client import OPNsenseAPI, SavepointManager
-from opnsense_mcp.config import ConfigError, OPNsenseConfig, load_config
+from opnsense_mcp.config import ConfigError, OPNsenseConfig, load_config, mcp_read_only_enabled
 from opnsense_mcp.config_cache import ConfigCache
 
 _SITE_PATTERN = re.compile(r"[a-z][a-z0-9_]{0,63}\Z")
@@ -104,6 +104,8 @@ class TargetRegistry:
         """Create target clients from Docker Compose-style environment variables."""
         sites_raw = os.environ.get("OPNSENSE_SITES", "").strip()
         if not sites_raw:
+            if os.environ.get("OPNSENSE_MCP_TRANSPORT", "stdio").strip().lower() == "http":
+                raise ConfigError("HTTP mode requires OPNSENSE_SITES for explicit per-site policy")
             return cls({"default": load_config()})
 
         names = [name.strip() for name in sites_raw.split(",")]
@@ -128,6 +130,6 @@ class TargetRegistry:
                 api_key=values["API_KEY"],
                 api_secret=values["API_SECRET"],
                 verify_ssl=ssl_value == "true",
-                allow_writes=False,
+                allow_writes=not mcp_read_only_enabled(name),
             )
         return cls(configs)

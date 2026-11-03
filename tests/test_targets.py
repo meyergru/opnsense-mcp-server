@@ -131,3 +131,61 @@ async def test_helpers_route_to_same_site_state():
             get_api(ctx)
     finally:
         await registry.close()
+
+
+@pytest.mark.asyncio
+async def test_global_read_only_and_per_site_override():
+    env = {
+        **_env(),
+        "OPNSENSE_MCP_READ_ONLY": "true",
+        "OPNSENSE_BETA_READ_ONLY": "false",
+    }
+    with patch.dict("os.environ", env, clear=True):
+        registry = TargetRegistry.from_environment()
+    try:
+        assert registry.resolve("alpha").api._config.allow_writes is False
+        assert registry.resolve("beta").api._config.allow_writes is True
+    finally:
+        await registry.close()
+
+
+@pytest.mark.asyncio
+async def test_site_override_can_reduce_global_write_access():
+    env = {
+        **_env(),
+        "OPNSENSE_MCP_READ_ONLY": "false",
+        "OPNSENSE_BETA_READ_ONLY": "true",
+    }
+    with patch.dict("os.environ", env, clear=True):
+        registry = TargetRegistry.from_environment()
+    try:
+        assert registry.resolve("alpha").api._config.allow_writes is True
+        assert registry.resolve("beta").api._config.allow_writes is False
+    finally:
+        await registry.close()
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("OPNSENSE_MCP_READ_ONLY", "sometimes"),
+        ("OPNSENSE_ALPHA_READ_ONLY", "sometimes"),
+    ],
+)
+def test_reject_invalid_read_only_settings(key, value):
+    with patch.dict("os.environ", {**_env(), key: value}, clear=True):
+        with pytest.raises(ConfigError, match="READ_ONLY"):
+            TargetRegistry.from_environment()
+
+
+def test_http_requires_explicit_named_targets():
+    env = {
+        "OPNSENSE_MCP_TRANSPORT": "http",
+        "OPNSENSE_ALLOW_WRITES": "true",
+        "OPNSENSE_URL": "https://10.0.0.1/api",
+        "OPNSENSE_API_KEY": "key",
+        "OPNSENSE_API_SECRET": "secret",
+    }
+    with patch.dict("os.environ", env, clear=True):
+        with pytest.raises(ConfigError, match="OPNSENSE_SITES"):
+            TargetRegistry.from_environment()
