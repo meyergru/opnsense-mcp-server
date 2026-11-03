@@ -47,9 +47,7 @@ def _is_temporary_outage(exc: Exception) -> bool:
     if isinstance(exc, OPNsenseAPIError):
         return exc.status_code in (502, 503, 504) or (
             exc.status_code == 0
-            and str(exc).startswith(
-                ("Connection failed:", "Request timed out:", "Failed to connect to OPNsense")
-            )
+            and str(exc).startswith(("Connection failed:", "Request timed out:", "Failed to connect to OPNsense"))
         )
     return False
 
@@ -177,9 +175,7 @@ async def opn_monitor_firmware_update(
 
 
 @mcp.tool()
-async def opn_start_firmware_update(
-    ctx: Context, confirm: bool = False, site: str = ""
-) -> dict[str, Any]:
+async def opn_start_firmware_update(ctx: Context, confirm: bool = False, site: str = "") -> dict[str, Any]:
     """Start an OPNsense minor/package firmware update asynchronously.
 
     Requires this site's write permission and confirm=true. Immediately
