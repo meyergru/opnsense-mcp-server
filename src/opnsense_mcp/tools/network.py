@@ -11,31 +11,31 @@ from opnsense_mcp.server import get_api, mcp
 
 
 @mcp.tool()
-async def opn_interface_stats(ctx: Context) -> dict[str, Any]:
+async def opn_interface_stats(ctx: Context, site: str = "") -> dict[str, Any]:
     """Get per-interface traffic statistics (bytes in/out, packets, errors).
 
     Use this when you need to see network utilization, check for interface
     errors, or compare traffic across interfaces.
     Returns: dict keyed by interface name with statistics fields.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.get("interface.statistics")
 
 
 @mcp.tool()
-async def opn_arp_table(ctx: Context) -> dict[str, Any]:
+async def opn_arp_table(ctx: Context, site: str = "") -> dict[str, Any]:
     """Get the ARP table showing IP-to-MAC address mappings.
 
     Use this when you need to find which MAC address is associated with an IP,
     identify devices on a network segment, or troubleshoot connectivity.
     Returns: dict with ARP entries including ip, mac, intf, and hostname fields.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.get("interface.arp")
 
 
 @mcp.tool()
-async def opn_ndp_table(ctx: Context) -> dict[str, Any]:
+async def opn_ndp_table(ctx: Context, site: str = "") -> dict[str, Any]:
     """Get the NDP table showing IPv6-to-MAC address mappings.
 
     Use this when you need to find which MAC address is associated with an IPv6
@@ -43,12 +43,12 @@ async def opn_ndp_table(ctx: Context) -> dict[str, Any]:
     IPv6 neighbor reachability. This is the IPv6 equivalent of the ARP table.
     Returns: dict with NDP entries including ip, mac, intf, and manufacturer fields.
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.get("interface.ndp")
 
 
 @mcp.tool()
-async def opn_ipv6_status(ctx: Context) -> dict[str, Any]:
+async def opn_ipv6_status(ctx: Context, site: str = "") -> dict[str, Any]:
     """Get IPv6 configuration and address status for all interfaces.
 
     Use this when you need a quick overview of which interfaces have IPv6
@@ -60,8 +60,8 @@ async def opn_ipv6_status(ctx: Context) -> dict[str, Any]:
     """
     from opnsense_mcp.server import get_config_cache
 
-    api = get_api(ctx)
-    cache = get_config_cache(ctx)
+    api = get_api(ctx, site)
+    cache = get_config_cache(ctx, site)
 
     # Ensure config is loaded
     if not cache.is_loaded or cache.is_stale:
@@ -166,6 +166,7 @@ async def opn_list_static_routes(
     ctx: Context,
     search: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """List configured static routes.
 
@@ -174,7 +175,7 @@ async def opn_list_static_routes(
     Note: This shows configured static routes, not the full kernel routing table.
     Returns: dict with 'rows' (list of static routes) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.post(
         "routes.search",
         {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
