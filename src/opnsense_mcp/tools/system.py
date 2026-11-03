@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import xml.etree.ElementTree as ET
 from typing import Any
 
@@ -10,6 +11,11 @@ from fastmcp import Context
 from opnsense_mcp import __version__
 from opnsense_mcp.config_cache import SENSITIVE_TAGS
 from opnsense_mcp.server import get_api, get_config_cache, get_savepoint_manager, mcp
+
+
+def _raw_config_export_blocked() -> bool:
+    """Do not expose unconstrained config.xml sections over remote MCP."""
+    return os.environ.get("OPNSENSE_MCP_TRANSPORT", "stdio").strip().lower() == "http"
 
 
 def _strip_sensitive_data(xml_text: str) -> str:
@@ -87,6 +93,8 @@ async def opn_download_config(
     By default, sensitive data (passwords, keys, secrets) is redacted.
     Returns: dict with 'config_xml' (str), 'stripped' (bool), 'size_bytes' (int).
     """
+    if _raw_config_export_blocked():
+        return {"error": "Raw configuration export is disabled for remote MCP clients"}
     api = get_api(ctx, site)
     xml_text = await api.get_text("core.backup.download")
 
@@ -142,6 +150,8 @@ async def opn_get_config_section(
 
     Returns: dict with 'section' name and 'data' (structured config data).
     """
+    if _raw_config_export_blocked():
+        return {"error": "Raw configuration sections are disabled for remote MCP clients"}
     api = get_api(ctx, site)
     cache = get_config_cache(ctx, site)
 
