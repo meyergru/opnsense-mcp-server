@@ -13,27 +13,31 @@ from fastmcp.server.lifespan import lifespan
 
 from opnsense_mcp import __version__
 from opnsense_mcp.api_client import OPNsenseAPI, SavepointManager
-from opnsense_mcp.config import load_config
 from opnsense_mcp.config_cache import ConfigCache
+from opnsense_mcp.targets import TargetRegistry
 
 
 @lifespan
 async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
     """Initialize the OPNsense API client, savepoint manager, and config cache."""
-    config = load_config()
-    api = OPNsenseAPI(config)
-    savepoint_mgr = SavepointManager(api)
-    config_cache = ConfigCache()
+    targets = TargetRegistry.from_environment()
     try:
-        yield {"api": api, "savepoint_mgr": savepoint_mgr, "config_cache": config_cache}
+        yield {"targets": targets}
     finally:
-        await api.close()
+        await targets.close()
 
 
 mcp = FastMCP("opnsense", version=__version__, lifespan=app_lifespan)
 
 
-def get_api(ctx: Context) -> OPNsenseAPI:
+@mcp.tool()
+async def opn_list_targets(ctx: Context) -> dict[str, list[str]]:
+    """List configured OPNsense site names without revealing URLs or credentials."""
+    targets: TargetRegistry = ctx.lifespan_context["targets"]
+    return {"sites": targets.names}
+
+
+def get_api(ctx: Context, site: str = "") -> OPNsenseAPI:
     """Extract the OPNsense API client from the MCP context.
 
     Args:
@@ -45,6 +49,8 @@ def get_api(ctx: Context) -> OPNsenseAPI:
     Raises:
         RuntimeError: If the API client is not initialized.
     """
+    if "targets" in ctx.lifespan_context:
+        return ctx.lifespan_context["targets"].resolve(site).api
     api: Any = ctx.lifespan_context.get("api")
     if not isinstance(api, OPNsenseAPI):
         msg = "OPNsense API client not initialized"
@@ -52,7 +58,7 @@ def get_api(ctx: Context) -> OPNsenseAPI:
     return api
 
 
-def get_config_cache(ctx: Context) -> ConfigCache:
+def get_config_cache(ctx: Context, site: str = "") -> ConfigCache:
     """Extract the ConfigCache from the MCP context.
 
     Args:
@@ -64,6 +70,8 @@ def get_config_cache(ctx: Context) -> ConfigCache:
     Raises:
         RuntimeError: If the config cache is not initialized.
     """
+    if "targets" in ctx.lifespan_context:
+        return ctx.lifespan_context["targets"].resolve(site).config_cache
     cache: Any = ctx.lifespan_context.get("config_cache")
     if not isinstance(cache, ConfigCache):
         msg = "Config cache not initialized"
@@ -71,7 +79,7 @@ def get_config_cache(ctx: Context) -> ConfigCache:
     return cache
 
 
-def get_savepoint_manager(ctx: Context) -> SavepointManager:
+def get_savepoint_manager(ctx: Context, site: str = "") -> SavepointManager:
     """Extract the SavepointManager from the MCP context.
 
     Args:
@@ -83,6 +91,8 @@ def get_savepoint_manager(ctx: Context) -> SavepointManager:
     Raises:
         RuntimeError: If the savepoint manager is not initialized.
     """
+    if "targets" in ctx.lifespan_context:
+        return ctx.lifespan_context["targets"].resolve(site).savepoint_mgr
     mgr: Any = ctx.lifespan_context.get("savepoint_mgr")
     if not isinstance(mgr, SavepointManager):
         msg = "Savepoint manager not initialized"
