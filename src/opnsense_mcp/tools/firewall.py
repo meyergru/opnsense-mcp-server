@@ -39,6 +39,7 @@ async def opn_list_firewall_rules(
     ctx: Context,
     search: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """List firewall filter rules configured via the MVC API.
 
@@ -50,7 +51,7 @@ async def opn_list_firewall_rules(
     Use this when you need to inspect MVC-managed firewall filter rules.
     Returns: dict with 'rows' (list of rules) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.post(
         "firewall.search_rule",
         {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
@@ -62,6 +63,7 @@ async def opn_list_firewall_aliases(
     ctx: Context,
     search: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """List firewall alias definitions (IP lists, port groups, GeoIP, URLs).
 
@@ -69,7 +71,7 @@ async def opn_list_firewall_aliases(
     or what IP addresses/networks they resolve to.
     Returns: dict with 'rows' (list of aliases) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.post(
         "firewall.alias.search",
         {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
@@ -84,6 +86,7 @@ async def opn_firewall_log(
     action: str = "",
     interface: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """Get recent firewall log entries (blocked and passed packets).
 
@@ -92,7 +95,7 @@ async def opn_firewall_log(
     All filter parameters are optional substring matches applied client-side.
     Returns: dict with 'entries' (list of log rows) and 'total' (count after filtering).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     raw = await api.get("firewall.log")
     rows: list[dict[str, Any]] = raw if isinstance(raw, list) else raw.get("rows", raw.get("entries", []))
 
@@ -116,7 +119,7 @@ async def opn_firewall_log(
 
 
 @mcp.tool()
-async def opn_confirm_changes(ctx: Context, revision: str) -> dict[str, Any]:
+async def opn_confirm_changes(ctx: Context, revision: str, site: str = "") -> dict[str, Any]:
     """Confirm pending firewall changes, cancelling the 60-second auto-rollback.
 
     Use this AFTER applying firewall changes (rule add/edit/delete) to make them
@@ -127,7 +130,7 @@ async def opn_confirm_changes(ctx: Context, revision: str) -> dict[str, Any]:
     the write tools return an empty revision and this call is a no-op.
     Returns: dict with confirmation status, or status 'not_applicable'.
     """
-    mgr = get_savepoint_manager(ctx)
+    mgr = get_savepoint_manager(ctx, site)
     return await mgr.confirm(revision)
 
 
@@ -135,6 +138,7 @@ async def opn_confirm_changes(ctx: Context, revision: str) -> dict[str, Any]:
 async def opn_toggle_firewall_rule(
     ctx: Context,
     uuid: str,
+    site: str = "",
 ) -> dict[str, Any]:
     """Toggle a firewall filter rule's enabled/disabled state with savepoint protection where supported.
 
@@ -150,8 +154,8 @@ async def opn_toggle_firewall_rule(
     Use opn_list_firewall_rules first to find the UUID of the rule.
     Returns: dict with 'revision' (str) for confirming and 'uuid' (str).
     """
-    api = get_api(ctx)
-    mgr = get_savepoint_manager(ctx)
+    api = get_api(ctx, site)
+    mgr = get_savepoint_manager(ctx, site)
     revision = await mgr.create()
     try:
         await api.post("firewall.toggle_rule", path_suffix=uuid)
@@ -162,7 +166,7 @@ async def opn_toggle_firewall_rule(
             "message": _failed_message(revision, "toggle"),
         }
     await mgr.apply(revision)
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {
         "revision": revision,
         "uuid": uuid,
@@ -190,6 +194,7 @@ async def opn_add_firewall_rule(
     sequence: int = 1,
     categories: str = "",
     description: str = "",
+    site: str = "",
 ) -> dict[str, Any]:
     """Create a new MVC firewall filter rule with savepoint protection where supported.
 
@@ -237,8 +242,8 @@ async def opn_add_firewall_rule(
             ),
         }
 
-    api = get_api(ctx)
-    mgr = get_savepoint_manager(ctx)
+    api = get_api(ctx, site)
+    mgr = get_savepoint_manager(ctx, site)
     revision = await mgr.create()
 
     rule: dict[str, str] = {
@@ -277,7 +282,7 @@ async def opn_add_firewall_rule(
 
     new_uuid = result.get("uuid", "")
     await mgr.apply(revision)
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {
         "revision": revision,
         "uuid": new_uuid,
@@ -290,6 +295,7 @@ async def opn_add_firewall_rule(
 async def opn_delete_firewall_rule(
     ctx: Context,
     uuid: str,
+    site: str = "",
 ) -> dict[str, Any]:
     """Delete a firewall filter rule by UUID with savepoint protection where supported.
 
@@ -304,8 +310,8 @@ async def opn_delete_firewall_rule(
     Use opn_list_firewall_rules first to find the UUID of the rule to delete.
     Returns: dict with 'revision' (str) for confirming and 'result' (str).
     """
-    api = get_api(ctx)
-    mgr = get_savepoint_manager(ctx)
+    api = get_api(ctx, site)
+    mgr = get_savepoint_manager(ctx, site)
     revision = await mgr.create()
     try:
         result = await api.post("firewall.del_rule", path_suffix=uuid)
@@ -316,7 +322,7 @@ async def opn_delete_firewall_rule(
             "message": _failed_message(revision, "deletion"),
         }
     await mgr.apply(revision)
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {
         "revision": revision,
         "uuid": uuid,
@@ -347,6 +353,7 @@ async def opn_update_firewall_rule(
     categories: str | None = None,
     description: str | None = None,
     enabled: bool | None = None,
+    site: str = "",
 ) -> dict[str, Any]:
     """Update an existing MVC firewall rule by UUID with savepoint protection where supported.
 
@@ -394,8 +401,8 @@ async def opn_update_firewall_rule(
             "error": f"Invalid ip_protocol '{ip_protocol}'. Must be 'inet', 'inet6', or 'inet46'.",
         }
 
-    api = get_api(ctx)
-    mgr = get_savepoint_manager(ctx)
+    api = get_api(ctx, site)
+    mgr = get_savepoint_manager(ctx, site)
     revision = await mgr.create()
 
     rule: dict[str, str] = {}
@@ -446,7 +453,7 @@ async def opn_update_firewall_rule(
         }
 
     await mgr.apply(revision)
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {
         "revision": revision,
         "uuid": uuid,
@@ -462,6 +469,7 @@ async def opn_add_alias(
     alias_type: str = "host",
     content: str = "",
     description: str = "",
+    site: str = "",
 ) -> dict[str, Any]:
     """Create a new firewall alias (IP list, network group, port group, etc.).
 
@@ -490,7 +498,7 @@ async def opn_add_alias(
             "error": (f"Invalid alias name '{name}'. Must contain only letters, numbers, and underscores."),
         }
 
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
     result = await api.post(
         "firewall.alias.add",
@@ -505,7 +513,7 @@ async def opn_add_alias(
             },
         },
     )
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {
         "result": result.get("result", ""),
         "uuid": result.get("uuid", ""),
@@ -522,6 +530,7 @@ async def opn_update_alias(
     description: str | None = None,
     alias_type: str | None = None,
     enabled: bool | None = None,
+    site: str = "",
 ) -> dict[str, Any]:
     """Update an existing firewall alias by UUID (read-modify-write).
 
@@ -553,7 +562,7 @@ async def opn_update_alias(
             "error": f"Invalid alias_type '{alias_type}'. Must be one of: host, network, port, urltable, geoip",
         }
 
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
 
     # Read current alias state
@@ -573,7 +582,7 @@ async def opn_update_alias(
         current["enabled"] = "1" if enabled else "0"
 
     result = await api.post("firewall.alias.set", {"alias": current}, path_suffix=uuid)
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {
         "result": result.get("result", ""),
         "uuid": uuid,
@@ -584,6 +593,7 @@ async def opn_update_alias(
 async def opn_delete_alias(
     ctx: Context,
     uuid: str,
+    site: str = "",
 ) -> dict[str, Any]:
     """Delete a firewall alias by UUID.
 
@@ -597,10 +607,10 @@ async def opn_delete_alias(
     Use opn_list_firewall_aliases first to find the UUID.
     Returns: dict with 'result' (str) and 'uuid' (str).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
     result = await api.post("firewall.alias.del", path_suffix=uuid)
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {
         "result": result.get("result", ""),
         "uuid": uuid,
@@ -611,6 +621,7 @@ async def opn_delete_alias(
 async def opn_toggle_alias(
     ctx: Context,
     uuid: str,
+    site: str = "",
 ) -> dict[str, Any]:
     """Toggle a firewall alias's enabled/disabled state.
 
@@ -621,10 +632,10 @@ async def opn_toggle_alias(
     Use opn_list_firewall_aliases first to find the UUID.
     Returns: dict with 'result' (str) and 'uuid' (str).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
     result = await api.post("firewall.alias.toggle", path_suffix=uuid)
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {
         "result": result.get("result", ""),
         "uuid": uuid,
@@ -636,6 +647,7 @@ async def opn_list_nat_rules(
     ctx: Context,
     search: str = "",
     limit: int = 50,
+    site: str = "",
 ) -> dict[str, Any]:
     """List NAT port forwarding (DNAT) rules.
 
@@ -648,7 +660,7 @@ async def opn_list_nat_rules(
 
     Returns: dict with 'rows' (list of NAT rules) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.post(
         "nat.dnat.search_rule",
         {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
@@ -664,6 +676,7 @@ async def opn_add_nat_rule(
     protocol: str = "TCP",
     target_port: str = "",
     description: str = "",
+    site: str = "",
 ) -> dict[str, Any]:
     """Create a NAT port forwarding rule with savepoint protection where supported.
 
@@ -694,8 +707,8 @@ async def opn_add_nat_rule(
             "error": f"Invalid protocol '{protocol}'. Must be one of: TCP, UDP, TCP/UDP",
         }
 
-    api = get_api(ctx)
-    mgr = get_savepoint_manager(ctx)
+    api = get_api(ctx, site)
+    mgr = get_savepoint_manager(ctx, site)
     revision = await mgr.create()
 
     rule: dict[str, str] = {
@@ -720,7 +733,7 @@ async def opn_add_nat_rule(
 
     new_uuid = result.get("uuid", "")
     await mgr.apply(revision)
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {
         "revision": revision,
         "uuid": new_uuid,
@@ -740,6 +753,7 @@ async def opn_update_nat_rule(
     target_port: str | None = None,
     description: str | None = None,
     enabled: bool | None = None,
+    site: str = "",
 ) -> dict[str, Any]:
     """Update an existing NAT port forwarding rule by UUID with savepoint protection where supported.
 
@@ -772,8 +786,8 @@ async def opn_update_nat_rule(
             "error": f"Invalid protocol '{protocol}'. Must be one of: TCP, UDP, TCP/UDP",
         }
 
-    api = get_api(ctx)
-    mgr = get_savepoint_manager(ctx)
+    api = get_api(ctx, site)
+    mgr = get_savepoint_manager(ctx, site)
     revision = await mgr.create()
 
     rule: dict[str, str] = {}
@@ -802,7 +816,7 @@ async def opn_update_nat_rule(
         }
 
     await mgr.apply(revision)
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {
         "revision": revision,
         "uuid": uuid,
@@ -815,6 +829,7 @@ async def opn_update_nat_rule(
 async def opn_delete_nat_rule(
     ctx: Context,
     uuid: str,
+    site: str = "",
 ) -> dict[str, Any]:
     """Delete a NAT port forwarding rule by UUID with savepoint protection where supported.
 
@@ -829,8 +844,8 @@ async def opn_delete_nat_rule(
     Use opn_list_nat_rules first to find the UUID of the rule to delete.
     Returns: dict with 'revision' (str) for confirming and 'result' (str).
     """
-    api = get_api(ctx)
-    mgr = get_savepoint_manager(ctx)
+    api = get_api(ctx, site)
+    mgr = get_savepoint_manager(ctx, site)
     revision = await mgr.create()
     try:
         result = await api.post("nat.dnat.del_rule", path_suffix=uuid)
@@ -841,7 +856,7 @@ async def opn_delete_nat_rule(
             "message": _failed_message(revision, "NAT rule deletion"),
         }
     await mgr.apply(revision)
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {
         "revision": revision,
         "uuid": uuid,
@@ -855,6 +870,7 @@ async def opn_list_firewall_categories(
     ctx: Context,
     search: str = "",
     limit: int = 100,
+    site: str = "",
 ) -> dict[str, Any]:
     """List firewall rule categories.
 
@@ -862,7 +878,7 @@ async def opn_list_firewall_categories(
     and colors, or find category UUIDs for assigning to rules.
     Returns: dict with 'rows' (list of categories) and 'rowCount' (total).
     """
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     return await api.post(
         "firewall.category.search",
         {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
@@ -874,6 +890,7 @@ async def opn_add_firewall_category(
     ctx: Context,
     name: str,
     color: str = "000000",
+    site: str = "",
 ) -> dict[str, Any]:
     """Create a new firewall rule category.
 
@@ -895,13 +912,13 @@ async def opn_add_firewall_category(
             "error": f"Invalid color '{color}'. Must be 6 hex digits (e.g. 'ff0000').",
         }
 
-    api = get_api(ctx)
+    api = get_api(ctx, site)
     api.require_writes()
     result = await api.post(
         "firewall.category.add",
         {"category": {"name": name, "color": color, "auto": "0"}},
     )
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {
         "result": result.get("result", ""),
         "uuid": result.get("uuid", ""),
@@ -913,6 +930,7 @@ async def opn_add_firewall_category(
 async def opn_delete_firewall_category(
     ctx: Context,
     uuid: str,
+    site: str = "",
 ) -> dict[str, Any]:
     """Delete a firewall rule category by UUID with savepoint protection where supported.
 
@@ -929,8 +947,8 @@ async def opn_delete_firewall_category(
     with opn_download_config before changing rules that could lock you out.
     Returns: dict with 'revision' (str) for confirming and 'result' (str).
     """
-    api = get_api(ctx)
-    mgr = get_savepoint_manager(ctx)
+    api = get_api(ctx, site)
+    mgr = get_savepoint_manager(ctx, site)
     revision = await mgr.create()
     try:
         result = await api.post("firewall.category.del", path_suffix=uuid)
@@ -941,7 +959,7 @@ async def opn_delete_firewall_category(
             "message": _failed_message(revision, "deletion"),
         }
     await mgr.apply(revision)
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {
         "revision": revision,
         "uuid": uuid,
@@ -955,6 +973,7 @@ async def opn_set_rule_categories(
     ctx: Context,
     uuid: str,
     categories: str = "",
+    site: str = "",
 ) -> dict[str, Any]:
     """Assign categories to a firewall rule by UUID with savepoint protection where supported.
 
@@ -973,8 +992,8 @@ async def opn_set_rule_categories(
 
     Returns: dict with 'revision' (str) for confirming and 'uuid' (str).
     """
-    api = get_api(ctx)
-    mgr = get_savepoint_manager(ctx)
+    api = get_api(ctx, site)
+    mgr = get_savepoint_manager(ctx, site)
     revision = await mgr.create()
     try:
         await api.post(
@@ -989,7 +1008,7 @@ async def opn_set_rule_categories(
             "message": _failed_message(revision, "category update"),
         }
     await mgr.apply(revision)
-    get_config_cache(ctx).invalidate()
+    get_config_cache(ctx, site).invalidate()
     return {
         "revision": revision,
         "uuid": uuid,
@@ -1036,6 +1055,7 @@ _ICMPV6_ESSENTIAL_RULES: list[dict[str, str]] = [
 async def opn_add_icmpv6_rules(
     ctx: Context,
     interface: str = "lan",
+    site: str = "",
 ) -> dict[str, Any]:
     """Create essential ICMPv6 firewall rules required for IPv6 operation.
 
@@ -1063,8 +1083,8 @@ async def opn_add_icmpv6_rules(
     Returns: dict with 'revision' (str), 'rules' (list of created UUIDs),
     and instructions to confirm.
     """
-    api = get_api(ctx)
-    mgr = get_savepoint_manager(ctx)
+    api = get_api(ctx, site)
+    mgr = get_savepoint_manager(ctx, site)
     revision = await mgr.create()
 
     created_uuids: list[str] = []
@@ -1093,7 +1113,7 @@ async def opn_add_icmpv6_rules(
 
     if created_uuids:
         await mgr.apply(revision)
-        get_config_cache(ctx).invalidate()
+        get_config_cache(ctx, site).invalidate()
 
     return {
         "revision": revision,
