@@ -40,6 +40,24 @@ class TestToolRegistration:
             "opn_list_firewall_rules",
             "opn_list_firewall_aliases",
             "opn_firewall_log",
+            "opn_firewall_list_objects",
+            "opn_firewall_get_object",
+            "opn_firewall_create_object",
+            "opn_firewall_patch_object",
+            "opn_firewall_delete_object",
+            "opn_firewall_set_enabled",
+            "opn_firewall_set_logging",
+            "opn_firewall_move_rule",
+            "opn_firewall_apply_changes",
+            "opn_firewall_get_source_nat_settings",
+            "opn_firewall_patch_source_nat_settings",
+            "opn_firewall_get_rule_stats",
+            "opn_firewall_get_interface_options",
+            "opn_firewall_alias_references",
+            "opn_firewall_list_alias_table",
+            "opn_firewall_legacy_rule_counts",
+            "opn_firewall_reconfigure_aliases",
+            "opn_firewall_reconfigure_groups",
             "opn_confirm_changes",
             "opn_toggle_firewall_rule",
             "opn_add_firewall_rule",
@@ -160,7 +178,7 @@ class TestToolRegistration:
         from opnsense_mcp.server import mcp
 
         tools = await mcp.list_tools()
-        assert len(tools) == 129, f"Expected 129 tools, got {len(tools)}"
+        assert len(tools) == 147, f"Expected 147 tools, got {len(tools)}"
 
     async def test_every_opnsense_tool_has_site_parameter(self):
         """Every site-bound tool must expose an explicit target selector."""

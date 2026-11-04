@@ -6,12 +6,12 @@ or future releases.
 
 ## Coverage
 
-- **113** static logical endpoints in `ENDPOINT_REGISTRY`.
+- **297** registered logical endpoints in `ENDPOINT_REGISTRY`: 114 original/static mappings, 114 generated reviewed MVC mappings for Kea/radvd/Unbound/WireGuard, and 69 generated reviewed Firewall 26.7 mappings.
 - **36** dynamically constructed HAProxy resource endpoints (nine resource
   kinds × get/add/set/del), with validated resource identifiers.
 - Some logical endpoints have **multiple differently classified HTTP
   operations** (e.g. GET vs POST `core/firmware/status`).
-- **91 MCP tools** are a separate count: a single tool may call several
+- **147 MCP tools** are a separate count: a single tool may call several
   API operations, and a single operation may serve multiple tools.
 
 The current policy is defined in `api_client.py`:
@@ -53,6 +53,10 @@ operations for that site; unknown operations are never automatically allowed.
 | POST `diagnostics.traceroute.set` | WRITE | Initiates outgoing network probes |
 | POST `diagnostics.dns_diagnostics.set` | DIAGNOSTIC | Sends DNS queries from the firewall; explicitly allowed in read-only mode |
 | GET `core.backup.download` | READ | Sensitive export risk: raw backup is **blocked for HTTP MCP clients** despite being non-mutating |
+
+Firewall controller-specific details, including the inverse DNAT
+toggle semantics and omitted destructive migration actions, are documented
+in [Core API coverage](core-api-coverage-26.7.md).
 
 These selected network diagnostics are intentionally allowed on read-only sites;
 they can send traffic to user-specified destinations. Traceroute remains

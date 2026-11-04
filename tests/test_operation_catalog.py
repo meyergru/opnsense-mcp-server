@@ -176,10 +176,10 @@ def test_tool_api_calls_are_all_explicitly_classified():
                 assert dynamic in dynamic_calls, (
                     f"{source_path.name}:{node.lineno}: unreviewed dynamic API call {dynamic}"
                 )
-            elif source_path.name == "mvc.py":
-                # MVC operations derive only from the separately audited,
-                # finite mvc_catalog.RESOURCES/GLOBAL_SETTINGS tables.
-                # Their generated logical paths are tested by test_mvc.
+            elif source_path.name in {"mvc.py", "firewall_mvc.py"}:
+                # These operations derive only from audited, fixed resource
+                # catalogues. The corresponding test_mvc/test_firewall_mvc
+                # suites check every generated logical endpoint and method.
                 continue
             else:
                 pytest.fail(f"{source_path.name}:{node.lineno}: unexpected dynamic API expression")

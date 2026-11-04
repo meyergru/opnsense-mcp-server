@@ -43,12 +43,12 @@ async def opn_list_firewall_rules(
 ) -> dict[str, Any]:
     """List firewall filter rules configured via the MVC API.
 
-    IMPORTANT: This only returns rules created through the OPNsense MVC filter
-    API (Settings > Firewall > Automation). Legacy rules configured via the
-    traditional GUI (Firewall > Rules) are NOT visible through this endpoint.
-    Most users have legacy rules — a result of 0 rules does not mean no rules exist.
+    OPNsense 26.7's filter/searchRule combines MVC rules and non-MVC rules
+    returned by the backend. Some legacy/automatic records therefore appear
+    in results but are NOT necessarily editable via the MVC CRUD endpoints.
+    A response with no records does not prove the firewall has no active rules.
 
-    Use this when you need to inspect MVC-managed firewall filter rules.
+    Use this to inspect the rule overview, not to infer write capability.
     Returns: dict with 'rows' (list of rules) and 'rowCount' (total).
     """
     api = get_api(ctx, site)
