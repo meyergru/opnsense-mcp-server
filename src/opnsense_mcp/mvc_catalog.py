@@ -18,9 +18,10 @@ class MVCResource:
     action: str
     field: str
     toggle: bool = False
+    kind: str = ""
 
     def logical(self, verb: str) -> str:
-        return f"mvc.{self.family}.{self.action.lower()}.{verb}"
+        return f"mvc.{self.family}.{self.kind or self.action.lower()}.{verb}"
 
 
 RESOURCES: dict[str, dict[str, MVCResource]] = {
@@ -98,12 +99,12 @@ def generate_operations() -> tuple[dict[str, tuple[str, str]], frozenset[str], f
     endpoints["mvc.kea.leases.del"] = ("kea/leases/delLease", "kea/leases/del_lease")
     writes.add(("POST", "mvc.kea.leases.del"))
     for resources in RESOURCES.values():
-        for resource in resources.values():
+        for kind, resource in resources.items():
             for verb in ("search", "get", "add", "set", "del", "toggle"):
                 if verb == "toggle" and not resource.toggle:
                     continue
                 method = f"{verb}{resource.action}"
-                logical = resource.logical(verb)
+                logical = f"mvc.{resource.family}.{kind}.{verb}"
                 endpoints[logical] = (f"{resource.controller}/{method}", f"{resource.controller}/{_snake(method)}")
                 if verb == "get":
                     gets.add(logical)
