@@ -2,7 +2,7 @@
 
 A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible AI clients, including **OpenWebUI**, to several **named OPNsense firewalls** over their REST APIs. This is a fork of [lucamarien/opnsense-mcp-server](https://github.com/lucamarien/opnsense-mcp-server), with the original MIT license retained.
 
-**147 MCP tools:** including single-site Kea, radvd, Unbound, WireGuard and Firewall 26.7 resource operations; see the [tool reference](#available-tools-147).
+**154 MCP tools:** including single-site Kea, radvd, Unbound, WireGuard and Firewall 26.7 resource operations; see the [tool reference](#available-tools-154).
 
 ## Architecture and configuration ownership
 
@@ -105,7 +105,7 @@ opnsense-mcp
 
 Do **not** use the original author's `uhlenheide` Docker Hub image for this fork.
 
-## Available Tools (147)
+## Available Tools (154)
 
 ### Target selection (1 tool)
 
@@ -279,7 +279,7 @@ HAProxy inspection and legacy administration tools (requires os-haproxy plugin).
 
 > **Note:** HAProxy changes do NOT use savepoint protection — they apply immediately on reconfigure. Always call `opn_haproxy_configtest` before `opn_reconfigure_haproxy`.
 
-### Services (11 tools)
+### Services (18 tools)
 
 | Tool | Description | Writes |
 | --- | --- | --- |
@@ -287,13 +287,22 @@ HAProxy inspection and legacy administration tools (requires os-haproxy plugin).
 | `opn_list_cron_jobs` | Scheduled cron jobs. Params: `search`, `limit` | No |
 | `opn_crowdsec_status` | CrowdSec security engine status and active decisions | No |
 | `opn_crowdsec_alerts` | CrowdSec security alerts (detected threats). Params: `search`, `limit` | No |
-| `opn_list_ddns_accounts` | Dynamic DNS accounts and their update status. Params: `search`, `limit` | No |
-| `opn_add_ddns_account` | Create a new Dynamic DNS account. Params: `service`, `hostname`, `username`, `password`, `checkip`, `interface`, `description` | Yes |
-| `opn_reconfigure_ddclient` | Apply pending Dynamic DNS configuration changes | Yes |
-| `opn_update_ddns_account` | Update a Dynamic DNS account (password is write-only). Params: `uuid`, `service`, `hostname`, `username`, `password`, `checkip`, `interface`, `description`, `enabled` | Yes |
-| `opn_delete_ddns_account` | Delete a Dynamic DNS account by UUID. Params: `uuid` | Yes |
+| `opn_list_ddns_accounts` | List accounts, hostnames and last update status; secrets omitted | No |
+| `opn_get_ddns_account` | Read one account by UUID; credential fields never returned | No |
+| `opn_add_ddns_account` | Stage an account; legacy argument hostname maps to plugin hostnames; no implicit apply | Yes |
+| `opn_update_ddns_account` | Stage a partial update; password update-only, not returned | Yes |
+| `opn_set_ddns_account_enabled` | Idempotent enable/disable with read-before-toggle, staged only | Yes |
+| `opn_delete_ddns_account` | Stage deletion by UUID | Yes |
+| `opn_get_ddns_settings` | Read enabled/verbose/allowipv6/daemon_delay/backend | No |
+| `opn_patch_ddns_settings` | Stage changes to general settings, including native backend | Yes |
+| `opn_ddns_service_status` | Read service status | No |
+| `opn_reconfigure_ddclient` | Explicitly apply staged DDNS changes; confirm=true required | Yes |
+| `opn_ddns_service_control` | Start/stop/restart live DDNS service; confirm=true required | Yes |
+| `opn_force_refresh_ddns_accounts` | Force refresh selected native-backend accounts (stop/reset/start); confirm=true required | Yes |
 | `opn_mdns_repeater_status` | mDNS Repeater status and configuration (enabled, interfaces, blocklist). Requires `os-mdns-repeater` plugin | No |
 | `opn_configure_mdns_repeater` | Configure mDNS Repeater for cross-VLAN device discovery (HomeKit, Chromecast, AirPlay). Params: `enabled`, `interfaces` | Yes |
+
+See [os-ddclient API coverage](docs/plugin-api-coverage-ddclient-26.7.md) for omitted bulk endpoints, model field names and safety boundaries.
 
 ### Diagnostics (4 tools)
 

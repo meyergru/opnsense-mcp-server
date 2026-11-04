@@ -6,12 +6,12 @@ or future releases.
 
 ## Coverage
 
-- **297** registered logical endpoints in `ENDPOINT_REGISTRY`: 114 original/static mappings, 114 generated reviewed MVC mappings for Kea/radvd/Unbound/WireGuard, and 69 generated reviewed Firewall 26.7 mappings.
+- **306** registered logical endpoints in `ENDPOINT_REGISTRY`: 123 original/static mappings, 114 generated reviewed MVC mappings for Kea/radvd/Unbound/WireGuard, and 69 generated reviewed Firewall 26.7 mappings.
 - **36** dynamically constructed HAProxy resource endpoints (nine resource
   kinds × get/add/set/del), with validated resource identifiers.
 - Some logical endpoints have **multiple differently classified HTTP
   operations** (e.g. GET vs POST `core/firmware/status`).
-- **147 MCP tools** are a separate count: a single tool may call several
+- **154 MCP tools** are a separate count: a single tool may call several
   API operations, and a single operation may serve multiple tools.
 
 The current policy is defined in `api_client.py`:
@@ -37,6 +37,18 @@ OPNSENSE_MCP_READ_ONLY: "true"
 
 The default is read-only. Choosing `false` allows the **listed** WRITE
 operations for that site; unknown operations are never automatically allowed.
+
+## os-ddclient (Dynamic DNS) plugin
+
+Nine additional reviewed logical endpoints cover get-item, toggle, force-refresh,
+general get/set, status and service start/stop/restart. The existing five
+mappings provide search/add/set/delete/reconfigure. Searches and safe item
+reads are READ; all account mutations, force-refresh, settings changes and
+service controls are WRITE. The generic Accounts get/set bulk actions are
+intentionally not exposed. Credential fields are omitted from MCP results;
+account passwords are update-only inputs. Account mutations stage changes
+without automatically calling service reconfigure; apply and disruptive
+controls need explicit confirmation. See the plugin-specific coverage matrix.
 
 ## Ambiguous or special operations requiring explicit review
 

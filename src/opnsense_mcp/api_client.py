@@ -34,6 +34,9 @@ READ_ONLY_GET_ENDPOINTS: frozenset[str] = frozenset(
         "diagnostics.ping.search_jobs",
         "dnsmasq.leases.search",
         "dnsmasq.service.status",
+        "dyndns.accounts.get_item",
+        "dyndns.settings.get",
+        "dyndns.service.status",
         "dnsmasq.settings.get",
         "firewall.alias.get",
         "firewall.log",
@@ -179,7 +182,13 @@ WRITE_OPERATIONS: frozenset[tuple[str, str]] = frozenset(
         ("POST", "dyndns.accounts.add"),
         ("POST", "dyndns.accounts.set"),
         ("POST", "dyndns.accounts.del"),
+        ("POST", "dyndns.accounts.toggle"),
+        ("POST", "dyndns.accounts.force_refresh"),
+        ("POST", "dyndns.settings.set"),
         ("POST", "dyndns.service.reconfigure"),
+        ("POST", "dyndns.service.start"),
+        ("POST", "dyndns.service.stop"),
+        ("POST", "dyndns.service.restart"),
         ("POST", "dnsmasq.settings.add_range"),
         ("POST", "dnsmasq.settings.set_range"),
         ("POST", "dnsmasq.settings.del_range"),
@@ -565,6 +574,42 @@ ENDPOINT_REGISTRY: dict[str, tuple[str, str]] = {
     "dyndns.service.reconfigure": (
         "dyndns/service/reconfigure",
         "dyndns/service/reconfigure",
+    ),
+    "dyndns.accounts.get_item": (
+        "dyndns/accounts/getItem",
+        "dyndns/accounts/get_item",
+    ),
+    "dyndns.accounts.toggle": (
+        "dyndns/accounts/toggleItem",
+        "dyndns/accounts/toggle_item",
+    ),
+    "dyndns.accounts.force_refresh": (
+        "dyndns/accounts/forceRefresh",
+        "dyndns/accounts/force_refresh",
+    ),
+    "dyndns.settings.get": (
+        "dyndns/settings/get",
+        "dyndns/settings/get",
+    ),
+    "dyndns.settings.set": (
+        "dyndns/settings/set",
+        "dyndns/settings/set",
+    ),
+    "dyndns.service.status": (
+        "dyndns/service/status",
+        "dyndns/service/status",
+    ),
+    "dyndns.service.start": (
+        "dyndns/service/start",
+        "dyndns/service/start",
+    ),
+    "dyndns.service.stop": (
+        "dyndns/service/stop",
+        "dyndns/service/stop",
+    ),
+    "dyndns.service.restart": (
+        "dyndns/service/restart",
+        "dyndns/service/restart",
     ),
     # dnsmasq DHCP ranges and service
     "dnsmasq.settings.search_range": (

@@ -2,15 +2,50 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from fastmcp import Context
 
 from opnsense_mcp.server import get_api, get_config_cache, mcp
 
-_SENSITIVE_FIELDS = frozenset({"password", "%password"})
+# --- Dynamic DNS (os-ddclient, stable/26.7) ---
+# Controller source: OPNsense/DynDNS/Api/{Accounts,Settings,Service}Controller.php
+# Config model: OPNsense/DynDNS/DynDNS.xml. Never return credential fields.
 
-# --- Dynamic DNS ---
+_DDNS_ACCOUNT_PUBLIC = frozenset({
+    "uuid", "enabled", "service", "description", "hostnames",
+    "hostname", "protocol", "wildcard", "zone",
+    "checkip", "dynipv6host", "checkip_timeout", "force_ssl", "ttl",
+    "interface", "current_ip", "current_mtime", "use_interface",
+})
+_DDNS_GENERAL_FIELDS = frozenset({"enabled", "verbose", "allowipv6", "daemon_delay", "backend"})
+_DDNS_UUID = re.compile(r"^[a-zA-Z0-9-]{1,64}$")
+
+
+def _ddns_id(uuid: str) -> str:
+    """Constrain path suffixes to a single item ID (no arbitrary URL traversal)."""
+    if not _DDNS_UUID.fullmatch(uuid):
+        raise ValueError("Invalid DDNS account identifier")
+    return uuid
+
+
+def _ddns_public(value: dict[str, Any]) -> dict[str, Any]:
+    """Allow only non-credential fields (not username/API key or custom server URLs)."""
+    return {key: val for key, val in value.items() if key in _DDNS_ACCOUNT_PUBLIC}
+
+
+def _ddns_state(value: Any) -> str:
+    """Normalize OPNsense form values for an idempotent enable/disable check."""
+    if isinstance(value, dict):
+        value = value.get("value", "")
+    return str(value).strip().lower()
+
+
+def _ddns_result(value: dict[str, Any], *, field: str = "result") -> str:
+    """Avoid returning untrusted nested API errors, which can echo credentials."""
+    result = value.get(field, "unknown")
+    return result if isinstance(result, str) else "unknown"
 
 
 @mcp.tool()
@@ -20,32 +55,31 @@ async def opn_list_ddns_accounts(
     limit: int = 50,
     site: str = "",
 ) -> dict[str, Any]:
-    """List Dynamic DNS (DDNS) accounts and their update status.
+    """List os-ddclient accounts and update status, without password/token fields.
 
-    Use this to check which hostnames have DDNS configured, their current
-    IP addresses, last update time, and which service provider is used.
-
-    Key fields: service (provider), hostname, checkip (method), current_ip,
-    current_mtime (last update), interface, enabled.
-
-    For IPv6 DDNS: the global setting 'allowipv6' must be enabled AND an
-    IPv6-capable checkip method must be used (e.g. 'cloudflare-ipv6').
-    Both must be set or IPv6 updates silently fail.
-
-    Note: Requires the Dynamic DNS plugin (os-ddclient).
-    Returns: dict with 'rows' (list of accounts) and 'rowCount' (total).
+    The plugin's actual model field is hostnames (plural). No secrets are
+    returned, even if a future API version adds credential-shaped fields.
     """
     api = get_api(ctx, site)
     result = await api.post(
         "dyndns.accounts.search",
-        {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
+        {"current": 1, "rowCount": min(max(limit, 1), 500), "searchPhrase": search},
     )
-    # Sanitize: strip credentials from search results
-    for row in result.get("rows", []):
-        for field in _SENSITIVE_FIELDS:
-            if field in row:
-                row[field] = "***"
-    return result
+    rows = result.get("rows", [])
+    return {
+        "rows": [_ddns_public(row) for row in rows if isinstance(row, dict)] if isinstance(rows, list) else [],
+        "rowCount": result.get("rowCount", 0),
+    }
+
+
+@mcp.tool()
+async def opn_get_ddns_account(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
+    """Read a single os-ddclient account without exposing password or API tokens."""
+    result = await get_api(ctx, site).get("dyndns.accounts.get_item", path_suffix=_ddns_id(uuid))
+    account = result.get("account", {})
+    if not isinstance(account, dict):
+        raise ValueError("Unexpected DDNS account response")
+    return {"uuid": uuid, "account": _ddns_public(account)}
 
 
 @mcp.tool()
@@ -59,65 +93,56 @@ async def opn_add_ddns_account(
     interface: str = "",
     description: str = "",
     site: str = "",
+    protocol: str = "",
+    server: str = "",
+    zone: str = "",
+    resource_id: str = "",
+    ttl: int | None = None,
+    dynipv6host: str = "",
+    checkip_timeout: int | None = None,
+    force_ssl: bool | None = None,
+    wildcard: bool | None = None,
 ) -> dict[str, Any]:
-    """Create a new Dynamic DNS account and apply the configuration.
+    """Stage one new os-ddclient account; never reconfigure implicitly.
 
-    Use this to register a hostname with a DDNS provider so the firewall
-    automatically updates the DNS record when the public IP changes.
-
-    Args:
-        service: DDNS provider name (e.g. 'cloudflare', 'dyndns', 'noip',
-                 'freedns', 'he', 'namecheap', 'desec', 'godaddy').
-        hostname: Fully qualified domain name to update (e.g. 'fw.example.com').
-        username: Provider username or API key (leave empty for token-only providers).
-        password: Provider password or API token.
-        checkip: IP check method — 'web_dyndns' (default), 'web_freedns',
-                 'web_he', 'if' (use interface IP), or 'cmd'.
-                 For IPv6: use 'web_dyndns6', 'web_freedns6', etc. The global
-                 'allowipv6' setting must ALSO be enabled or IPv6 updates silently fail.
-        interface: Network interface name (e.g. 'wan', 'opt1'). Required when
-                   checkip='if'. Optional otherwise.
-        description: Optional description for this account.
-
-    NOTE: After creation, the service is automatically reconfigured. Changes
-    take effect immediately.
-
-    Note: Requires the Dynamic DNS plugin (os-ddclient).
-    Returns: dict with 'result', 'uuid' of the new account, and reconfigure status.
+    hostname is the legacy MCP argument name; the API field is hostnames.
+    The plugin supports comma-separated hostnames. service/checkip must use
+    keys from the installed plugin's model, not the UI display labels.
+    IPv6 methods include web_cloudflare_ipv6; general.allowipv6 is required.
+    The password is write-only and is never included in the response.
     """
-    if not service.strip():
-        return {"error": "service must not be empty"}
-    if not hostname.strip():
-        return {"error": "hostname must not be empty"}
+    if not service.strip() or not hostname.strip():
+        raise ValueError("service and hostname must be non-empty")
+    if checkip == "if" and not interface.strip():
+        raise ValueError("interface is required when checkip='if'")
+    if ttl is not None and not 1 <= ttl <= 604800:
+        raise ValueError("ttl must be between 1 and 604800")
+    if checkip_timeout is not None and not 10 <= checkip_timeout <= 60:
+        raise ValueError("checkip_timeout must be between 10 and 60")
 
     api = get_api(ctx, site)
     api.require_writes()
-
-    account_config: dict[str, str] = {
-        "enabled": "1",
-        "service": service,
-        "hostname": hostname,
-        "checkip": checkip,
+    account = {
+        "enabled": "1", "service": service, "hostnames": hostname, "checkip": checkip,
     }
-    if username:
-        account_config["username"] = username
-    if password:
-        account_config["password"] = password
-    if interface:
-        account_config["interface"] = interface
-    if description:
-        account_config["description"] = description
+    optional = {
+        "username": username, "password": password, "interface": interface,
+        "description": description, "protocol": protocol, "server": server,
+        "zone": zone, "resourceId": resource_id, "dynipv6host": dynipv6host,
+    }
+    account.update({name: value for name, value in optional.items() if value})
+    if ttl is not None:
+        account["ttl"] = str(ttl)
+    if checkip_timeout is not None:
+        account["checkip_timeout"] = str(checkip_timeout)
+    if force_ssl is not None:
+        account["force_ssl"] = "1" if force_ssl else "0"
+    if wildcard is not None:
+        account["wildcard"] = "1" if wildcard else "0"
 
-    add_result = await api.post("dyndns.accounts.add", {"account": account_config})
-
-    reconfigure_result = await api.post("dyndns.service.reconfigure")
+    result = await api.post("dyndns.accounts.add", {"account": account})
     get_config_cache(ctx, site).invalidate()
-
-    return {
-        "result": add_result.get("result", "unknown"),
-        "uuid": add_result.get("uuid", ""),
-        "reconfigure_status": reconfigure_result.get("status", "unknown"),
-    }
+    return {"result": _ddns_result(result), "uuid": result.get("uuid", ""), "applied": False}
 
 
 @mcp.tool()
@@ -133,105 +158,205 @@ async def opn_update_ddns_account(
     description: str | None = None,
     enabled: bool | None = None,
     site: str = "",
+    protocol: str | None = None,
+    server: str | None = None,
+    zone: str | None = None,
+    resource_id: str | None = None,
+    ttl: int | None = None,
+    dynipv6host: str | None = None,
+    checkip_timeout: int | None = None,
+    force_ssl: bool | None = None,
+    wildcard: bool | None = None,
 ) -> dict[str, Any]:
-    """Update a Dynamic DNS account by UUID and apply the configuration.
+    """Patch supplied fields only; the UpdateOnly password is never read back.
 
-    Use this when you need to change the hostname, provider, credentials, or
-    other properties of a DDNS account. Only the parameters you provide are
-    changed; all other settings are preserved.
-
-    After update, the ddclient service is automatically reconfigured. Changes
-    take effect immediately.
-    Use opn_list_ddns_accounts first to find the UUID.
-
-    Parameters:
-    - uuid: account UUID (from opn_list_ddns_accounts)
-    - service: DDNS provider name (e.g. 'cloudflare', 'dyndns', 'noip')
-    - hostname: fully qualified domain name to update
-    - username: provider username or API key
-    - password: provider password or API token
-    - checkip: IP check method (e.g. 'web_dyndns', 'if')
-    - interface: network interface name (e.g. 'wan')
-    - description: human-readable description
-    - enabled: enable/disable the account
-
-    Returns: dict with 'result' (str), 'uuid' (str), and 'reconfigure_status'.
+    Uses the OPNsense setItem API's partial update semantics. The account is
+    staged and requires a separate explicit opn_reconfigure_ddclient call.
     """
+    _ddns_id(uuid)
+    if hostname is not None and not hostname.strip():
+        raise ValueError("hostname must not be empty")
+    if service is not None and not service.strip():
+        raise ValueError("service must not be empty")
+    if ttl is not None and not 1 <= ttl <= 604800:
+        raise ValueError("ttl must be between 1 and 604800")
+    if checkip_timeout is not None and not 10 <= checkip_timeout <= 60:
+        raise ValueError("checkip_timeout must be between 10 and 60")
+    values = {
+        "service": service, "hostnames": hostname, "username": username,
+        "password": password, "checkip": checkip, "interface": interface,
+        "description": description, "protocol": protocol, "server": server,
+        "zone": zone, "resourceId": resource_id, "dynipv6host": dynipv6host,
+    }
+    account = {name: value for name, value in values.items() if value is not None}
+    if enabled is not None:
+        account["enabled"] = "1" if enabled else "0"
+    if ttl is not None:
+        account["ttl"] = str(ttl)
+    if checkip_timeout is not None:
+        account["checkip_timeout"] = str(checkip_timeout)
+    if force_ssl is not None:
+        account["force_ssl"] = "1" if force_ssl else "0"
+    if wildcard is not None:
+        account["wildcard"] = "1" if wildcard else "0"
+    if not account:
+        return {"result": "unchanged", "uuid": uuid, "applied": False}
     api = get_api(ctx, site)
     api.require_writes()
-
-    account_config: dict[str, str] = {}
-    if service is not None:
-        account_config["service"] = service
-    if hostname is not None:
-        account_config["hostname"] = hostname
-    if username is not None:
-        account_config["username"] = username
-    if password is not None:
-        account_config["password"] = password
-    if checkip is not None:
-        account_config["checkip"] = checkip
-    if interface is not None:
-        account_config["interface"] = interface
-    if description is not None:
-        account_config["description"] = description
-    if enabled is not None:
-        account_config["enabled"] = "1" if enabled else "0"
-
-    result = await api.post("dyndns.accounts.set", {"account": account_config}, path_suffix=uuid)
-    reconfigure_result = await api.post("dyndns.service.reconfigure")
+    result = await api.post("dyndns.accounts.set", {"account": account}, path_suffix=uuid)
     get_config_cache(ctx, site).invalidate()
+    return {"result": _ddns_result(result), "uuid": uuid, "applied": False}
 
+
+@mcp.tool()
+async def opn_set_ddns_account_enabled(
+    ctx: Context, uuid: str, enabled: bool, site: str = "",
+) -> dict[str, Any]:
+    """Set account enabled/disabled idempotently, without applying the service."""
+    _ddns_id(uuid)
+    api = get_api(ctx, site)
+    api.require_writes()
+    before = await api.get("dyndns.accounts.get_item", path_suffix=uuid)
+    account = before.get("account", {})
+    if not isinstance(account, dict):
+        raise ValueError("Unexpected DDNS account response")
+    current = _ddns_state(account.get("enabled"))
+    target = "1" if enabled else "0"
+    if current == target:
+        return {"result": "unchanged", "uuid": uuid, "enabled": enabled, "applied": False}
+    if current not in {"0", "1"}:
+        raise ValueError("Cannot determine current DDNS account state")
+    result = await api.post("dyndns.accounts.toggle", path_suffix=f"{uuid}/{target}")
+    get_config_cache(ctx, site).invalidate()
     return {
-        "result": result.get("result", ""),
-        "uuid": uuid,
-        "reconfigure_status": reconfigure_result.get("status", "unknown"),
+        "result": _ddns_result(result), "uuid": uuid, "enabled": enabled, "applied": False,
     }
 
 
 @mcp.tool()
-async def opn_delete_ddns_account(
+async def opn_delete_ddns_account(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
+    """Stage deletion of one DDNS account. Never reload the service implicitly."""
+    api = get_api(ctx, site)
+    api.require_writes()
+    result = await api.post("dyndns.accounts.del", path_suffix=_ddns_id(uuid))
+    get_config_cache(ctx, site).invalidate()
+    return {"result": _ddns_result(result), "uuid": uuid, "applied": False}
+
+
+@mcp.tool()
+async def opn_get_ddns_settings(ctx: Context, site: str = "") -> dict[str, Any]:
+    """Read global DDNS settings: enable, verbosity, IPv6, interval and backend."""
+    result = await get_api(ctx, site).get("dyndns.settings.get")
+    general = result.get("ddclient", {}).get("general", {})
+    if not isinstance(general, dict):
+        raise ValueError("Unexpected DDNS general settings response")
+    return {"general": {key: value for key, value in general.items() if key in _DDNS_GENERAL_FIELDS}}
+
+
+@mcp.tool()
+async def opn_patch_ddns_settings(
     ctx: Context,
-    uuid: str,
+    enabled: bool | None = None,
+    verbose: bool | None = None,
+    allowipv6: bool | None = None,
+    daemon_delay: int | None = None,
+    backend: str | None = None,
     site: str = "",
 ) -> dict[str, Any]:
-    """Delete a Dynamic DNS account by UUID and apply the configuration.
+    """Stage DDNS general settings. Never restart/apply implicitly.
 
-    The deletion is applied immediately (ddclient is reconfigured automatically).
-    Use opn_list_ddns_accounts first to find the UUID.
-    Returns: dict with 'result' (str), 'uuid' (str), and 'reconfigure_status'.
+    backend is 'opnsense' for native Python or 'ddclient' for classic ddclient.
+    daemon_delay is the polling interval in seconds (1..86400).
     """
+    if backend is not None and backend not in {"opnsense", "ddclient"}:
+        raise ValueError("backend must be 'opnsense' or 'ddclient'")
+    if daemon_delay is not None and not 1 <= daemon_delay <= 86400:
+        raise ValueError("daemon_delay must be between 1 and 86400")
+    general = {}
+    for key, value in (("enabled", enabled), ("verbose", verbose), ("allowipv6", allowipv6)):
+        if value is not None:
+            general[key] = "1" if value else "0"
+    if daemon_delay is not None:
+        general["daemon_delay"] = str(daemon_delay)
+    if backend is not None:
+        general["backend"] = backend
+    if not general:
+        return {"result": "unchanged", "applied": False}
     api = get_api(ctx, site)
     api.require_writes()
-    result = await api.post("dyndns.accounts.del", path_suffix=uuid)
-    reconfigure_result = await api.post("dyndns.service.reconfigure")
+    result = await api.post("dyndns.settings.set", {"ddclient": {"general": general}})
     get_config_cache(ctx, site).invalidate()
-
-    return {
-        "result": result.get("result", ""),
-        "uuid": uuid,
-        "reconfigure_status": reconfigure_result.get("status", "unknown"),
-    }
+    return {"result": _ddns_result(result), "applied": False}
 
 
 @mcp.tool()
-async def opn_reconfigure_ddclient(ctx: Context, site: str = "") -> dict[str, Any]:
-    """Apply pending Dynamic DNS configuration changes.
+async def opn_ddns_service_status(ctx: Context, site: str = "") -> dict[str, Any]:
+    """Read running status of the DDNS plugin service."""
+    result = await get_api(ctx, site).get("dyndns.service.status")
+    return {"status": _ddns_result(result, field="status")}
 
-    Use this after manually editing DDNS account settings to apply the
-    changes to the running ddclient service.
 
-    Note: opn_add_ddns_account auto-reconfigures, so this is only needed
-    for manual edits or troubleshooting.
-
-    Note: Requires the Dynamic DNS plugin (os-ddclient).
-    Returns: dict with 'status' indicating success or failure.
-    """
+@mcp.tool()
+async def opn_reconfigure_ddclient(
+    ctx: Context, site: str = "", confirm: bool = False,
+) -> dict[str, Any]:
+    """Explicitly apply staged DDNS configuration, only with confirm=True."""
+    if not confirm:
+        raise ValueError("DDNS apply requires confirm=True")
     api = get_api(ctx, site)
     api.require_writes()
     result = await api.post("dyndns.service.reconfigure")
     get_config_cache(ctx, site).invalidate()
-    return {"status": result.get("status", "unknown"), "service": "ddclient"}
+    return {"status": _ddns_result(result, field="status"), "service": "ddclient"}
+
+
+@mcp.tool()
+async def opn_ddns_service_control(
+    ctx: Context, action: str, confirm: bool = False, site: str = "",
+) -> dict[str, Any]:
+    """Explicitly start/stop/restart DDNS; operations affect the live service."""
+    if action not in {"start", "stop", "restart"}:
+        raise ValueError("action must be start, stop or restart")
+    if not confirm:
+        raise ValueError("DDNS service control requires confirm=True")
+    api = get_api(ctx, site)
+    api.require_writes()
+    if action == "start":
+        result = await api.post("dyndns.service.start")
+    elif action == "stop":
+        result = await api.post("dyndns.service.stop")
+    else:
+        result = await api.post("dyndns.service.restart")
+    get_config_cache(ctx, site).invalidate()
+    return {"action": action, "status": _ddns_result(result, field="status")}
+
+
+@mcp.tool()
+async def opn_force_refresh_ddns_accounts(
+    ctx: Context, uuids: str, confirm: bool = False, site: str = "",
+) -> dict[str, Any]:
+    """Force refresh selected accounts with native backend (stop/reset/start).
+
+    This is disruptive and not a read-only diagnostic. Requires explicit
+    confirmation and configured native backend; it may update public DNS.
+    """
+    items = [item.strip() for item in uuids.split(",") if item.strip()]
+    if not items or len(items) > 30 or len(items) != len(set(items)):
+        raise ValueError("Provide 1..30 unique DDNS account UUIDs")
+    for item in items:
+        _ddns_id(item)
+    if not confirm:
+        raise ValueError("Force refresh requires confirm=True")
+    api = get_api(ctx, site)
+    api.require_writes()
+    settings = await api.get("dyndns.settings.get")
+    general = settings.get("ddclient", {}).get("general", {})
+    if not isinstance(general, dict) or _ddns_state(general.get("enabled")) != "1":
+        raise ValueError("DDNS must be enabled for force refresh")
+    if _ddns_state(general.get("backend")) != "opnsense":
+        raise ValueError("Force refresh requires the native opnsense backend")
+    result = await api.post("dyndns.accounts.force_refresh", path_suffix=",".join(items))
+    return {"status": _ddns_result(result, field="status"), "requested_accounts": len(items)}
 
 
 @mcp.tool()
