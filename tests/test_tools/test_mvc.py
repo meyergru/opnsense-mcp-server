@@ -29,6 +29,40 @@ PEER = "11111111-1111-4111-8111-111111111111"
 INSTANCE = "22222222-2222-4222-8222-222222222222"
 
 
+async def test_wireguard_tool_descriptions_explain_remote_first_management_risk():
+    """The model sees ordering and no-poll guidance in actual registered tool descriptions."""
+    from opnsense_mcp.server import mcp
+
+    descriptions = {tool.name: tool.description or "" for tool in await mcp.list_tools()}
+    apply = descriptions["opn_service_apply"]
+    assert 'service="wireguard"' in apply
+    assert "REMOTE" in apply and "LOCAL" in apply
+    assert "first change and apply REMOTE" in apply
+    assert "Do NOT poll/check REMOTE" in apply
+    assert "ask the user" in apply
+
+    patch = descriptions["opn_wireguard_patch_peer"]
+    assert "change/apply REMOTE first" in patch
+    assert "do not check its status" in patch
+    assert "ask the user first" in patch
+
+    status = descriptions["opn_wireguard_status"]
+    assert "Do NOT poll the REMOTE" in status
+    assert "LOCAL" in status
+
+    for name in (
+        "opn_wireguard_add_peer",
+        "opn_wireguard_delete_peer",
+        "opn_wireguard_toggle_peer",
+        "opn_wireguard_toggle_instance",
+        "opn_wireguard_patch_instance",
+        "opn_wireguard_add_instance",
+        "opn_wireguard_delete_instance",
+    ):
+        assert "REMOTE" in descriptions[name], name
+        assert "LOCAL" in descriptions[name], name
+
+
 def test_all_approved_mvc_endpoints_are_in_global_registry():
     from opnsense_mcp.api_client import ENDPOINT_REGISTRY
 

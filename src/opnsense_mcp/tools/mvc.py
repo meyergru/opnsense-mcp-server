@@ -225,8 +225,11 @@ async def _toggle(api: OPNsenseAPI, family: str, kind: str, obj_id: str, enabled
 async def opn_wireguard_generate_psk(ctx: Context, site: str = "") -> dict[str, Any]:
     """Generate a cryptographically secure PSK in server memory and return an opaque reference.
 
-    This reference can be used separately in two peer patches, in whatever
-    order the agent chooses, without returning the secret to the language model.
+    Reuse this reference for the same PSK on both ends, without disclosing it.
+    For site-to-site rotations, identify LOCAL and REMOTE by their actual
+    management routes before changing anything. If uncertain whether either
+    firewall is managed through the VPN being changed, ask the user first.
+    Update and apply the REMOTE endpoint before the LOCAL endpoint.
     It expires after 30 minutes or a container restart.
     """
     # Resolve the selected site; no site changes are made while generating.
@@ -242,13 +245,22 @@ async def opn_wireguard_generate_psk(ctx: Context, site: str = "") -> dict[str, 
 
 @mcp.tool()
 async def opn_wireguard_list_peers(ctx: Context, site: str = "", search: str = "", limit: int = 100) -> dict[str, Any]:
-    """List existing WireGuard peers; never expose PSKs or private keys."""
+    """List existing WireGuard peers; never expose PSKs or private keys.
+
+    This configuration listing alone does not prove whether management
+    access to a target traverses the VPN being changed. Ask the user
+    before coordinated cross-site changes if the access path is unclear.
+    """
     return await _list(get_api(ctx, site), "wireguard", "peer", search, limit)
 
 
 @mcp.tool()
 async def opn_wireguard_get_peer(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
-    """Read a WireGuard peer's configuration with secrets stripped."""
+    """Read a WireGuard peer's configuration with secrets stripped.
+
+    Do not infer which endpoint is LOCAL/REMOTE solely from peer fields or
+    site labels. Clarify the management access path before modifying a tunnel.
+    """
     return await _get(get_api(ctx, site), "wireguard", "peer", uuid)
 
 
@@ -260,6 +272,10 @@ async def opn_wireguard_add_peer(
 
     Pass servers=<local instance UUID> and tunneladdress=<remote AllowedIPs CSV>.
     The model is responsible for selecting the other site's networks and keys.
+    If this is a remotely managed site-to-site tunnel, establish which side is
+    REMOTE (reached through the affected VPN) and which is independently LOCAL.
+    If unsure, ask the user before changes. Coordinate REMOTE before LOCAL;
+    see opn_service_apply's WireGuard management-path warning.
     """
     return await _add(get_api(ctx, site), "wireguard", "peer", fields, psk_ref)
 
@@ -270,15 +286,26 @@ async def opn_wireguard_patch_peer(
 ) -> dict[str, Any]:
     """Read-modify-write exactly one existing peer while preserving instance assignments.
 
-    For a PSK rotation use a previously generated psk_ref, once on each site.
-    This tool does NOT select the remote/local order or apply the change.
+    For a PSK rotation use the SAME previously generated psk_ref on each end.
+    This only stages changes: it neither applies nor coordinates both sites.
+    If REMOTE is accessed through the affected VPN, change/apply REMOTE first,
+    then change/apply the independently reachable LOCAL side. The remote
+    management connection may drop after REMOTE apply; do not check its status
+    until the LOCAL side has also been corrected and applied. If the
+    management path or LOCAL/REMOTE roles are unclear, ask the user first.
     """
     return await _patch(get_api(ctx, site), "wireguard", "peer", uuid, changes, psk_ref)
 
 
 @mcp.tool()
 async def opn_wireguard_delete_peer(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
-    """Delete exactly one selected WireGuard peer; requires explicit write permissions."""
+    """Stage deletion of one WireGuard peer; requires explicit write permission.
+
+    If this peer carries access to a REMOTE firewall, applying the deletion
+    may sever management access. Establish LOCAL/REMOTE management paths
+    first; if unknown, ask the user before changing anything. See
+    opn_service_apply for sequencing and no-intermediate-poll guidance.
+    """
     return await _delete(get_api(ctx, site), "wireguard", "peer", uuid)
 
 
@@ -288,25 +315,41 @@ async def opn_wireguard_toggle_peer(ctx: Context, uuid: str, enabled: bool, site
 
     Reads current enabled state first, then invokes OPNsense's toggleClient
     only if needed. A later explicit WireGuard reconfigure is required.
+    For remotely managed VPN links, establish the LOCAL/REMOTE management
+    path first (ask if unclear); apply REMOTE before LOCAL and do not poll
+    unreachable REMOTE during the transition. See opn_service_apply.
     """
     return await _toggle(get_api(ctx, site), "wireguard", "peer", uuid, enabled)
 
 
 @mcp.tool()
 async def opn_wireguard_list_instances(ctx: Context, site: str = "") -> dict[str, Any]:
-    """List existing WireGuard instances without changing or replacing them."""
+    """List existing WireGuard instances without changing or replacing them.
+
+    The list cannot establish whether management access uses a WireGuard
+    tunnel. Ask the user before a cross-site change if topology is uncertain.
+    """
     return await _list(get_api(ctx, site), "wireguard", "instance", "", 100)
 
 
 @mcp.tool()
 async def opn_wireguard_get_instance(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
-    """Read a WireGuard instance, with its private key stripped."""
+    """Read a WireGuard instance, with its private key stripped.
+
+    This does not prove whether a target's management path crosses this VPN;
+    clarify LOCAL/REMOTE roles with the user before applying risky changes.
+    """
     return await _get(get_api(ctx, site), "wireguard", "instance", uuid)
 
 
 @mcp.tool()
 async def opn_wireguard_toggle_instance(ctx: Context, uuid: str, enabled: bool, site: str = "") -> dict[str, Any]:
-    """Enable/disable exactly one WireGuard instance; apply separately."""
+    """Enable/disable one WireGuard instance; stage only, apply separately.
+
+    This can affect the VPN management path after apply. Determine LOCAL and
+    REMOTE from actual access topology, ask if unclear, and coordinate REMOTE
+    apply before LOCAL without intermediate REMOTE status polls.
+    """
     return await _toggle(get_api(ctx, site), "wireguard", "instance", uuid, enabled)
 
 
@@ -314,7 +357,12 @@ async def opn_wireguard_toggle_instance(ctx: Context, uuid: str, enabled: bool, 
 async def opn_wireguard_patch_instance(
     ctx: Context, uuid: str, changes: dict[str, str], site: str = ""
 ) -> dict[str, Any]:
-    """Patch one existing WireGuard instance without touching others or applying."""
+    """Patch one existing WireGuard instance; stage only, never auto-apply.
+
+    Changing an instance carrying access to a REMOTE firewall may cut the
+    management tunnel once applied. Identify LOCAL/REMOTE (ask if uncertain),
+    apply REMOTE before LOCAL, and avoid status polling REMOTE between applies.
+    """
     return await _patch(get_api(ctx, site), "wireguard", "instance", uuid, changes)
 
 
@@ -324,6 +372,9 @@ async def opn_wireguard_add_instance(ctx: Context, fields: dict[str, str], site:
 
     Does not modify existing WireGuard instances and does not apply changes.
     Only the newly generated PUBLIC key is included in the response.
+    For any later cross-site activation affecting a management VPN, determine
+    LOCAL/REMOTE via the actual access path first, ask if unclear, and apply
+    REMOTE before LOCAL; see opn_service_apply for the connectivity caveat.
     """
     api = get_api(ctx, site)
     api.require_writes()
@@ -349,7 +400,12 @@ async def opn_wireguard_add_instance(ctx: Context, fields: dict[str, str], site:
 
 @mcp.tool()
 async def opn_wireguard_delete_instance(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
-    """Delete one explicitly selected WireGuard instance; no implicit reconfigure."""
+    """Stage deletion of one WireGuard instance; no implicit reconfigure.
+
+    Deleting an instance used to manage a REMOTE firewall can disconnect it
+    after apply. Identify the actual management path (ask if uncertain);
+    coordinate REMOTE before LOCAL, with no interim REMOTE status polling.
+    """
     return await _delete(get_api(ctx, site), "wireguard", "instance", uuid)
 
 
@@ -469,6 +525,18 @@ async def opn_service_apply(ctx: Context, service: str, site: str = "") -> dict[
 
     May restart services or disrupt traffic. This is not called automatically
     by the CRUD helpers. Cross-site sequencing is the model's responsibility.
+
+    CRITICAL for service="wireguard": If a REMOTE OPNsense is managed through
+    the WireGuard tunnel being changed, applying its side may immediately
+    sever the management connection. For coordinated changes to both ends,
+    first change and apply REMOTE, then change and apply the independently
+    reachable LOCAL side. Do NOT poll/check REMOTE after its apply while the
+    tunnel is down: connectivity may return only once LOCAL has also been
+    updated and applied. Verify REMOTE only after the tunnel is restored.
+    Do not infer LOCAL/REMOTE from site names: establish the actual management
+    access path. If uncertain whether access uses the affected VPN, or which
+    side is LOCAL versus REMOTE, ask the user BEFORE changing/applying.
+    This tool does not orchestrate the other site or guarantee reconnection.
     """
     if service not in {"wireguard", "kea", "radvd", "unbound"}:
         raise ValueError("Unsupported service; choose wireguard, kea, radvd or unbound")

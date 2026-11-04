@@ -13,9 +13,15 @@ from opnsense_mcp.server import get_api, mcp
 async def opn_wireguard_status(ctx: Context, site: str = "") -> dict[str, Any]:
     """Get WireGuard VPN tunnel and peer status.
 
-    Use this when you need to check WireGuard tunnel health, peer handshake
-    times, transferred bytes, or endpoint information.
-    Note: Requires the WireGuard plugin (os-wireguard).
+    Use this to check tunnel health, peer handshakes, transferred bytes,
+    or endpoints when the management route is reachable. IMPORTANT: after
+    applying changes to a REMOTE OPNsense managed THROUGH the affected
+    WireGuard tunnel, the connection may be lost until the corresponding
+    LOCAL peer/instance changes are also applied. Do NOT poll the REMOTE
+    target during this expected interruption; apply LOCAL first, then
+    verify both ends once the tunnel reconnects. If it is unclear whether
+    management uses this VPN, or which site is LOCAL/REMOTE, ask the user
+    before changing the configuration. Requires os-wireguard.
     Returns: dict with tunnel and peer details including endpoints and transfer stats.
     """
     api = get_api(ctx, site)
