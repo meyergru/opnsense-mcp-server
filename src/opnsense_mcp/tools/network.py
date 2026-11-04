@@ -7,8 +7,8 @@ from typing import Any
 from fastmcp import Context
 
 from opnsense_mcp.api_client import OPNsenseAPIError
-from opnsense_mcp.tool_result import structured_table_result
 from opnsense_mcp.server import get_api, mcp
+from opnsense_mcp.tool_result import structured_table_result
 
 
 @mcp.tool()
