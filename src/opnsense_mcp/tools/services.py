@@ -14,8 +14,8 @@ from opnsense_mcp.server import get_api, get_config_cache, mcp
 # Config model: OPNsense/DynDNS/DynDNS.xml. Never return credential fields.
 
 _DDNS_ACCOUNT_PUBLIC = frozenset({
-    "uuid", "enabled", "service", "description", "username", "hostnames",
-    "hostname", "protocol", "server", "resourceId", "wildcard", "zone",
+    "uuid", "enabled", "service", "description", "hostnames",
+    "hostname", "protocol", "wildcard", "zone",
     "checkip", "dynipv6host", "checkip_timeout", "force_ssl", "ttl",
     "interface", "current_ip", "current_mtime", "use_interface",
 })
@@ -31,7 +31,7 @@ def _ddns_id(uuid: str) -> str:
 
 
 def _ddns_public(value: dict[str, Any]) -> dict[str, Any]:
-    """Only known non-credential model fields may leave this process."""
+    """Allow only non-credential fields (not username/API key or custom server URLs)."""
     return {key: val for key, val in value.items() if key in _DDNS_ACCOUNT_PUBLIC}
 
 
