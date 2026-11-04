@@ -1,7 +1,7 @@
 # OPNsense Core 26.7 API coverage: scope and remaining gaps
 
 **Reference:** `opnsense/core` branch `stable/26.7`, directory
-`src/opnsense/mvc/app/controllers/OPNsense/*/Api/` (reviewed 2026-11-03).
+`src/opnsense/mvc/app/controllers/OPNsense/*/Api/` (initially reviewed 2026-11-03; coverage reconciled with PR #12 on 2026-11-04).
 This is a **source-tree inventory**, NOT a claim that every OPNsense API
 endpoint is implemented or safe for a remote AI agent. The 24 areas below
 contain **126 API controller classes**; each controller can define multiple
@@ -17,23 +17,23 @@ count must not be confused with endpoint count or MCP tool count.
 | DHCRelay | 2 | Not covered |
 | Diagnostics | 17 | Ping, DNS, traceroute, PF states, interface telemetry; others missing |
 | Dnsmasq | 3 | Leases, ranges, reconfigure; partial |
-| Firewall | 12 | Filter, aliases, categories and some NAT; partial (not all NAT/routing controllers) |
+| Firewall | 12 | Filter, alias, category and DNAT operations exposed, but **Source NAT, 1:1 NAT, NPTv6**, groups and numerous utilities are not fully exposed; see controller audit below |
 | Hostdiscovery | 2 | Not covered |
 | IDS | 2 | Not covered |
 | IPsec | 14 | Service status only; configuration/SA/connection controls missing |
 | Interfaces | 13 | Status/ARP/NDP; assignment/VLAN/bridge/VIP settings not covered |
-| Kea | 8 | DHCPv4 and lease search partial; v6/HA/DDNS/control agent missing |
+| Kea | 8 | **Expanded:** DHCPv4/v6 subnet/reservation/option/HA-peer/PD-pool object operations, global settings and v6 lease queries; other controller actions and live validation remain open |
 | Monit | 3 | Not covered |
 | Ntpd | 1 | Not covered |
 | OpenVPN | 4 | Instance search/status only; no full configuration CRUD |
-| Radvd | 2 | Not covered |
+| Radvd | 2 | **Expanded:** entry CRUD, toggle, global settings and explicit service apply; other actions remain subject to verification |
 | Routes | 2 | Gateway status; incomplete gateway configuration and route controls |
 | Routing | 2 | Not covered |
 | Syslog | 2 | Not covered |
 | TrafficShaper | 2 | Not covered |
 | Trust | 4 | Limited certificate inventory, no trust-store management |
-| Unbound | 4 | DNS overrides/forwards/stats/DNSBL; partial |
-| Wireguard | 4 | Service/peer queries; full configuration management not covered |
+| Unbound | 4 | **Expanded:** host/alias/forward/ACL/DNSBL CRUD and toggle, global settings and apply; diagnostics/overview and special endpoints remain partial |
+| Wireguard | 4 | **Expanded:** peer and instance CRUD, explicit enable/disable, opaque PSK reference, general settings, service apply; special builder/diagnostic actions and live validation remain open |
 | **Total** | **126** | **Partial by design** |
 
 These module names and counts are based on the 26.7 source folder listings.
@@ -41,6 +41,62 @@ OPNsense plugins are **not included**: ACME, HAProxy, CrowdSec, DDclient and
 other plugins have separate API controllers. Actual plugin sets vary by
 firewall. Inventorying them exhaustively requires each target's installed
 plugin names/versions (and sometimes its API source code).
+
+## Implemented tool surface versus API completeness
+
+As of PR #12 on 2026-11-04, the MCP server registers **129 tools**,
+including **35 single-site MVC tools** for Kea, radvd, Unbound and WireGuard.
+Counts of tools are not counts of OPNsense API actions: one tool may cover
+several reviewed object kinds; conversely, one resource may require separate
+get/search/set/add/delete/toggle operations.
+
+The finite `mvc_catalog.py` generates the logical paths for the four
+families. The `api_client.py` registry controls classification and
+authorization. These checks establish the **implemented** surface, not
+full coverage of every Core controller, every inherited MVC action, or
+every installed plugin's API.
+
+An inventory that calls a module "covered" means only that the listed
+operations are mapped and tested against source/fixtures. **There has
+been no exhaustive live test of all CRUD paths against an OPNsense 26.7
+installation.** The module-level status remains partial until each action
+has been reconciled with its controller and verified.
+
+## Firewall API controller reconciliation (Core stable/26.7)
+
+All twelve controller classes in
+`OPNsense/Firewall/Api/` were enumerated from `stable/26.7`.
+The actions shown below are actions **declared in those classes**; inherited
+MVC actions and plugin-specific APIs are additional scope. The "MCP" column
+describes the current 21 Firewall MCP tools, not a comprehensive wrapper.
+
+| Controller | Declared API actions in OPNsense 26.7 | Present MCP coverage and outstanding gaps |
+| --- | --- | --- |
+| `Alias` | searchItem, listCategories, setItem, addItem, getItem, getAliasUUID, delItem, toggleItem, listCountries, listUserGroups, listNetworkAliases, reconfigure, getTableSize, export, import, getGeoIP, update | Search/get/add/set/delete/toggle exposed; utility/list/export/import/update operations only partially or not covered |
+| `AliasUtil` | aliases, list, flush, delete, add, findReferences | **Not fully exposed**; important prerequisite for dependency-aware alias deletion |
+| `Category` | searchItem, setItem, addItem, getItem, delItem, download, upload | Search/add/delete and category assignments exposed; get/set/download/upload remain incomplete |
+| `DNat` | searchRule, setRule, addRule, getRule, delRule, toggleRule, moveRuleBefore, toggleRuleLog, downloadRules, uploadRules | Search/add/set/delete exposed; get/toggle/move/log/import/export incomplete |
+| `FilterBase` | listCategories, listNetworkSelectOptions, listPortSelectOptions, apply | Apply/savepoint used by existing tools; selection helpers incomplete; inherited by Filter/NAT controllers |
+| `Filter` | searchRule, setRule, addRule, getRule, delRule, toggleRule, toggleRuleLog, moveRuleBefore, getInterfaceList, downloadRules, uploadRules, flushInspectCache | Search/add/set/delete/toggle exposed; get, log toggle, ordering, import/export and cache utilities incomplete |
+| `FilterUtil` | ruleStats | **Not exposed** as dedicated tool |
+| `Group` | searchItem, setItem, addItem, getItem, delItem, reconfigure | **Not covered** for firewall interface groups |
+| `Migration` | downloadRules, countRules, flush, downloadOutbound, countOutbound, flushOutbound | **Not covered**; destructive migration/flush operations require separate authorization review |
+| `Npt` | searchRule, setRule, addRule, getRule, delRule, toggleRule, moveRuleBefore, toggleRuleLog, downloadRules, uploadRules | **Not covered** (NPTv6) |
+| `OneToOne` | searchRule, setRule, addRule, getRule, delRule, toggleRule, moveRuleBefore, toggleRuleLog, downloadRules, uploadRules | **Not covered** (1:1 NAT) |
+| `SourceNat` | set, get, searchRule, setRule, addRule, getRule, delRule, toggleRule, moveRuleBefore, toggleRuleLog, downloadRules, uploadRules | **Not covered** (outbound/source NAT and mode configuration) |
+
+**Firewall implementation priorities:** (1) single-object get/search and
+idempotent toggle for Filter, DNAT, Source NAT, 1:1 NAT and NPTv6;
+(2) add/patch/delete using read-before-write and explicit per-site write
+control; (3) rule order and log toggles; (4) alias-reference checks,
+interface groups, and selection utilities; (5) import/export and
+destructive migration operations only after separate review.
+
+As with Kea/WireGuard, **cross-site dependencies and ordering belong
+to the model**. The MCP server enforces only per-site authorization,
+validated fields, one-object changes, and explicit apply. A firewall
+rule apply can interrupt management access, so rollback semantics must
+be checked for each OPNsense version before exposure.
 
 ## FirmwareController: 26 public actions
 
