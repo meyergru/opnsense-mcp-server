@@ -86,6 +86,38 @@ class TestToolRegistration:
             "opn_wireguard_status",
             "opn_ipsec_status",
             "opn_openvpn_status",
+            # MVC managed WireGuard / Kea / radvd / Unbound
+            "opn_wireguard_generate_psk",
+            "opn_wireguard_list_peers",
+            "opn_wireguard_get_peer",
+            "opn_wireguard_add_peer",
+            "opn_wireguard_patch_peer",
+            "opn_wireguard_delete_peer",
+            "opn_wireguard_list_instances",
+            "opn_wireguard_get_instance",
+            "opn_wireguard_patch_instance",
+            "opn_kea_list",
+            "opn_kea_get",
+            "opn_kea_add",
+            "opn_kea_patch",
+            "opn_kea_delete",
+            "opn_radvd_list",
+            "opn_radvd_get",
+            "opn_radvd_add",
+            "opn_radvd_patch",
+            "opn_radvd_delete",
+            "opn_radvd_toggle",
+            "opn_unbound_list",
+            "opn_unbound_get",
+            "opn_unbound_add",
+            "opn_unbound_patch",
+            "opn_unbound_delete",
+            "opn_unbound_toggle",
+            "opn_service_apply",
+            "opn_kea_list_leases6",
+            "opn_kea_delete_lease",
+            "opn_mvc_get_settings",
+            "opn_mvc_patch_settings",
             # HAProxy
             "opn_haproxy_status",
             "opn_reconfigure_haproxy",
@@ -124,7 +156,7 @@ class TestToolRegistration:
         from opnsense_mcp.server import mcp
 
         tools = await mcp.list_tools()
-        assert len(tools) == 94, f"Expected 94 tools, got {len(tools)}"
+        assert len(tools) == 125, f"Expected 125 tools, got {len(tools)}"
 
     async def test_every_opnsense_tool_has_site_parameter(self):
         """Every site-bound tool must expose an explicit target selector."""
