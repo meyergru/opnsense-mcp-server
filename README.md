@@ -2,7 +2,7 @@
 
 A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible AI clients, including **OpenWebUI**, to several **named OPNsense firewalls** over their REST APIs. This is a fork of [lucamarien/opnsense-mcp-server](https://github.com/lucamarien/opnsense-mcp-server), with the original MIT license retained.
 
-**94 tools:** 81 upstream tools plus target selection, snapshot, firmware and native package-CVE audit tools; see the [tool reference](#available-tools-94).
+**129 tools in this development branch:** including new single-site Kea, radvd, Unbound and WireGuard MVC tools; see the [tool reference](#available-tools-129).
 
 ## Architecture and configuration ownership
 
@@ -105,7 +105,7 @@ opnsense-mcp
 
 Do **not** use the original author's `uhlenheide` Docker Hub image for this fork.
 
-## Available Tools (94)
+## Available Tools (129)
 
 ### Target selection (1 tool)
 
@@ -224,6 +224,25 @@ The firmware monitor cannot correlate `upgradestatus` to the job UUID: a `backen
 | `opn_wireguard_status` | WireGuard tunnel and peer status (requires os-wireguard plugin) |
 | `opn_ipsec_status` | IPsec VPN tunnel status — IKE (Phase 1) and ESP/AH (Phase 2) sessions |
 | `opn_openvpn_status` | OpenVPN connection status — instances, sessions, and routes |
+
+### Kea, radvd, Unbound and WireGuard MVC objects (35 tools)
+
+The new MVC tools provide **single-site** list/get/add/patch/delete operations. Qwen selects sites and orders cross-site changes; the MCP server does not execute an implicit multi-site workflow. All writes honor the global and per-site `READ_ONLY` controls and never automatically reconfigure services.
+
+| Area | Tools |
+| --- | --- |
+| WireGuard peers | `opn_wireguard_list_peers`, `opn_wireguard_get_peer`, `opn_wireguard_add_peer`, `opn_wireguard_patch_peer`, `opn_wireguard_delete_peer`, **`opn_wireguard_toggle_peer`** |
+| WireGuard instances | `opn_wireguard_list_instances`, `opn_wireguard_get_instance`, `opn_wireguard_add_instance`, `opn_wireguard_patch_instance`, `opn_wireguard_delete_instance`, `opn_wireguard_toggle_instance` |
+| WireGuard key rotation | `opn_wireguard_generate_psk` creates a 30-minute in-memory opaque reference for use in two independently ordered peer patches, without exposing the secret to Qwen |
+| Kea DHCPv4/v6 | `opn_kea_list/get/add/patch/delete` (subnets, reservations, options, HA peers, IPv6 PD pools); `opn_kea_list_leases6`, `opn_kea_delete_lease` |
+| radvd | `opn_radvd_list/get/add/patch/delete/toggle` |
+| Unbound | `opn_unbound_list/get/add/patch/delete/toggle` (host overrides, forwards, aliases, ACLs, DNSBL) |
+| Global settings | `opn_mvc_get_settings` and `opn_mvc_patch_settings` for Kea DHCPv4/v6, DDNS, control-agent, radvd, Unbound and WireGuard |
+| Explicit apply | `opn_service_apply(site, service)` reconfigures only the selected service; **no CRUD operation applies automatically** |
+
+**WireGuard enable/disable is idempotent:** OPNsense's toggle endpoint flips state rather than setting it to a desired value. The MCP helper reads the peer's current `enabled` field, then toggles only when a change is needed. It does not delete or modify other peers or instances and does not apply the pending configuration. As with other read-before-write operations, concurrent GUI changes outside MCP could race with this check.
+
+**Status:** All endpoints and operations are source-reviewed against OPNsense Core 26.7. Full controller/plugin coverage and live-device behavior remain subject to validation before production deployment.
 
 ### HAProxy (8 tools)
 
