@@ -55,17 +55,19 @@ def test_every_firewall_endpoint_is_registered_and_explicitly_classified():
 
 
 @pytest.mark.parametrize(
-    "kind,controller", [
-        ("filter", "filter"), ("dnat", "d_nat"), ("snat", "source_nat"),
-        ("one_to_one", "one_to_one"), ("npt", "npt"),
-    ]
+    "kind,controller",
+    [
+        ("filter", "filter"),
+        ("dnat", "d_nat"),
+        ("snat", "source_nat"),
+        ("one_to_one", "one_to_one"),
+        ("npt", "npt"),
+    ],
 )
 async def test_firewall_search_controller_routes(mock_api, mock_ctx, kind, controller):
     mock_api.post = AsyncMock(return_value={"rows": [], "rowCount": 0})
     assert (await opn_firewall_list_objects(mock_ctx, kind))["rows"] == []
-    mock_api.post.assert_awaited_once_with(
-        f"fw26.{kind}.search", {"current": 1, "rowCount": 100, "searchPhrase": ""}
-    )
+    mock_api.post.assert_awaited_once_with(f"fw26.{kind}.search", {"current": 1, "rowCount": 100, "searchPhrase": ""})
     assert ENDPOINT_REGISTRY[f"fw26.{kind}.search"][0] == f"firewall/{controller}/searchRule"
 
 
@@ -78,13 +80,9 @@ async def test_firewall_get_one_object(mock_api, mock_ctx):
 async def test_firewall_add_validates_model_then_stages(mock_api_writes, mock_ctx_writes):
     mock_api_writes.get = AsyncMock(return_value={"rule": {"description": "", "enabled": ""}})
     mock_api_writes.post = AsyncMock(return_value={"result": "saved", "uuid": RULE})
-    result = await opn_firewall_create_object(
-        mock_ctx_writes, "npt", {"description": "A-to-B", "enabled": "1"}
-    )
+    result = await opn_firewall_create_object(mock_ctx_writes, "npt", {"description": "A-to-B", "enabled": "1"})
     assert result["applied"] is False
-    mock_api_writes.post.assert_awaited_once_with(
-        "fw26.npt.add", {"rule": {"description": "A-to-B", "enabled": "1"}}
-    )
+    mock_api_writes.post.assert_awaited_once_with("fw26.npt.add", {"rule": {"description": "A-to-B", "enabled": "1"}})
 
 
 async def test_firewall_add_rejects_unsupported_field(mock_api_writes, mock_ctx_writes):
@@ -100,14 +98,10 @@ async def test_firewall_patch_preserves_unmentioned_fields(mock_api_writes, mock
         return_value={"rule": {"description": "old", "interface": "wan", "source_net": "10.0.0.0/8"}}
     )
     mock_api_writes.post = AsyncMock(return_value={"result": "saved"})
-    result = await opn_firewall_patch_object(
-        mock_ctx_writes, "filter", RULE, {"description": "new"}
-    )
+    result = await opn_firewall_patch_object(mock_ctx_writes, "filter", RULE, {"description": "new"})
     assert result["changed_fields"] == ["description"]
     assert result["applied"] is False
-    mock_api_writes.post.assert_awaited_once_with(
-        "fw26.filter.set", {"rule": {"description": "new"}}, path_suffix=RULE
-    )
+    mock_api_writes.post.assert_awaited_once_with("fw26.filter.set", {"rule": {"description": "new"}}, path_suffix=RULE)
 
 
 async def test_firewall_rejects_legacy_rules_before_patch_delete(mock_api_writes, mock_ctx_writes):
@@ -137,12 +131,17 @@ async def test_firewall_delete_is_single_object_with_no_apply(mock_api_writes, m
 
 
 @pytest.mark.parametrize(
-    "kind,enabled,expected", [
-        ("filter", True, "1"), ("filter", False, "0"),
-        ("dnat", True, "0"), ("dnat", False, "1"),
-        ("snat", True, "1"), ("one_to_one", False, "0"),
-        ("npt", True, "1"), ("alias", False, "0"),
-    ]
+    "kind,enabled,expected",
+    [
+        ("filter", True, "1"),
+        ("filter", False, "0"),
+        ("dnat", True, "0"),
+        ("dnat", False, "1"),
+        ("snat", True, "1"),
+        ("one_to_one", False, "0"),
+        ("npt", True, "1"),
+        ("alias", False, "0"),
+    ],
 )
 async def test_set_enabled_explicitly_and_invert_only_dnat(mock_api_writes, mock_ctx_writes, kind, enabled, expected):
     key = "alias" if kind == "alias" else "rule"
@@ -151,9 +150,7 @@ async def test_set_enabled_explicitly_and_invert_only_dnat(mock_api_writes, mock
     result = await opn_firewall_set_enabled(mock_ctx_writes, kind, RULE, enabled)
     assert result["enabled_requested"] is enabled
     assert result["applied"] is False
-    mock_api_writes.post.assert_awaited_once_with(
-        f"fw26.{kind}.toggle", path_suffix=f"{RULE}/{expected}"
-    )
+    mock_api_writes.post.assert_awaited_once_with(f"fw26.{kind}.toggle", path_suffix=f"{RULE}/{expected}")
 
 
 async def test_category_cannot_be_toggled(mock_ctx_writes):
@@ -174,9 +171,7 @@ async def test_move_requires_valid_uuids_and_same_type(mock_api_writes, mock_ctx
     mock_api_writes.post = AsyncMock(return_value={"status": "ok"})
     result = await opn_firewall_move_rule(mock_ctx_writes, "one_to_one", [RULE], BEFORE)
     assert result["applied"] is False
-    mock_api_writes.post.assert_awaited_once_with(
-        "fw26.one_to_one.move", path_suffix=f"{RULE}/{BEFORE}"
-    )
+    mock_api_writes.post.assert_awaited_once_with("fw26.one_to_one.move", path_suffix=f"{RULE}/{BEFORE}")
 
 
 async def test_move_rejects_same_source_and_target(mock_api_writes, mock_ctx_writes):
@@ -224,16 +219,17 @@ async def test_firewall_migration_counts_are_read_only(mock_api, mock_ctx):
     assert mock_api.get.await_count == 2
 
 
-@pytest.mark.parametrize("method,key,path", [
-    ("POST", "fw26.filter.add", "/firewall/filter/add_rule"),
-    ("POST", "fw26.dnat.toggle", "/firewall/d_nat/toggle_rule"),
-    ("GET", "fw26.snat.get", "/firewall/source_nat/get_rule"),
-    ("POST", "fw26.one_to_one.search", "/firewall/one_to_one/search_rule"),
-    ("POST", "fw26.npt.move", "/firewall/npt/move_rule_before"),
-])
-async def test_real_client_routes_are_resolvable(
-    mock_api_writes, method, key, path
-):
+@pytest.mark.parametrize(
+    "method,key,path",
+    [
+        ("POST", "fw26.filter.add", "/firewall/filter/add_rule"),
+        ("POST", "fw26.dnat.toggle", "/firewall/d_nat/toggle_rule"),
+        ("GET", "fw26.snat.get", "/firewall/source_nat/get_rule"),
+        ("POST", "fw26.one_to_one.search", "/firewall/one_to_one/search_rule"),
+        ("POST", "fw26.npt.move", "/firewall/npt/move_rule_before"),
+    ],
+)
+async def test_real_client_routes_are_resolvable(mock_api_writes, method, key, path):
     response = MagicMock()
     response.status_code = 200
     response.json.return_value = {"result": "ok"}
