@@ -33,6 +33,7 @@ from opnsense_mcp.mvc_catalog import (
     UnboundResourceName,
 )
 from opnsense_mcp.server import get_api, get_config_cache, mcp
+from opnsense_mcp.tool_types import SiteName
 
 _SECRET_FIELDS = frozenset(
     {"psk", "privkey", "privatekey", "presharedkey", "secret", "key", "password", "token", "apikey", "apisecret"}
@@ -231,7 +232,7 @@ async def _toggle(api: OPNsenseAPI, family: str, kind: str, obj_id: str, enabled
 
 
 @mcp.tool()
-async def opn_wireguard_generate_psk(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_wireguard_generate_psk(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Generate a cryptographically secure PSK in server memory and return an opaque reference.
 
     Reuse this reference for the same PSK on both ends, without disclosing it.
@@ -253,7 +254,7 @@ async def opn_wireguard_generate_psk(ctx: Context, site: str = "") -> dict[str, 
 
 
 @mcp.tool()
-async def opn_wireguard_list_peers(ctx: Context, site: str = "", search: str = "", limit: int = 100) -> dict[str, Any]:
+async def opn_wireguard_list_peers(ctx: Context, site: SiteName = "", search: str = "", limit: int = 100) -> dict[str, Any]:
     """List existing WireGuard peers; never expose PSKs or private keys.
 
     This configuration listing alone does not prove whether management
@@ -264,7 +265,7 @@ async def opn_wireguard_list_peers(ctx: Context, site: str = "", search: str = "
 
 
 @mcp.tool()
-async def opn_wireguard_get_peer(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
+async def opn_wireguard_get_peer(ctx: Context, uuid: str, site: SiteName = "") -> dict[str, Any]:
     """Read a WireGuard peer's configuration with secrets stripped.
 
     Do not infer which endpoint is LOCAL/REMOTE solely from peer fields or
@@ -275,7 +276,7 @@ async def opn_wireguard_get_peer(ctx: Context, uuid: str, site: str = "") -> dic
 
 @mcp.tool()
 async def opn_wireguard_add_peer(
-    ctx: Context, fields: dict[str, str], site: str = "", psk_ref: str = ""
+    ctx: Context, fields: dict[str, str], site: SiteName = "", psk_ref: str = ""
 ) -> dict[str, Any]:
     """Add one peer to an EXISTING local WireGuard instance; never apply automatically.
 
@@ -291,7 +292,7 @@ async def opn_wireguard_add_peer(
 
 @mcp.tool()
 async def opn_wireguard_patch_peer(
-    ctx: Context, uuid: str, changes: dict[str, str], site: str = "", psk_ref: str = ""
+    ctx: Context, uuid: str, changes: dict[str, str], site: SiteName = "", psk_ref: str = ""
 ) -> dict[str, Any]:
     """Read-modify-write exactly one existing peer while preserving instance assignments.
 
@@ -307,7 +308,7 @@ async def opn_wireguard_patch_peer(
 
 
 @mcp.tool()
-async def opn_wireguard_delete_peer(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
+async def opn_wireguard_delete_peer(ctx: Context, uuid: str, site: SiteName = "") -> dict[str, Any]:
     """Stage deletion of one WireGuard peer; requires explicit write permission.
 
     If this peer carries access to a REMOTE firewall, applying the deletion
@@ -319,7 +320,7 @@ async def opn_wireguard_delete_peer(ctx: Context, uuid: str, site: str = "") -> 
 
 
 @mcp.tool()
-async def opn_wireguard_toggle_peer(ctx: Context, uuid: str, enabled: bool, site: str = "") -> dict[str, Any]:
+async def opn_wireguard_toggle_peer(ctx: Context, uuid: str, enabled: bool, site: SiteName = "") -> dict[str, Any]:
     """Enable/disable exactly one WireGuard peer, idempotently, without applying.
 
     Reads current enabled state first, then invokes OPNsense's toggleClient
@@ -332,7 +333,7 @@ async def opn_wireguard_toggle_peer(ctx: Context, uuid: str, enabled: bool, site
 
 
 @mcp.tool()
-async def opn_wireguard_list_instances(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_wireguard_list_instances(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """List existing WireGuard instances without changing or replacing them.
 
     The list cannot establish whether management access uses a WireGuard
@@ -342,7 +343,7 @@ async def opn_wireguard_list_instances(ctx: Context, site: str = "") -> dict[str
 
 
 @mcp.tool()
-async def opn_wireguard_get_instance(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
+async def opn_wireguard_get_instance(ctx: Context, uuid: str, site: SiteName = "") -> dict[str, Any]:
     """Read a WireGuard instance, with its private key stripped.
 
     This does not prove whether a target's management path crosses this VPN;
@@ -352,7 +353,7 @@ async def opn_wireguard_get_instance(ctx: Context, uuid: str, site: str = "") ->
 
 
 @mcp.tool()
-async def opn_wireguard_toggle_instance(ctx: Context, uuid: str, enabled: bool, site: str = "") -> dict[str, Any]:
+async def opn_wireguard_toggle_instance(ctx: Context, uuid: str, enabled: bool, site: SiteName = "") -> dict[str, Any]:
     """Enable/disable one WireGuard instance; stage only, apply separately.
 
     This can affect the VPN management path after apply. Determine LOCAL and
@@ -364,7 +365,7 @@ async def opn_wireguard_toggle_instance(ctx: Context, uuid: str, enabled: bool, 
 
 @mcp.tool()
 async def opn_wireguard_patch_instance(
-    ctx: Context, uuid: str, changes: dict[str, str], site: str = ""
+    ctx: Context, uuid: str, changes: dict[str, str], site: SiteName = ""
 ) -> dict[str, Any]:
     """Patch one existing WireGuard instance; stage only, never auto-apply.
 
@@ -376,7 +377,7 @@ async def opn_wireguard_patch_instance(
 
 
 @mcp.tool()
-async def opn_wireguard_add_instance(ctx: Context, fields: dict[str, str], site: str = "") -> dict[str, Any]:
+async def opn_wireguard_add_instance(ctx: Context, fields: dict[str, str], site: SiteName = "") -> dict[str, Any]:
     """Create one independent WireGuard instance; generate its keys locally in OPNsense.
 
     Does not modify existing WireGuard instances and does not apply changes.
@@ -408,7 +409,7 @@ async def opn_wireguard_add_instance(ctx: Context, fields: dict[str, str], site:
 
 
 @mcp.tool()
-async def opn_wireguard_delete_instance(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
+async def opn_wireguard_delete_instance(ctx: Context, uuid: str, site: SiteName = "") -> dict[str, Any]:
     """Stage deletion of one WireGuard instance; no implicit reconfigure.
 
     Deleting an instance used to manage a REMOTE firewall can disconnect it
@@ -420,7 +421,7 @@ async def opn_wireguard_delete_instance(ctx: Context, uuid: str, site: str = "")
 
 @mcp.tool()
 async def opn_kea_list(
-    ctx: Context, resource: KeaResourceName, site: str = "", search: str = "", limit: int = 100
+    ctx: Context, resource: KeaResourceName, site: SiteName = "", search: str = "", limit: int = 100
 ) -> dict[str, Any]:
     """List Kea configuration resources (static reservations, subnets, options, HA peers).
 
@@ -441,7 +442,7 @@ async def opn_kea_list(
 
 
 @mcp.tool()
-async def opn_kea_get(ctx: Context, resource: KeaResourceName, uuid: str, site: str = "") -> dict[str, Any]:
+async def opn_kea_get(ctx: Context, resource: KeaResourceName, uuid: str, site: SiteName = "") -> dict[str, Any]:
     """Read one configured Kea object by UUID.
 
     For a DHCPv4 static reservation use resource="reservation4" and the UUID
@@ -454,7 +455,7 @@ async def opn_kea_get(ctx: Context, resource: KeaResourceName, uuid: str, site: 
 
 @mcp.tool()
 async def opn_kea_add(
-    ctx: Context, resource: KeaResourceName, fields: dict[str, str], site: str = ""
+    ctx: Context, resource: KeaResourceName, fields: dict[str, str], site: SiteName = ""
 ) -> dict[str, Any]:
     """Stage creation of one Kea configuration object; does not apply.
 
@@ -468,7 +469,7 @@ async def opn_kea_add(
 
 @mcp.tool()
 async def opn_kea_patch(
-    ctx: Context, resource: KeaResourceName, uuid: str, changes: dict[str, str], site: str = ""
+    ctx: Context, resource: KeaResourceName, uuid: str, changes: dict[str, str], site: SiteName = ""
 ) -> dict[str, Any]:
     """Stage a targeted read-before-write patch of an existing Kea object.
 
@@ -484,7 +485,7 @@ async def opn_kea_patch(
 
 
 @mcp.tool()
-async def opn_kea_delete(ctx: Context, resource: KeaResourceName, uuid: str, site: str = "") -> dict[str, Any]:
+async def opn_kea_delete(ctx: Context, resource: KeaResourceName, uuid: str, site: SiteName = "") -> dict[str, Any]:
     """Stage deletion of one explicitly identified Kea configuration object.
 
     To delete a DHCPv4 static reservation use resource="reservation4" and
@@ -495,44 +496,44 @@ async def opn_kea_delete(ctx: Context, resource: KeaResourceName, uuid: str, sit
 
 
 @mcp.tool()
-async def opn_radvd_list(ctx: Context, site: str = "", search: str = "") -> dict[str, Any]:
+async def opn_radvd_list(ctx: Context, site: SiteName = "", search: str = "") -> dict[str, Any]:
     """List radvd IPv6 Router Advertisement entries."""
     return await _list(get_api(ctx, site), "radvd", "entry", search, 100)
 
 
 @mcp.tool()
-async def opn_radvd_get(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
+async def opn_radvd_get(ctx: Context, uuid: str, site: SiteName = "") -> dict[str, Any]:
     """Read one radvd entry."""
     return await _get(get_api(ctx, site), "radvd", "entry", uuid)
 
 
 @mcp.tool()
-async def opn_radvd_add(ctx: Context, fields: dict[str, str], site: str = "") -> dict[str, Any]:
+async def opn_radvd_add(ctx: Context, fields: dict[str, str], site: SiteName = "") -> dict[str, Any]:
     """Create one radvd entry; does not reconfigure daemon."""
     return await _add(get_api(ctx, site), "radvd", "entry", fields)
 
 
 @mcp.tool()
-async def opn_radvd_patch(ctx: Context, uuid: str, changes: dict[str, str], site: str = "") -> dict[str, Any]:
+async def opn_radvd_patch(ctx: Context, uuid: str, changes: dict[str, str], site: SiteName = "") -> dict[str, Any]:
     """Read-before-write patch one radvd entry without affecting others."""
     return await _patch(get_api(ctx, site), "radvd", "entry", uuid, changes)
 
 
 @mcp.tool()
-async def opn_radvd_delete(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
+async def opn_radvd_delete(ctx: Context, uuid: str, site: SiteName = "") -> dict[str, Any]:
     """Delete one radvd entry without restarting radvd."""
     return await _delete(get_api(ctx, site), "radvd", "entry", uuid)
 
 
 @mcp.tool()
-async def opn_radvd_toggle(ctx: Context, uuid: str, enabled: bool, site: str = "") -> dict[str, Any]:
+async def opn_radvd_toggle(ctx: Context, uuid: str, enabled: bool, site: SiteName = "") -> dict[str, Any]:
     """Enable/disable one radvd entry, no automatic reconfigure."""
     return await _toggle(get_api(ctx, site), "radvd", "entry", uuid, enabled)
 
 
 @mcp.tool()
 async def opn_unbound_list(
-    ctx: Context, resource: UnboundResourceName, site: str = "", search: str = "", limit: int = 100
+    ctx: Context, resource: UnboundResourceName, site: SiteName = "", search: str = "", limit: int = 100
 ) -> dict[str, Any]:
     """List Unbound host overrides, forwards, host aliases, ACLs or DNSBL objects."""
 
@@ -541,7 +542,7 @@ async def opn_unbound_list(
 
 
 @mcp.tool()
-async def opn_unbound_get(ctx: Context, resource: UnboundResourceName, uuid: str, site: str = "") -> dict[str, Any]:
+async def opn_unbound_get(ctx: Context, resource: UnboundResourceName, uuid: str, site: SiteName = "") -> dict[str, Any]:
     """Read one Unbound configuration object with secrets removed."""
 
     resource must be host, forward, host_alias, acl or dnsbl. Use the UUID from opn_unbound_list(resource=<same-value>). 'uuid' is a configuration object UUID, not an IP address.
@@ -549,7 +550,7 @@ async def opn_unbound_get(ctx: Context, resource: UnboundResourceName, uuid: str
 
 
 @mcp.tool()
-async def opn_unbound_add(ctx: Context, resource: UnboundResourceName, fields: dict[str, str], site: str = "") -> dict[str, Any]:
+async def opn_unbound_add(ctx: Context, resource: UnboundResourceName, fields: dict[str, str], site: SiteName = "") -> dict[str, Any]:
     """Create one Unbound MVC object without restarting DNS."""
 
     resource must be host, forward, host_alias, acl or dnsbl. 'fields' is a JSON object mapping exact model field names to strings; fields are checked against this site's installed MVC model. Do not guess field names or infer them from other OPNsense versions. Apply later with opn_service_apply(service='unbound').
@@ -558,7 +559,7 @@ async def opn_unbound_add(ctx: Context, resource: UnboundResourceName, fields: d
 
 @mcp.tool()
 async def opn_unbound_patch(
-    ctx: Context, resource: UnboundResourceName, uuid: str, changes: dict[str, str], site: str = ""
+    ctx: Context, resource: UnboundResourceName, uuid: str, changes: dict[str, str], site: SiteName = ""
 ) -> dict[str, Any]:
     """Read-before-write patch an Unbound MVC object without modifying other records."""
 
@@ -567,7 +568,7 @@ async def opn_unbound_patch(
 
 
 @mcp.tool()
-async def opn_unbound_delete(ctx: Context, resource: UnboundResourceName, uuid: str, site: str = "") -> dict[str, Any]:
+async def opn_unbound_delete(ctx: Context, resource: UnboundResourceName, uuid: str, site: SiteName = "") -> dict[str, Any]:
     """Delete one Unbound MVC object; explicit apply remains separate."""
 
     resource must be host, forward, host_alias, acl or dnsbl. Obtain the UUID using opn_unbound_list; this stages deletion only. Apply later with opn_service_apply(service='unbound').
@@ -575,7 +576,7 @@ async def opn_unbound_delete(ctx: Context, resource: UnboundResourceName, uuid: 
 
 
 @mcp.tool()
-async def opn_unbound_toggle(ctx: Context, resource: UnboundResourceName, uuid: str, enabled: bool, site: str = "") -> dict[str, Any]:
+async def opn_unbound_toggle(ctx: Context, resource: UnboundResourceName, uuid: str, enabled: bool, site: SiteName = "") -> dict[str, Any]:
     """Enable or disable one Unbound MVC object; no DNS reconfigure."""
 
     resource must be host, forward, host_alias, acl or dnsbl. 'enabled' is a Boolean target state (true/false), not a toggle command; apply later with opn_service_apply(service='unbound').
@@ -583,7 +584,7 @@ async def opn_unbound_toggle(ctx: Context, resource: UnboundResourceName, uuid: 
 
 
 @mcp.tool()
-async def opn_service_apply(ctx: Context, service: ApplyServiceName, site: str = "") -> dict[str, Any]:
+async def opn_service_apply(ctx: Context, service: ApplyServiceName, site: SiteName = "") -> dict[str, Any]:
     """Explicitly apply pending WireGuard/Kea/radvd/Unbound changes on one site.
 
     service is exactly one of: wireguard, kea, radvd, unbound.
@@ -613,7 +614,7 @@ async def opn_service_apply(ctx: Context, service: ApplyServiceName, site: str =
 
 
 @mcp.tool()
-async def opn_kea_list_leases6(ctx: Context, search: str = "", limit: int = 100, site: str = "") -> dict[str, Any]:
+async def opn_kea_list_leases6(ctx: Context, search: str = "", limit: int = 100, site: SiteName = "") -> dict[str, Any]:
     """List Kea DHCPv6 leases without modifying lease state."""
     if not 1 <= limit <= 500:
         raise ValueError("limit must be 1..500")
@@ -625,7 +626,7 @@ async def opn_kea_list_leases6(ctx: Context, search: str = "", limit: int = 100,
 
 
 @mcp.tool()
-async def opn_kea_delete_lease(ctx: Context, ip: str, site: str = "") -> dict[str, Any]:
+async def opn_kea_delete_lease(ctx: Context, ip: str, site: SiteName = "") -> dict[str, Any]:
     """Explicitly remove a Kea lease by IP address. This does not change reservations."""
     import ipaddress
 
@@ -636,7 +637,7 @@ async def opn_kea_delete_lease(ctx: Context, ip: str, site: str = "") -> dict[st
 
 
 @mcp.tool()
-async def opn_mvc_get_settings(ctx: Context, subsystem: SettingsSubsystemName, site: str = "") -> dict[str, Any]:
+async def opn_mvc_get_settings(ctx: Context, subsystem: SettingsSubsystemName, site: SiteName = "") -> dict[str, Any]:
     """Read global settings of Kea DHCPv4/v6/DDNS/control-agent, radvd, Unbound or WireGuard.
 
     subsystem must be exactly one of: kea_dhcpv4, kea_dhcpv6,
@@ -652,7 +653,7 @@ async def opn_mvc_get_settings(ctx: Context, subsystem: SettingsSubsystemName, s
 
 @mcp.tool()
 async def opn_mvc_patch_settings(
-    ctx: Context, subsystem: SettingsSubsystemName, changes: dict[str, Any], site: str = ""
+    ctx: Context, subsystem: SettingsSubsystemName, changes: dict[str, Any], site: SiteName = ""
 ) -> dict[str, Any]:
     """Patch selected global settings of one subsystem, never apply automatically.
 
