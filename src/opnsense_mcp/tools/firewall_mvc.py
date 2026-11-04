@@ -112,18 +112,18 @@ async def opn_firewall_list_objects(
 
 @mcp.tool()
 async def opn_firewall_get_object(ctx: Context, kind: FirewallResourceName, uuid: str, site: SiteName = "") -> dict[str, Any]:
-    """Read one editable firewall configuration object by UUID; does not mutate."""
+    """Read one editable firewall configuration object by UUID; does not mutate.
 
     Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. Read this object's model fields before a targeted patch. 'uuid' is an object UUID.
-    return await _get(get_api(ctx, site), kind, uuid)
+    """    return await _get(get_api(ctx, site), kind, uuid)
 
 
 @mcp.tool()
 async def opn_firewall_create_object(ctx: Context, kind: FirewallResourceName, fields: dict[str, str], site: SiteName = "") -> dict[str, Any]:
-    """Create one MVC firewall object with model-validated fields; NO automatic apply."""
+    """Create one MVC firewall object with model-validated fields; NO automatic apply.
 
     Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. 'fields' is a mapping from exact installed MVC field names to strings; unknown fields are rejected. Consult existing objects and the target's model rather than guessing fields.
-    resource = _kind(kind)
+    """    resource = _kind(kind)
     api = get_api(ctx, site)
     api.require_writes()
     values = _fields(fields)
@@ -200,10 +200,10 @@ async def opn_firewall_set_enabled(ctx: Context, kind: FirewallToggleKind, uuid:
 
 @mcp.tool()
 async def opn_firewall_set_logging(ctx: Context, kind: FirewallLoggingKind, uuid: str, enabled: bool, site: SiteName = "") -> dict[str, Any]:
-    """Set logging on exactly one filter/NAT/NPT rule; no firewall apply."""
+    """Set logging on exactly one filter/NAT/NPT rule; no firewall apply.
 
     Only kind values supporting rule logging: filter, dnat, snat, one_to_one, npt. 'enabled' is the desired Boolean state; no automatic apply.
-    resource = _kind(kind)
+    """    resource = _kind(kind)
     if not resource.logging:
         raise ValueError("Logging switch is available only for firewall/NAT/NPT rules")
     api = get_api(ctx, site)
