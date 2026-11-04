@@ -92,9 +92,7 @@ def generate_operations() -> tuple[
         path = f"{service}/service/reconfigure"
         endpoints[key] = (path, path)
         writes.add(("POST", key))
-    endpoints["mvc.wireguard.instance.generate_keypair"] = (
-        "wireguard/server/keyPair", "wireguard/server/key_pair"
-    )
+    endpoints["mvc.wireguard.instance.generate_keypair"] = ("wireguard/server/keyPair", "wireguard/server/key_pair")
     gets.add("mvc.wireguard.instance.generate_keypair")
     endpoints["mvc.kea.leases6.search"] = ("kea/leases6/search", "kea/leases6/search")
     searches.add("mvc.kea.leases6.search")
