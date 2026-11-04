@@ -212,15 +212,15 @@ async def _toggle(
 
 
 @mcp.tool()
-async def opn_wireguard_generate_psk(ctx: Context) -> dict[str, Any]:
+async def opn_wireguard_generate_psk(ctx: Context, site: str = "") -> dict[str, Any]:
     """Generate a cryptographically secure PSK in server memory and return an opaque reference.
 
     This reference can be used separately in two peer patches, in whatever
     order the agent chooses, without returning the secret to the language model.
     It expires after 30 minutes or a container restart.
     """
-    # ctx is used by MCP to bind an authenticated tool call.
-    del ctx
+    # Resolve the selected site; no site changes are made while generating.
+    get_api(ctx, site)
     now = time.monotonic()
     for ref, (_, expires) in list(_PSK_REFS.items()):
         if expires < now:
