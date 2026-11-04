@@ -155,6 +155,13 @@ class TestToolRegistration:
             "opn_crowdsec_status",
             "opn_crowdsec_alerts",
             "opn_list_ddns_accounts",
+            "opn_get_ddns_account",
+            "opn_set_ddns_account_enabled",
+            "opn_get_ddns_settings",
+            "opn_patch_ddns_settings",
+            "opn_ddns_service_status",
+            "opn_ddns_service_control",
+            "opn_force_refresh_ddns_accounts",
             "opn_add_ddns_account",
             "opn_reconfigure_ddclient",
             "opn_update_ddns_account",
@@ -178,7 +185,7 @@ class TestToolRegistration:
         from opnsense_mcp.server import mcp
 
         tools = await mcp.list_tools()
-        assert len(tools) == 147, f"Expected 147 tools, got {len(tools)}"
+        assert len(tools) == 154, f"Expected 154 tools, got {len(tools)}"
 
     async def test_every_opnsense_tool_has_site_parameter(self):
         """Every site-bound tool must expose an explicit target selector."""
