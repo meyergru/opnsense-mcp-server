@@ -200,15 +200,33 @@ async def _delete(api: OPNsenseAPI, family: str, kind: str, obj_id: str) -> dict
 async def _toggle(
     api: OPNsenseAPI, family: str, kind: str, obj_id: str, enabled: bool
 ) -> dict[str, Any]:
+    """Idempotently ensure an object is enabled or disabled.
+
+    OPNsense MVC toggle*Action only accepts UUID and TOGGLES the state; it
+    does not accept a desired 0/1 argument. Read first and call it at most
+    once, avoiding accidental re-enablement after a retry.
+    """
     resource = _resource(family, kind)
     if not resource.toggle:
         raise ValueError(f"{family}.{kind} has no toggle API")
     api.require_writes()
     target = _uuid(obj_id)
-    result = await api.post(
-        resource.logical("toggle"), path_suffix=f"{target}/{int(enabled)}"
-    )
-    return {"uuid": target, "result": _sanitize(result), "applied": False}
+    async with _lock(api):
+        current = await api.get(resource.logical("get"), path_suffix=target)
+        form = current.get(resource.field)
+        if not isinstance(form, dict):
+            raise ValueError("Object not found; refusing to toggle")
+        field = form.get("enabled")
+        if isinstance(field, dict):
+            raise ValueError("Unable to establish current enabled state from model")
+        if str(field) not in {"0", "1"}:
+            raise ValueError("Unable to establish current enabled state from model")
+        if (str(field) == "1") == enabled:
+            return {"uuid": target, "changed": False, "enabled": enabled, "applied": False}
+        result = await api.post(resource.logical("toggle"), path_suffix=target)
+    if result.get("result") not in ("Enabled", "Disabled"):
+        return {"uuid": target, "changed": "unknown", "result": _sanitize(result), "applied": False}
+    return {"uuid": target, "changed": True, "enabled": enabled, "result": _sanitize(result), "applied": False}
 
 
 @mcp.tool()
@@ -273,6 +291,18 @@ async def opn_wireguard_delete_peer(ctx: Context, uuid: str, site: str = "") -> 
 
 
 @mcp.tool()
+async def opn_wireguard_toggle_peer(
+    ctx: Context, uuid: str, enabled: bool, site: str = ""
+) -> dict[str, Any]:
+    """Enable/disable exactly one WireGuard peer, idempotently, without applying.
+
+    Reads current enabled state first, then invokes OPNsense's toggleClient
+    only if needed. A later explicit WireGuard reconfigure is required.
+    """
+    return await _toggle(get_api(ctx, site), "wireguard", "peer", uuid, enabled)
+
+
+@mcp.tool()
 async def opn_wireguard_list_instances(ctx: Context, site: str = "") -> dict[str, Any]:
     """List existing WireGuard instances without changing or replacing them."""
     return await _list(get_api(ctx, site), "wireguard", "instance", "", 100)
@@ -282,6 +312,14 @@ async def opn_wireguard_list_instances(ctx: Context, site: str = "") -> dict[str
 async def opn_wireguard_get_instance(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
     """Read a WireGuard instance, with its private key stripped."""
     return await _get(get_api(ctx, site), "wireguard", "instance", uuid)
+
+
+@mcp.tool()
+async def opn_wireguard_toggle_instance(
+    ctx: Context, uuid: str, enabled: bool, site: str = ""
+) -> dict[str, Any]:
+    """Enable/disable exactly one WireGuard instance; apply separately."""
+    return await _toggle(get_api(ctx, site), "wireguard", "instance", uuid, enabled)
 
 
 @mcp.tool()
