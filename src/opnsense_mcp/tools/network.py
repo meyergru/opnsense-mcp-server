@@ -9,10 +9,11 @@ from fastmcp import Context
 from opnsense_mcp.api_client import OPNsenseAPIError
 from opnsense_mcp.server import get_api, mcp
 from opnsense_mcp.tool_result import structured_table_result
+from opnsense_mcp.tool_types import SiteName
 
 
 @mcp.tool()
-async def opn_interface_stats(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_interface_stats(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get per-interface traffic statistics (bytes in/out, packets, errors).
 
     Use this when you need to see network utilization, check for interface
@@ -24,7 +25,7 @@ async def opn_interface_stats(ctx: Context, site: str = "") -> dict[str, Any]:
 
 
 @mcp.tool()
-async def opn_arp_table(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_arp_table(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get the ARP table showing IP-to-MAC address mappings.
 
     Use this when you need to find which MAC address is associated with an IP,
@@ -36,7 +37,7 @@ async def opn_arp_table(ctx: Context, site: str = "") -> dict[str, Any]:
 
 
 @mcp.tool()
-async def opn_ndp_table(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_ndp_table(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get the NDP table showing IPv6-to-MAC address mappings.
 
     Use this when you need to find which MAC address is associated with an IPv6
@@ -49,7 +50,7 @@ async def opn_ndp_table(ctx: Context, site: str = "") -> dict[str, Any]:
 
 
 @mcp.tool()
-async def opn_ipv6_status(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_ipv6_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get IPv6 configuration and address status for all interfaces.
 
     Use this when you need a quick overview of which interfaces have IPv6
@@ -167,7 +168,7 @@ async def opn_list_static_routes(
     ctx: Context,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List configured static routes.
 
