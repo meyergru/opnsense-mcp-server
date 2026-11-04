@@ -22,7 +22,7 @@ from weakref import WeakKeyDictionary
 from fastmcp import Context
 
 from opnsense_mcp.api_client import OPNsenseAPI
-from opnsense_mcp.mvc_catalog import MVCResource, RESOURCES
+from opnsense_mcp.mvc_catalog import GLOBAL_SETTINGS, MVCResource, RESOURCES
 from opnsense_mcp.server import get_api, get_config_cache, mcp
 
 _SECRET_FIELDS = frozenset(
@@ -420,3 +420,69 @@ async def opn_service_apply(ctx: Context, service: str, site: str = "") -> dict[
     result = await api.post(f"mvc.service.{service}.reconfigure")
     get_config_cache(ctx, site).invalidate()
     return {"service": service, "result": _sanitize(result)}
+
+
+
+@mcp.tool()
+async def opn_kea_list_leases6(
+    ctx: Context, search: str = "", limit: int = 100, site: str = ""
+) -> dict[str, Any]:
+    """List Kea DHCPv6 leases without modifying lease state."""
+    if not 1 <= limit <= 500:
+        raise ValueError("limit must be 1..500")
+    result = await get_api(ctx, site).post(
+        "mvc.kea.leases6.search",
+        {"current": 1, "rowCount": limit, "searchPhrase": search},
+    )
+    return _sanitize(result)
+
+
+@mcp.tool()
+async def opn_kea_delete_lease(ctx: Context, ip: str, site: str = "") -> dict[str, Any]:
+    """Explicitly remove a Kea lease by IP address. This does not change reservations."""
+    import ipaddress
+
+    address = str(ipaddress.ip_address(ip))
+    api = get_api(ctx, site)
+    api.require_writes()
+    return _sanitize(await api.post("mvc.kea.leases.del", path_suffix=address))
+
+
+@mcp.tool()
+async def opn_mvc_get_settings(ctx: Context, subsystem: str, site: str = "") -> dict[str, Any]:
+    """Read global settings of Kea DHCPv4/v6/DDNS/control-agent, radvd or Unbound."""
+    if subsystem not in GLOBAL_SETTINGS:
+        raise ValueError("Unsupported settings subsystem")
+    _, root = GLOBAL_SETTINGS[subsystem]
+    result = await get_api(ctx, site).get(f"mvc.settings.{subsystem}.get")
+    return {"subsystem": subsystem, "settings": _sanitize(result.get(root, {}))}
+
+
+@mcp.tool()
+async def opn_mvc_patch_settings(
+    ctx: Context, subsystem: str, changes: dict[str, Any], site: str = ""
+) -> dict[str, Any]:
+    """Patch selected global settings of one subsystem, never apply automatically.
+
+    The OPNsense MVC base controller merges supplied nodes into existing model
+    state. This first reads the installed model and refuses unknown root fields.
+    Changes are restricted to pre-existing fields of the chosen settings model.
+    """
+    if subsystem not in GLOBAL_SETTINGS:
+        raise ValueError("Unsupported settings subsystem")
+    if not isinstance(changes, dict) or not changes:
+        raise ValueError("Nonempty settings changes required")
+    _, root = GLOBAL_SETTINGS[subsystem]
+    api = get_api(ctx, site)
+    api.require_writes()
+    async with _lock(api):
+        before = await api.get(f"mvc.settings.{subsystem}.get")
+        existing = before.get(root)
+        if not isinstance(existing, dict):
+            raise ValueError("Global settings are unavailable; refusing write")
+        if set(changes) - set(existing):
+            raise ValueError("Unsupported global settings field")
+        if any(re.sub(r"[_\s-]", "", str(k)).lower() in _SECRET_FIELDS for k in changes):
+            raise ValueError("Do not submit secret fields from a model")
+        result = await api.post(f"mvc.settings.{subsystem}.set", {root: changes})
+    return {"subsystem": subsystem, "result": _sanitize(result), "applied": False}
