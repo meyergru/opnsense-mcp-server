@@ -245,13 +245,22 @@ async def opn_wireguard_generate_psk(ctx: Context, site: str = "") -> dict[str, 
 
 @mcp.tool()
 async def opn_wireguard_list_peers(ctx: Context, site: str = "", search: str = "", limit: int = 100) -> dict[str, Any]:
-    """List existing WireGuard peers; never expose PSKs or private keys."""
+    """List existing WireGuard peers; never expose PSKs or private keys.
+
+    This configuration listing alone does not prove whether management
+    access to a target traverses the VPN being changed. Ask the user
+    before coordinated cross-site changes if the access path is unclear.
+    """
     return await _list(get_api(ctx, site), "wireguard", "peer", search, limit)
 
 
 @mcp.tool()
 async def opn_wireguard_get_peer(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
-    """Read a WireGuard peer's configuration with secrets stripped."""
+    """Read a WireGuard peer's configuration with secrets stripped.
+
+    Do not infer which endpoint is LOCAL/REMOTE solely from peer fields or
+    site labels. Clarify the management access path before modifying a tunnel.
+    """
     return await _get(get_api(ctx, site), "wireguard", "peer", uuid)
 
 
@@ -315,13 +324,21 @@ async def opn_wireguard_toggle_peer(ctx: Context, uuid: str, enabled: bool, site
 
 @mcp.tool()
 async def opn_wireguard_list_instances(ctx: Context, site: str = "") -> dict[str, Any]:
-    """List existing WireGuard instances without changing or replacing them."""
+    """List existing WireGuard instances without changing or replacing them.
+
+    The list cannot establish whether management access uses a WireGuard
+    tunnel. Ask the user before a cross-site change if topology is uncertain.
+    """
     return await _list(get_api(ctx, site), "wireguard", "instance", "", 100)
 
 
 @mcp.tool()
 async def opn_wireguard_get_instance(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
-    """Read a WireGuard instance, with its private key stripped."""
+    """Read a WireGuard instance, with its private key stripped.
+
+    This does not prove whether a target's management path crosses this VPN;
+    clarify LOCAL/REMOTE roles with the user before applying risky changes.
+    """
     return await _get(get_api(ctx, site), "wireguard", "instance", uuid)
 
 
