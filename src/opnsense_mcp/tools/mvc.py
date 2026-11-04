@@ -445,7 +445,9 @@ async def opn_kea_get(ctx: Context, resource: KeaResourceName, uuid: str, site: 
 
 
 @mcp.tool()
-async def opn_kea_add(ctx: Context, resource: KeaResourceName, fields: dict[str, str], site: str = "") -> dict[str, Any]:
+async def opn_kea_add(
+    ctx: Context, resource: KeaResourceName, fields: dict[str, str], site: str = ""
+) -> dict[str, Any]:
     """Stage creation of one Kea configuration object; does not apply.
 
     For a DHCPv4 static MAC/IP reservation use resource="reservation4".
