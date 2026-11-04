@@ -35,9 +35,7 @@ def test_all_approved_mvc_endpoints_are_in_global_registry():
     assert len(MVC_ENDPOINTS) >= 90
     for endpoint, paths in MVC_ENDPOINTS.items():
         assert ENDPOINT_REGISTRY[endpoint] == paths
-        assert (
-            endpoint in MVC_GETS or endpoint in MVC_SEARCHES or ("POST", endpoint) in MVC_WRITES
-        )
+        assert endpoint in MVC_GETS or endpoint in MVC_SEARCHES or ("POST", endpoint) in MVC_WRITES
         if endpoint in MVC_GETS:
             assert operation_effect("GET", endpoint) is OperationEffect.READ
         elif endpoint in MVC_SEARCHES:
@@ -64,16 +62,18 @@ async def test_wireguard_psk_patch_preserves_original_instance_associations(mock
     opaque = await opn_wireguard_generate_psk(mock_ctx_writes)
     reference = opaque["psk_ref"]
     mock_api_writes.get = AsyncMock(
-        return_value={"client": {
-            "name": "peer-A", "pubkey": "PUBLICKEY", "servers": {
-                INSTANCE: {"selected": 1, "value": "Existing Site-to-Site"}
-            }, "psk": "OLD_SECRET", "tunneladdress": "10.10.0.0/24",
-        }}
+        return_value={
+            "client": {
+                "name": "peer-A",
+                "pubkey": "PUBLICKEY",
+                "servers": {INSTANCE: {"selected": 1, "value": "Existing Site-to-Site"}},
+                "psk": "OLD_SECRET",
+                "tunneladdress": "10.10.0.0/24",
+            }
+        }
     )
     mock_api_writes.post = AsyncMock(return_value={"result": "saved"})
-    result = await opn_wireguard_patch_peer(
-        mock_ctx_writes, uuid=PEER, changes={}, psk_ref=reference
-    )
+    result = await opn_wireguard_patch_peer(mock_ctx_writes, uuid=PEER, changes={}, psk_ref=reference)
     assert result["applied"] is False
     assert mock_api_writes.get.await_count == 1
     mock_api_writes.post.assert_awaited_once_with(
@@ -142,7 +142,8 @@ async def test_kea_add_validates_template_and_never_applies(mock_api_writes, moc
     mock_api_writes.get = AsyncMock(return_value={"reservation": {"hw_address": "", "ip_address": ""}})
     mock_api_writes.post = AsyncMock(return_value={"result": "saved", "uuid": PEER})
     r = await opn_kea_add(
-        mock_ctx_writes, resource="reservation4",
+        mock_ctx_writes,
+        resource="reservation4",
         fields={"hw_address": "aa:bb:cc:dd:ee:ff", "ip_address": "192.0.2.14"},
     )
     assert r["result"] == "saved"
@@ -162,9 +163,7 @@ async def test_unbound_patch_is_single_object_no_auto_apply(mock_api_writes, moc
     mock_api_writes.post = AsyncMock(return_value={"result": "saved"})
     result = await opn_unbound_patch(mock_ctx_writes, "acl", PEER, {"action": "deny"})
     assert result["applied"] is False
-    mock_api_writes.post.assert_awaited_once_with(
-        "mvc.unbound.acl.set", {"acl": {"action": "deny"}}, path_suffix=PEER
-    )
+    mock_api_writes.post.assert_awaited_once_with("mvc.unbound.acl.set", {"acl": {"action": "deny"}}, path_suffix=PEER)
 
 
 async def test_radvd_toggle_is_not_automatic_reconfigure(mock_api_writes, mock_ctx_writes):
@@ -172,9 +171,7 @@ async def test_radvd_toggle_is_not_automatic_reconfigure(mock_api_writes, mock_c
     mock_api_writes.post = AsyncMock(return_value={"result": "Disabled"})
     result = await opn_radvd_toggle(mock_ctx_writes, uuid=PEER, enabled=False)
     assert result["applied"] is False
-    mock_api_writes.post.assert_awaited_once_with(
-        "mvc.radvd.entry.toggle", path_suffix=PEER
-    )
+    mock_api_writes.post.assert_awaited_once_with("mvc.radvd.entry.toggle", path_suffix=PEER)
 
 
 async def test_apply_is_explicit_single_service(mock_api_writes, mock_ctx_writes):
@@ -290,6 +287,4 @@ async def test_wireguard_instance_delete_is_one_object_no_apply(mock_api_writes,
     mock_api_writes.post = AsyncMock(return_value={"result": "deleted"})
     result = await opn_wireguard_delete_instance(mock_ctx_writes, uuid=INSTANCE)
     assert result["applied"] is False
-    mock_api_writes.post.assert_awaited_once_with(
-        "mvc.wireguard.instance.del", path_suffix=INSTANCE
-    )
+    mock_api_writes.post.assert_awaited_once_with("mvc.wireguard.instance.del", path_suffix=INSTANCE)
