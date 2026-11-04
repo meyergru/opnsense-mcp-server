@@ -6,15 +6,15 @@ content must be a JSON object. Preserve object responses as-is.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from opnsense_mcp.api_client import OPNsenseAPIError
 
 
-def structured_table_result(value: Any) -> dict[str, Any]:
+def structured_table_result(value: object) -> dict[str, Any]:
     """Return a structured MCP response for an OPNsense table endpoint."""
     if isinstance(value, dict):
-        return value
+        return cast(dict[str, Any], value)
     if isinstance(value, list):
         return {"rows": value, "rowCount": len(value)}
     raise OPNsenseAPIError(
