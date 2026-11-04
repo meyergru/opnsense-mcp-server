@@ -28,6 +28,12 @@ class TestOpnListDhcpLeases:
         mock_api.get.assert_called_once_with("dhcpv4.leases.search")
         assert result == {"leases": []}
 
+    async def test_wraps_isc_lease_array_for_mcp(self, mock_api, mock_ctx):
+        row = {"address": "192.0.2.15", "mac": "00:11:22:33:44:55"}
+        mock_api.get = AsyncMock(return_value=[row])
+        result = await opn_list_dhcp_leases(mock_ctx)
+        assert result == {"rows": [row], "rowCount": 1}
+
 
 class TestOpnListKeaLeases:
     """Tests for opn_list_kea_leases."""
@@ -40,6 +46,11 @@ class TestOpnListKeaLeases:
             {"current": 1, "rowCount": 50, "searchPhrase": ""},
         )
         assert result == {"rows": [], "rowCount": 0}
+
+    async def test_wraps_kea_lease_array_for_mcp(self, mock_api, mock_ctx):
+        mock_api.post = AsyncMock(return_value=[{"address": "192.0.2.16"}])
+        result = await opn_list_kea_leases(mock_ctx)
+        assert result == {"rows": [{"address": "192.0.2.16"}], "rowCount": 1}
 
     async def test_passes_search_and_limit(self, mock_api, mock_ctx):
         mock_api.post = AsyncMock(return_value={"rows": [], "rowCount": 0})
@@ -67,6 +78,10 @@ class TestOpnListDnsmasqLeases:
             {"current": 1, "rowCount": 50, "searchPhrase": ""},
         )
         assert result == {"rows": [], "rowCount": 0}
+
+    async def test_wraps_dnsmasq_lease_array_for_mcp(self, mock_api, mock_ctx):
+        mock_api.post = AsyncMock(return_value=[])
+        assert await opn_list_dnsmasq_leases(mock_ctx) == {"rows": [], "rowCount": 0}
 
     async def test_passes_search_and_limit(self, mock_api, mock_ctx):
         mock_api.post = AsyncMock(return_value={"rows": [], "rowCount": 0})
