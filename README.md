@@ -2,7 +2,9 @@
 
 A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible AI clients, including **OpenWebUI**, to several **named OPNsense firewalls** over their REST APIs. This is a fork of [lucamarien/opnsense-mcp-server](https://github.com/lucamarien/opnsense-mcp-server), with the original MIT license retained.
 
-**129 tools in this development branch:** including new single-site Kea, radvd, Unbound and WireGuard MVC tools; see the [tool reference](#available-tools-129).
+**129 tools in `main` (2026-11-04):** including single-site Kea, radvd, Unbound and WireGuard MVC tools; see the [tool reference](#available-tools-129).
+
+[API coverage inventory and remaining gaps](docs/core-api-coverage-26.7.md) · [Operation authorization policy](docs/api-operation-policy.md)
 
 ## Architecture and configuration ownership
 
