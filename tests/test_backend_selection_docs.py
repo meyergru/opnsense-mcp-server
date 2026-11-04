@@ -69,11 +69,7 @@ BACKEND_TOOLS = {
 
 @pytest.mark.parametrize(
     ("module_name", "function_name"),
-    [
-        (module_name, name)
-        for module_name, names in BACKEND_TOOLS.items()
-        for name in names
-    ],
+    [(module_name, name) for module_name, names in BACKEND_TOOLS.items() for name in names],
 )
 def test_service_specific_tools_warn_about_inactive_alternatives(module_name, function_name):
     module = importlib.import_module(f"opnsense_mcp.tools.{module_name}")
