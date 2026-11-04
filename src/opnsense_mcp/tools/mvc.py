@@ -23,7 +23,15 @@ from weakref import WeakKeyDictionary
 from fastmcp import Context
 
 from opnsense_mcp.api_client import OPNsenseAPI
-from opnsense_mcp.mvc_catalog import GLOBAL_SETTINGS, RESOURCES, KeaResourceName, MVCResource
+from opnsense_mcp.mvc_catalog import (
+    GLOBAL_SETTINGS,
+    RESOURCES,
+    ApplyServiceName,
+    KeaResourceName,
+    MVCResource,
+    SettingsSubsystemName,
+    UnboundResourceName,
+)
 from opnsense_mcp.server import get_api, get_config_cache, mcp
 
 _SECRET_FIELDS = frozenset(
@@ -524,47 +532,61 @@ async def opn_radvd_toggle(ctx: Context, uuid: str, enabled: bool, site: str = "
 
 @mcp.tool()
 async def opn_unbound_list(
-    ctx: Context, resource: str, site: str = "", search: str = "", limit: int = 100
+    ctx: Context, resource: UnboundResourceName, site: str = "", search: str = "", limit: int = 100
 ) -> dict[str, Any]:
     """List Unbound host overrides, forwards, host aliases, ACLs or DNSBL objects."""
+
+    Valid resource values: host (host overrides), forward (forward zones), host_alias (aliases of overrides), acl (access controls), dnsbl (blocklist configurations). The 'search' parameter searches these configured objects; it is not an arbitrary API endpoint.
     return await _list(get_api(ctx, site), "unbound", resource, search, limit)
 
 
 @mcp.tool()
-async def opn_unbound_get(ctx: Context, resource: str, uuid: str, site: str = "") -> dict[str, Any]:
+async def opn_unbound_get(ctx: Context, resource: UnboundResourceName, uuid: str, site: str = "") -> dict[str, Any]:
     """Read one Unbound configuration object with secrets removed."""
+
+    resource must be host, forward, host_alias, acl or dnsbl. Use the UUID from opn_unbound_list(resource=<same-value>). 'uuid' is a configuration object UUID, not an IP address.
     return await _get(get_api(ctx, site), "unbound", resource, uuid)
 
 
 @mcp.tool()
-async def opn_unbound_add(ctx: Context, resource: str, fields: dict[str, str], site: str = "") -> dict[str, Any]:
+async def opn_unbound_add(ctx: Context, resource: UnboundResourceName, fields: dict[str, str], site: str = "") -> dict[str, Any]:
     """Create one Unbound MVC object without restarting DNS."""
+
+    resource must be host, forward, host_alias, acl or dnsbl. 'fields' is a JSON object mapping exact model field names to strings; fields are checked against this site's installed MVC model. Do not guess field names or infer them from other OPNsense versions. Apply later with opn_service_apply(service='unbound').
     return await _add(get_api(ctx, site), "unbound", resource, fields)
 
 
 @mcp.tool()
 async def opn_unbound_patch(
-    ctx: Context, resource: str, uuid: str, changes: dict[str, str], site: str = ""
+    ctx: Context, resource: UnboundResourceName, uuid: str, changes: dict[str, str], site: str = ""
 ) -> dict[str, Any]:
     """Read-before-write patch an Unbound MVC object without modifying other records."""
+
+    resource must be host, forward, host_alias, acl or dnsbl. Obtain the UUID and current field names with opn_unbound_list and opn_unbound_get; 'changes' maps only fields to modify to string values. Apply later with opn_service_apply(service='unbound').
     return await _patch(get_api(ctx, site), "unbound", resource, uuid, changes)
 
 
 @mcp.tool()
-async def opn_unbound_delete(ctx: Context, resource: str, uuid: str, site: str = "") -> dict[str, Any]:
+async def opn_unbound_delete(ctx: Context, resource: UnboundResourceName, uuid: str, site: str = "") -> dict[str, Any]:
     """Delete one Unbound MVC object; explicit apply remains separate."""
+
+    resource must be host, forward, host_alias, acl or dnsbl. Obtain the UUID using opn_unbound_list; this stages deletion only. Apply later with opn_service_apply(service='unbound').
     return await _delete(get_api(ctx, site), "unbound", resource, uuid)
 
 
 @mcp.tool()
-async def opn_unbound_toggle(ctx: Context, resource: str, uuid: str, enabled: bool, site: str = "") -> dict[str, Any]:
+async def opn_unbound_toggle(ctx: Context, resource: UnboundResourceName, uuid: str, enabled: bool, site: str = "") -> dict[str, Any]:
     """Enable or disable one Unbound MVC object; no DNS reconfigure."""
+
+    resource must be host, forward, host_alias, acl or dnsbl. 'enabled' is a Boolean target state (true/false), not a toggle command; apply later with opn_service_apply(service='unbound').
     return await _toggle(get_api(ctx, site), "unbound", resource, uuid, enabled)
 
 
 @mcp.tool()
-async def opn_service_apply(ctx: Context, service: str, site: str = "") -> dict[str, Any]:
+async def opn_service_apply(ctx: Context, service: ApplyServiceName, site: str = "") -> dict[str, Any]:
     """Explicitly apply pending WireGuard/Kea/radvd/Unbound changes on one site.
+
+    service is exactly one of: wireguard, kea, radvd, unbound.
 
     May restart services or disrupt traffic. This is not called automatically
     by the CRUD helpers. Cross-site sequencing is the model's responsibility.
@@ -614,8 +636,13 @@ async def opn_kea_delete_lease(ctx: Context, ip: str, site: str = "") -> dict[st
 
 
 @mcp.tool()
-async def opn_mvc_get_settings(ctx: Context, subsystem: str, site: str = "") -> dict[str, Any]:
-    """Read global settings of Kea DHCPv4/v6/DDNS/control-agent, radvd or Unbound."""
+async def opn_mvc_get_settings(ctx: Context, subsystem: SettingsSubsystemName, site: str = "") -> dict[str, Any]:
+    """Read global settings of Kea DHCPv4/v6/DDNS/control-agent, radvd, Unbound or WireGuard.
+
+    subsystem must be exactly one of: kea_dhcpv4, kea_dhcpv6,
+    kea_ctrl_agent, kea_ddns, radvd, unbound, wireguard.
+    Read this before patching settings to discover available field names.
+    """
     if subsystem not in GLOBAL_SETTINGS:
         raise ValueError("Unsupported settings subsystem")
     _, root = GLOBAL_SETTINGS[subsystem]
@@ -625,9 +652,14 @@ async def opn_mvc_get_settings(ctx: Context, subsystem: str, site: str = "") -> 
 
 @mcp.tool()
 async def opn_mvc_patch_settings(
-    ctx: Context, subsystem: str, changes: dict[str, Any], site: str = ""
+    ctx: Context, subsystem: SettingsSubsystemName, changes: dict[str, Any], site: str = ""
 ) -> dict[str, Any]:
     """Patch selected global settings of one subsystem, never apply automatically.
+
+    subsystem must be exactly one of: kea_dhcpv4, kea_dhcpv6,
+    kea_ctrl_agent, kea_ddns, radvd, unbound, wireguard.
+    changes is a JSON object using only existing top-level keys returned by
+    opn_mvc_get_settings for the same subsystem on the same site.
 
     The OPNsense MVC base controller merges supplied nodes into existing model
     state. This first reads the installed model and refuses unknown root fields.
