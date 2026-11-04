@@ -20,6 +20,7 @@ from fastmcp import Context
 
 from opnsense_mcp.api_client import OPNsenseAPI, OPNsenseAPIError
 from opnsense_mcp.server import get_api, mcp
+from opnsense_mcp.tool_types import SiteName
 
 _AUDIT_MARKER = "***GOT REQUEST TO AUDIT SECURITY***"
 _DONE_MARKER = "***DONE***"
@@ -148,7 +149,7 @@ async def _poll(api: OPNsenseAPI, state: _AuditSession, max_checks: int, poll_in
 
 @mcp.tool()
 async def opn_firmware_cve_audit(
-    ctx: Context, site: str = "", max_checks: int = 2, poll_interval_seconds: int = 2
+    ctx: Context, site: SiteName = "", max_checks: int = 2, poll_interval_seconds: int = 2
 ) -> dict[str, Any]:
     """Run OPNsense's ORIGINAL firmware Security Audit against VuXML CVEs.
 
@@ -188,7 +189,7 @@ async def opn_firmware_cve_audit(
 
 @mcp.tool()
 async def opn_firmware_cve_audit_result(
-    ctx: Context, job_id: str, site: str = "", max_checks: int = 2, poll_interval_seconds: int = 2
+    ctx: Context, job_id: str, site: SiteName = "", max_checks: int = 2, poll_interval_seconds: int = 2
 ) -> dict[str, Any]:
     """Collect a previously started OPNsense CVE scan, tolerating delays.
 
