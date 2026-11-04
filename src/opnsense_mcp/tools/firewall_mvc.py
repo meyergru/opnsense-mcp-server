@@ -107,9 +107,7 @@ async def opn_firewall_get_object(ctx: Context, kind: str, uuid: str, site: str 
 
 
 @mcp.tool()
-async def opn_firewall_create_object(
-    ctx: Context, kind: str, fields: dict[str, str], site: str = ""
-) -> dict[str, Any]:
+async def opn_firewall_create_object(ctx: Context, kind: str, fields: dict[str, str], site: str = "") -> dict[str, Any]:
     """Create one MVC firewall object with model-validated fields; NO automatic apply."""
     resource = _kind(kind)
     api = get_api(ctx, site)
@@ -161,9 +159,7 @@ async def opn_firewall_delete_object(ctx: Context, kind: str, uuid: str, site: s
 
 
 @mcp.tool()
-async def opn_firewall_set_enabled(
-    ctx: Context, kind: str, uuid: str, enabled: bool, site: str = ""
-) -> dict[str, Any]:
+async def opn_firewall_set_enabled(ctx: Context, kind: str, uuid: str, enabled: bool, site: str = "") -> dict[str, Any]:
     """Set enabled status of one rule or alias, not toggle blindly; no apply.
 
     DNAT's argument is 'disabled' and is therefore inverted; other rule
@@ -183,9 +179,7 @@ async def opn_firewall_set_enabled(
 
 
 @mcp.tool()
-async def opn_firewall_set_logging(
-    ctx: Context, kind: str, uuid: str, enabled: bool, site: str = ""
-) -> dict[str, Any]:
+async def opn_firewall_set_logging(ctx: Context, kind: str, uuid: str, enabled: bool, site: str = "") -> dict[str, Any]:
     """Set logging on exactly one filter/NAT/NPT rule; no firewall apply."""
     resource = _kind(kind)
     if not resource.logging:
