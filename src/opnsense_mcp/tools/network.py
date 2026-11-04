@@ -7,6 +7,7 @@ from typing import Any
 from fastmcp import Context
 
 from opnsense_mcp.api_client import OPNsenseAPIError
+from opnsense_mcp.tool_result import structured_table_result
 from opnsense_mcp.server import get_api, mcp
 
 
@@ -28,10 +29,10 @@ async def opn_arp_table(ctx: Context, site: str = "") -> dict[str, Any]:
 
     Use this when you need to find which MAC address is associated with an IP,
     identify devices on a network segment, or troubleshoot connectivity.
-    Returns: dict with ARP entries including ip, mac, intf, and hostname fields.
+    Returns: dict containing 'rows' (ARP entries) and 'rowCount' when the API returns an array.
     """
     api = get_api(ctx, site)
-    return await api.get("interface.arp")
+    return structured_table_result(await api.get("interface.arp"))
 
 
 @mcp.tool()
@@ -41,10 +42,10 @@ async def opn_ndp_table(ctx: Context, site: str = "") -> dict[str, Any]:
     Use this when you need to find which MAC address is associated with an IPv6
     address, identify IPv6-enabled devices on a network segment, or troubleshoot
     IPv6 neighbor reachability. This is the IPv6 equivalent of the ARP table.
-    Returns: dict with NDP entries including ip, mac, intf, and manufacturer fields.
+    Returns: dict containing 'rows' (NDP entries) and 'rowCount' when the API returns an array.
     """
     api = get_api(ctx, site)
-    return await api.get("interface.ndp")
+    return structured_table_result(await api.get("interface.ndp"))
 
 
 @mcp.tool()
