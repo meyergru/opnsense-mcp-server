@@ -72,6 +72,13 @@ async def opn_list_services(
 ) -> dict[str, Any]:
     """List system services and their running status.
 
+    BACKEND SELECTION: A service being installed, listed or running
+    does not prove it serves the requested function, interface,
+    clients or traffic path. Different backends can coexist
+    (Kea/ISC/dnsmasq DHCP, radvd/dnsmasq RAs, Unbound/dnsmasq DNS,
+    HAProxy/Nginx/Caddy proxy chains). Correlate service status
+    with configuration, listeners and the relevant interface/role.
+
     Use this when you need to check which services are running, stopped, or
     available on the OPNsense instance.
     Returns: dict with 'rows' (list of services) and 'rowCount' (total).
@@ -128,6 +135,15 @@ async def opn_download_config(
 @mcp.tool()
 async def opn_scan_config(ctx: Context, force: bool = False, site: SiteName = "") -> dict[str, Any]:
     """Scan the OPNsense configuration and build a cached inventory.
+
+    BACKEND SELECTION: The returned dhcp.active is a SITE-LEVEL
+    heuristic, not an authoritative DHCP/RA ownership map.
+    Different DHCP servers may serve different interfaces or
+    IP families. Installed and cached configurations can be
+    inactive; DHCP leases and reservations may be stale.
+    Verify actual per-interface roles with service status and
+    domain-specific settings before any changes or conclusions.
+    DNS and proxy services may also coexist or be chained.
 
     Use this FIRST when starting a new session. Downloads the full config,
     parses it into queryable sections, and detects runtime state (services,
