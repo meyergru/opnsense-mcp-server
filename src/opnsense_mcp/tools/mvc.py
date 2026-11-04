@@ -23,7 +23,7 @@ from weakref import WeakKeyDictionary
 from fastmcp import Context
 
 from opnsense_mcp.api_client import OPNsenseAPI
-from opnsense_mcp.mvc_catalog import GLOBAL_SETTINGS, RESOURCES, MVCResource
+from opnsense_mcp.mvc_catalog import GLOBAL_SETTINGS, RESOURCES, KeaResourceName, MVCResource
 from opnsense_mcp.server import get_api, get_config_cache, mcp
 
 _SECRET_FIELDS = frozenset(
@@ -39,7 +39,8 @@ def _resource(family: str, kind: str) -> MVCResource:
     try:
         return replace(RESOURCES[family][kind], kind=kind)
     except KeyError:
-        raise ValueError(f"Unsupported {family} resource: {kind}") from None
+        valid = ", ".join(RESOURCES.get(family, {}))
+        raise ValueError(f"Unsupported {family} resource: {kind}. Valid values: {valid}") from None
 
 
 def _uuid(value: str) -> str:
@@ -411,35 +412,75 @@ async def opn_wireguard_delete_instance(ctx: Context, uuid: str, site: str = "")
 
 @mcp.tool()
 async def opn_kea_list(
-    ctx: Context, resource: str, site: str = "", search: str = "", limit: int = 100
+    ctx: Context, resource: KeaResourceName, site: str = "", search: str = "", limit: int = 100
 ) -> dict[str, Any]:
-    """List Kea DHCPv4/v6 subnets, reservations, options, PD pools or HA peers."""
+    """List Kea configuration resources (static reservations, subnets, options, HA peers).
+
+    The resource parameter is a SINGLE exact name, NOT 'reservations' or 'hosts':
+    DHCPv4: reservation4, subnet4, option4, ha_peer4.
+    DHCPv6: reservation6, subnet6, option6, pd_pool6, ha_peer6.
+
+    For a static DHCPv4 MAC reservation, call
+    opn_kea_list(resource="reservation4", search="docker", site="<site>").
+    Find the UUID in the returned rows, then use opn_kea_get and opn_kea_patch
+    with resource="reservation4" and that UUID. Use changes={"hw_address":
+    "aa:bb:cc:dd:ee:ff"} to change the MAC address. After a successful
+    patch, explicitly call opn_service_apply(service="kea", site="<site>").
+    This lists configured reservations, not live DHCP leases (which have
+    separate opn_list_kea_leases and opn_kea_list_leases6 tools).
+    """
     return await _list(get_api(ctx, site), "kea", resource, search, limit)
 
 
 @mcp.tool()
-async def opn_kea_get(ctx: Context, resource: str, uuid: str, site: str = "") -> dict[str, Any]:
-    """Read one Kea DHCPv4/v6 configuration object by UUID."""
+async def opn_kea_get(ctx: Context, resource: KeaResourceName, uuid: str, site: str = "") -> dict[str, Any]:
+    """Read one configured Kea object by UUID.
+
+    For a DHCPv4 static reservation use resource="reservation4" and the UUID
+    returned by opn_kea_list(resource="reservation4"). The result contains
+    fields such as "hw_address" and "ip_address" (subject to the installed
+    OPNsense model). Use reservation6 for DHCPv6 reservations.
+    """
     return await _get(get_api(ctx, site), "kea", resource, uuid)
 
 
 @mcp.tool()
-async def opn_kea_add(ctx: Context, resource: str, fields: dict[str, str], site: str = "") -> dict[str, Any]:
-    """Create one Kea object; validate fields against OPNsense MVC form, do not apply."""
+async def opn_kea_add(ctx: Context, resource: KeaResourceName, fields: dict[str, str], site: str = "") -> dict[str, Any]:
+    """Stage creation of one Kea configuration object; does not apply.
+
+    For a DHCPv4 static MAC/IP reservation use resource="reservation4".
+    Fields must be valid for the target OPNsense version (e.g. "hw_address",
+    "ip_address"); they are checked against that site's actual MVC form.
+    Use opn_service_apply(service="kea", site="<site>") after success.
+    """
     return await _add(get_api(ctx, site), "kea", resource, fields)
 
 
 @mcp.tool()
 async def opn_kea_patch(
-    ctx: Context, resource: str, uuid: str, changes: dict[str, str], site: str = ""
+    ctx: Context, resource: KeaResourceName, uuid: str, changes: dict[str, str], site: str = ""
 ) -> dict[str, Any]:
-    """Read-before-write patch one Kea object; all other fields and objects unchanged."""
+    """Stage a targeted read-before-write patch of an existing Kea object.
+
+    For a DHCPv4 MAC reservation: list resource="reservation4" to obtain the
+    correct UUID and site, then call opn_kea_patch(resource="reservation4",
+    uuid="<uuid>", changes={"hw_address": "aa:bb:cc:dd:ee:ff"},
+    site="<site>"). Other fields/reservations are not modified.
+    No automatic apply: afterwards call opn_service_apply(service="kea",
+    site="<site>") separately. Do not confuse configured reservations
+    with DHCP lease records.
+    """
     return await _patch(get_api(ctx, site), "kea", resource, uuid, changes)
 
 
 @mcp.tool()
-async def opn_kea_delete(ctx: Context, resource: str, uuid: str, site: str = "") -> dict[str, Any]:
-    """Delete one explicitly identified Kea configuration object; no apply."""
+async def opn_kea_delete(ctx: Context, resource: KeaResourceName, uuid: str, site: str = "") -> dict[str, Any]:
+    """Stage deletion of one explicitly identified Kea configuration object.
+
+    To delete a DHCPv4 static reservation use resource="reservation4" and
+    its UUID from opn_kea_list, not a live lease identifier. This does not
+    apply changes; use opn_service_apply(service="kea", site="<site>").
+    """
     return await _delete(get_api(ctx, site), "kea", resource, uuid)
 
 
