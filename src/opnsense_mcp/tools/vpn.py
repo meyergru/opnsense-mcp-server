@@ -7,10 +7,11 @@ from typing import Any
 from fastmcp import Context
 
 from opnsense_mcp.server import get_api, mcp
+from opnsense_mcp.tool_types import SiteName
 
 
 @mcp.tool()
-async def opn_wireguard_status(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_wireguard_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get WireGuard VPN tunnel and peer status.
 
     Use this to check tunnel health, peer handshakes, transferred bytes,
@@ -29,7 +30,7 @@ async def opn_wireguard_status(ctx: Context, site: str = "") -> dict[str, Any]:
 
 
 @mcp.tool()
-async def opn_ipsec_status(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_ipsec_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get IPsec VPN tunnel status (IKE and ESP phases).
 
     Use this when you need to check IPsec site-to-site tunnel health,
@@ -51,7 +52,7 @@ async def opn_ipsec_status(ctx: Context, site: str = "") -> dict[str, Any]:
 
 
 @mcp.tool()
-async def opn_openvpn_status(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_openvpn_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get OpenVPN connection status (instances, sessions, routes).
 
     Use this when you need to check OpenVPN server/client status, see
