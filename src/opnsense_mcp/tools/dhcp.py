@@ -6,6 +6,7 @@ from typing import Any
 
 from fastmcp import Context
 
+from opnsense_mcp.tool_result import structured_table_result
 from opnsense_mcp.server import get_api, get_config_cache, mcp
 
 
@@ -19,7 +20,7 @@ async def opn_list_dhcp_leases(ctx: Context, site: str = "") -> dict[str, Any]:
     Returns: dict with DHCP lease entries including address, mac, and hostname fields.
     """
     api = get_api(ctx, site)
-    return await api.get("dhcpv4.leases.search")
+    return structured_table_result(await api.get("dhcpv4.leases.search"))
 
 
 @mcp.tool()
@@ -37,9 +38,11 @@ async def opn_list_kea_leases(
     Returns: dict with 'rows' (list of leases) and 'rowCount' (total).
     """
     api = get_api(ctx, site)
-    return await api.post(
-        "kea.leases4.search",
-        {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
+    return structured_table_result(
+        await api.post(
+            "kea.leases4.search",
+            {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
+        )
     )
 
 
@@ -59,9 +62,11 @@ async def opn_list_dnsmasq_leases(
     Returns: dict with 'rows' (list of leases) and 'rowCount' (total).
     """
     api = get_api(ctx, site)
-    return await api.post(
-        "dnsmasq.leases.search",
-        {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
+    return structured_table_result(
+        await api.post(
+            "dnsmasq.leases.search",
+            {"current": 1, "rowCount": min(limit, 500), "searchPhrase": search},
+        )
     )
 
 
