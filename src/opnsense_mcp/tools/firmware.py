@@ -10,6 +10,7 @@ from fastmcp import Context
 
 from opnsense_mcp.api_client import OPNsenseAPIError
 from opnsense_mcp.server import get_api, mcp
+from opnsense_mcp.tool_types import SiteName
 
 
 def _no_reboot_update_available(status: dict[str, Any]) -> bool:
@@ -24,13 +25,13 @@ def _no_reboot_update_available(status: dict[str, Any]) -> bool:
 
 
 @mcp.tool()
-async def opn_firmware_update_running(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_firmware_update_running(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Read whether the OPNsense firmware backend reports a running update."""
     return await get_api(ctx, site).get("firmware.running")
 
 
 @mcp.tool()
-async def opn_firmware_update_progress(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_firmware_update_progress(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Read asynchronous firmware update status and log without modifying state.
 
     Status is usually 'running', 'done', 'reboot' or 'error'. An accepted
@@ -55,7 +56,7 @@ def _is_temporary_outage(exc: Exception) -> bool:
 @mcp.tool()
 async def opn_monitor_firmware_update(
     ctx: Context,
-    site: str = "",
+    site: SiteName = "",
     previous_version: str = "",
     max_checks: int = 3,
     poll_interval_seconds: int = 2,
@@ -175,7 +176,7 @@ async def opn_monitor_firmware_update(
 
 
 @mcp.tool()
-async def opn_start_firmware_update(ctx: Context, confirm: bool = False, site: str = "") -> dict[str, Any]:
+async def opn_start_firmware_update(ctx: Context, confirm: bool = False, site: SiteName = "") -> dict[str, Any]:
     """Start an OPNsense minor/package firmware update asynchronously.
 
     Requires this site's write permission and confirm=true. Immediately
