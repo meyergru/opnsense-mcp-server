@@ -46,22 +46,45 @@ def test_firewall_resource_enums_match_capabilities():
 @pytest.mark.parametrize(
     ("tool", "parameter", "values"),
     [
-        *[(getattr(mvc, n), "resource", get_args(UnboundResourceName))
-          for n in ("opn_unbound_list", "opn_unbound_get", "opn_unbound_add",
-                    "opn_unbound_patch", "opn_unbound_delete", "opn_unbound_toggle")],
-        *[(getattr(mvc, n), "subsystem", get_args(SettingsSubsystemName))
-          for n in ("opn_mvc_get_settings", "opn_mvc_patch_settings")],
+        *[
+            (getattr(mvc, n), "resource", get_args(UnboundResourceName))
+            for n in (
+                "opn_unbound_list",
+                "opn_unbound_get",
+                "opn_unbound_add",
+                "opn_unbound_patch",
+                "opn_unbound_delete",
+                "opn_unbound_toggle",
+            )
+        ],
+        *[
+            (getattr(mvc, n), "subsystem", get_args(SettingsSubsystemName))
+            for n in ("opn_mvc_get_settings", "opn_mvc_patch_settings")
+        ],
         (mvc.opn_service_apply, "service", get_args(ApplyServiceName)),
-        *[(getattr(firewall_mvc, n), "kind", get_args(FirewallResourceName))
-          for n in ("opn_firewall_list_objects", "opn_firewall_get_object",
-                    "opn_firewall_create_object", "opn_firewall_patch_object",
-                    "opn_firewall_delete_object")],
+        *[
+            (getattr(firewall_mvc, n), "kind", get_args(FirewallResourceName))
+            for n in (
+                "opn_firewall_list_objects",
+                "opn_firewall_get_object",
+                "opn_firewall_create_object",
+                "opn_firewall_patch_object",
+                "opn_firewall_delete_object",
+            )
+        ],
         (firewall_mvc.opn_firewall_set_enabled, "kind", get_args(FirewallToggleKind)),
         (firewall_mvc.opn_firewall_set_logging, "kind", get_args(FirewallLoggingKind)),
         (firewall_mvc.opn_firewall_move_rule, "kind", get_args(FirewallMoveKind)),
-        *[(getattr(haproxy, n), "resource_type", get_args(haproxy.HAProxyResourceType))
-          for n in ("opn_haproxy_search", "opn_haproxy_get", "opn_haproxy_add",
-                    "opn_haproxy_update", "opn_haproxy_delete")],
+        *[
+            (getattr(haproxy, n), "resource_type", get_args(haproxy.HAProxyResourceType))
+            for n in (
+                "opn_haproxy_search",
+                "opn_haproxy_get",
+                "opn_haproxy_add",
+                "opn_haproxy_update",
+                "opn_haproxy_delete",
+            )
+        ],
         (diagnostics.opn_traceroute, "protocol", ("ICMP", "UDP", "TCP")),
         (diagnostics.opn_traceroute, "ip_version", ("4", "6")),
     ],
