@@ -33,7 +33,7 @@ async def test_api_coverage_documentation_matches_registered_tools():
 
     # The matrix must report current families and the known Firewall gaps.
     for heading in ("Kea", "Radvd", "Unbound", "Wireguard", "Firewall"):
-        assert re.search(r"^\\| " + heading + r" \\|", coverage, re.MULTILINE)
+        assert re.search(r"^\| " + heading + r" \|", coverage, re.MULTILINE)
     for missing_controller in ("SourceNat", "OneToOne", "Npt", "AliasUtil"):
         assert f"`{missing_controller}`" in coverage
 
