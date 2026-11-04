@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Literal
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,21 @@ class MVCResource:
 
     def logical(self, verb: str) -> str:
         return f"mvc.{self.family}.{self.kind or self.action.lower()}.{verb}"
+
+
+# Explicit values appear as a JSON Schema enum in all opn_kea_* MCP tools.
+# Keep this type in sync with RESOURCES["kea"] (covered by a regression test).
+KeaResourceName = Literal[
+    "subnet4",
+    "reservation4",
+    "option4",
+    "ha_peer4",
+    "subnet6",
+    "reservation6",
+    "option6",
+    "pd_pool6",
+    "ha_peer6",
+]
 
 
 RESOURCES: dict[str, dict[str, MVCResource]] = {
