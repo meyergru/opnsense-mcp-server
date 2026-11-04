@@ -92,6 +92,7 @@ async def opn_add_ddns_account(
     checkip: str = "web_dyndns",
     interface: str = "",
     description: str = "",
+    site: str = "",
     protocol: str = "",
     server: str = "",
     zone: str = "",
@@ -101,7 +102,6 @@ async def opn_add_ddns_account(
     checkip_timeout: int | None = None,
     force_ssl: bool | None = None,
     wildcard: bool | None = None,
-    site: str = "",
 ) -> dict[str, Any]:
     """Stage one new os-ddclient account; never reconfigure implicitly.
 
@@ -157,6 +157,7 @@ async def opn_update_ddns_account(
     interface: str | None = None,
     description: str | None = None,
     enabled: bool | None = None,
+    site: str = "",
     protocol: str | None = None,
     server: str | None = None,
     zone: str | None = None,
@@ -166,7 +167,6 @@ async def opn_update_ddns_account(
     checkip_timeout: int | None = None,
     force_ssl: bool | None = None,
     wildcard: bool | None = None,
-    site: str = "",
 ) -> dict[str, Any]:
     """Patch supplied fields only; the UpdateOnly password is never read back.
 
@@ -298,7 +298,7 @@ async def opn_ddns_service_status(ctx: Context, site: str = "") -> dict[str, Any
 
 @mcp.tool()
 async def opn_reconfigure_ddclient(
-    ctx: Context, confirm: bool = False, site: str = "",
+    ctx: Context, site: str = "", confirm: bool = False,
 ) -> dict[str, Any]:
     """Explicitly apply staged DDNS configuration, only with confirm=True."""
     if not confirm:
