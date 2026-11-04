@@ -71,7 +71,9 @@ GLOBAL_SETTINGS: dict[str, tuple[str, str]] = {
 APPLY_SERVICES = frozenset({"kea", "radvd", "unbound", "wireguard"})
 
 
-def generate_operations() -> tuple[dict[str, tuple[str, str]], frozenset[str], frozenset[str], frozenset[tuple[str, str]]]:
+def generate_operations() -> tuple[
+    dict[str, tuple[str, str]], frozenset[str], frozenset[str], frozenset[tuple[str, str]]
+]:
     """Return fixed registry and explicit HTTP-method permissions for these resources."""
     endpoints: dict[str, tuple[str, str]] = {}
     gets: set[str] = set()
