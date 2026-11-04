@@ -98,6 +98,8 @@ class TestToolRegistration:
             "opn_wireguard_list_instances",
             "opn_wireguard_get_instance",
             "opn_wireguard_patch_instance",
+            "opn_wireguard_add_instance",
+            "opn_wireguard_delete_instance",
             "opn_kea_list",
             "opn_kea_get",
             "opn_kea_add",
@@ -158,7 +160,7 @@ class TestToolRegistration:
         from opnsense_mcp.server import mcp
 
         tools = await mcp.list_tools()
-        assert len(tools) == 127, f"Expected 127 tools, got {len(tools)}"
+        assert len(tools) == 129, f"Expected 129 tools, got {len(tools)}"
 
     async def test_every_opnsense_tool_has_site_parameter(self):
         """Every site-bound tool must expose an explicit target selector."""
