@@ -17,7 +17,7 @@ import secrets
 import time
 import uuid as uuidlib
 from dataclasses import replace
-from typing import Any
+from typing import Any, cast
 from weakref import WeakKeyDictionary
 
 from fastmcp import Context
@@ -111,7 +111,7 @@ async def _list(api: OPNsenseAPI, family: str, kind: str, search: str, limit: in
         resource.logical("search"),
         {"current": 1, "rowCount": limit, "searchPhrase": search},
     )
-    return _sanitize(result)
+    return cast(dict[str, Any], _sanitize(result))
 
 
 async def _get(api: OPNsenseAPI, family: str, kind: str, obj_id: str) -> dict[str, Any]:
@@ -146,7 +146,7 @@ async def _add(api: OPNsenseAPI, family: str, kind: str, data: dict[str, str], p
     if not isinstance(fields, dict) or set(values) - set(fields):
         raise ValueError("Fields are not supported by this OPNsense resource model")
     result = await api.post(resource.logical("add"), {resource.field: values})
-    return _sanitize(result)
+    return cast(dict[str, Any], _sanitize(result))
 
 
 async def _patch(
@@ -488,7 +488,7 @@ async def opn_kea_list_leases6(ctx: Context, search: str = "", limit: int = 100,
         "mvc.kea.leases6.search",
         {"current": 1, "rowCount": limit, "searchPhrase": search},
     )
-    return _sanitize(result)
+    return cast(dict[str, Any], _sanitize(result))
 
 
 @mcp.tool()
@@ -499,7 +499,7 @@ async def opn_kea_delete_lease(ctx: Context, ip: str, site: str = "") -> dict[st
     address = str(ipaddress.ip_address(ip))
     api = get_api(ctx, site)
     api.require_writes()
-    return _sanitize(await api.post("mvc.kea.leases.del", path_suffix=address))
+    return cast(dict[str, Any], _sanitize(await api.post("mvc.kea.leases.del", path_suffix=address)))
 
 
 @mcp.tool()
