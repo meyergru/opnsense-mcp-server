@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import uuid
 from unittest.mock import AsyncMock
 
 import pytest
@@ -22,8 +21,8 @@ from opnsense_mcp.tools.mvc import (
     opn_wireguard_generate_psk,
     opn_wireguard_get_peer,
     opn_wireguard_patch_peer,
-    opn_wireguard_toggle_peer,
     opn_wireguard_toggle_instance,
+    opn_wireguard_toggle_peer,
 )
 
 PEER = "11111111-1111-4111-8111-111111111111"
@@ -131,7 +130,9 @@ async def test_wireguard_add_peers_preserves_existing_server_and_refuses_bad_ser
 
 
 async def test_wireguard_get_never_exposes_psk_or_privkey(mock_api, mock_ctx):
-    mock_api.get = AsyncMock(return_value={"client": {"name": "test", "psk": "s", "privkey": "secret", "pubkey": "public"}})
+    mock_api.get = AsyncMock(
+        return_value={"client": {"name": "test", "psk": "s", "privkey": "secret", "pubkey": "public"}}
+    )
     result = await opn_wireguard_get_peer(mock_ctx, uuid=PEER)
     assert result["fields"] == {"name": "test", "pubkey": "public"}
     assert "secret" not in str(result)
@@ -167,10 +168,12 @@ async def test_unbound_patch_is_single_object_no_auto_apply(mock_api_writes, moc
 
 
 async def test_radvd_toggle_is_not_automatic_reconfigure(mock_api_writes, mock_ctx_writes):
+    mock_api_writes.get = AsyncMock(return_value={"entries": {"enabled": "1"}})
     mock_api_writes.post = AsyncMock(return_value={"result": "Disabled"})
-    await opn_radvd_toggle(mock_ctx_writes, uuid=PEER, enabled=False)
+    result = await opn_radvd_toggle(mock_ctx_writes, uuid=PEER, enabled=False)
+    assert result["applied"] is False
     mock_api_writes.post.assert_awaited_once_with(
-        "mvc.radvd.entry.toggle", path_suffix=f"{PEER}/0"
+        "mvc.radvd.entry.toggle", path_suffix=PEER
     )
 
 
