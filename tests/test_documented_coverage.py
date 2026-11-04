@@ -25,7 +25,7 @@ def test_documented_api_catalog_counts_match_runtime():
     assert f"{len(MVC_ENDPOINTS)} generated reviewed MVC mappings" in policy
     assert f"{len(FIREWALL_ENDPOINTS)} generated reviewed Firewall 26.7 mappings" in policy
     assert f"{len(FIREWALL_ENDPOINTS)} additional reviewed logical endpoints" in coverage
-    assert "**147 MCP tools**" in readme
+    assert "**147 MCP tools:**" in readme
     assert "**147 MCP tools**" in policy
 
 
