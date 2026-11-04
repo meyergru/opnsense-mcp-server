@@ -131,6 +131,12 @@ async def opn_dns_lookup(
 ) -> dict[str, Any]:
     """Perform a DNS lookup from the OPNsense firewall.
 
+    BACKEND SELECTION: A successful DNS lookup does not identify
+    which resolver serves clients. Unbound, dnsmasq and external
+    resolvers may coexist, with different listeners or forwarders.
+    Inspect the explicitly selected 'server', interface and
+    running resolver configuration before attributing an answer.
+
     Use this when you need to test DNS resolution from the firewall's
     perspective, verify Unbound is resolving correctly, or check if a
     specific DNS server returns expected results.
