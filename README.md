@@ -2,7 +2,7 @@
 
 A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible AI clients, including **OpenWebUI**, to several **named OPNsense firewalls** over their REST APIs. This is a fork of [lucamarien/opnsense-mcp-server](https://github.com/lucamarien/opnsense-mcp-server), with the original MIT license retained.
 
-**129 tools in this development branch:** including new single-site Kea, radvd, Unbound and WireGuard MVC tools; see the [tool reference](#available-tools-129).
+**147 MCP tools:** including single-site Kea, radvd, Unbound, WireGuard and Firewall 26.7 resource operations; see the [tool reference](#available-tools-147).
 
 ## Architecture and configuration ownership
 
@@ -105,7 +105,7 @@ opnsense-mcp
 
 Do **not** use the original author's `uhlenheide` Docker Hub image for this fork.
 
-## Available Tools (129)
+## Available Tools (147)
 
 ### Target selection (1 tool)
 
@@ -185,6 +185,24 @@ The firmware monitor cannot correlate `upgradestatus` to the job UUID: a `backen
 | `opn_delete_nat_rule` | Delete a NAT port forwarding rule by UUID with savepoint (OPNsense < 26.7). Params: `uuid` | Yes |
 
 > **Note:** Named targets are always read-only. The older savepoint functionality applies only to legacy write-enabled stdio configurations.
+
+### Firewall 26.7 MVC resources (18 additional tools)
+
+| Operation | Tool | Detail |
+| --- | --- | --- |
+| List/get | `opn_firewall_list_objects`, `opn_firewall_get_object` | Fixed kinds: `filter`, `dnat`, `snat`, `one_to_one`, `npt`, `alias`, `category`, `group` |
+| Modify one object | `opn_firewall_create_object`, `opn_firewall_patch_object`, `opn_firewall_delete_object` | Site-scoped, schema-checked, **no implicit firewall reload** |
+| Flags and ordering | `opn_firewall_set_enabled`, `opn_firewall_set_logging`, `opn_firewall_move_rule` | DNAT `disabled` semantics normalized; only editable MVC rules |
+| Explicit apply | `opn_firewall_apply_changes` | Requires `confirm=true`, reloads rules, **no guaranteed rollback on 26.7+** |
+| Source NAT settings | `opn_firewall_get_source_nat_settings`, `opn_firewall_patch_source_nat_settings` | General settings separately from SNAT rules |
+| Inspect | `opn_firewall_get_rule_stats`, `opn_firewall_get_interface_options`, `opn_firewall_alias_references`, `opn_firewall_list_alias_table`, `opn_firewall_legacy_rule_counts` | Read-only diagnostics and inventory |
+| Additional apply | `opn_firewall_reconfigure_aliases`, `opn_firewall_reconfigure_groups` | Explicit confirmation required |
+
+The regular `opn_list_firewall_rules` on OPNsense 26.7 can include legacy
+(non-MVC) records; **search visibility is not permission to edit them**.
+The new tools protect legacy/automatic rows from modification. For precise
+controller-by-controller omissions and risks, see
+[Core 26.7 API coverage](docs/core-api-coverage-26.7.md).
 
 ### DNS (13 tools)
 
