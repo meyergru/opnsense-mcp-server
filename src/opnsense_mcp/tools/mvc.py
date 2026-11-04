@@ -16,15 +16,14 @@ import re
 import secrets
 import time
 import uuid as uuidlib
+from dataclasses import replace
 from typing import Any
 from weakref import WeakKeyDictionary
 
 from fastmcp import Context
 
-from dataclasses import replace
-
 from opnsense_mcp.api_client import OPNsenseAPI
-from opnsense_mcp.mvc_catalog import GLOBAL_SETTINGS, MVCResource, RESOURCES
+from opnsense_mcp.mvc_catalog import GLOBAL_SETTINGS, RESOURCES, MVCResource
 from opnsense_mcp.server import get_api, get_config_cache, mcp
 
 _SECRET_FIELDS = frozenset(
@@ -50,7 +49,7 @@ def _uuid(value: str) -> str:
         raise ValueError("A valid OPNsense object UUID is required") from None
 
 
-def _sanitize(value: Any) -> Any:
+def _sanitize(value: Any) -> Any:  # noqa: ANN401
     """Strip confidential fields instead of allowing the global guard to reject responses."""
     if isinstance(value, dict):
         return {
@@ -78,7 +77,7 @@ def _validated_values(data: dict[str, str]) -> dict[str, str]:
     return result
 
 
-def _relation(value: Any) -> str:
+def _relation(value: Any) -> str:  # noqa: ANN401
     """Convert OPNsense MVC ModelRelationField selected option map to CSV UUIDs."""
     if isinstance(value, str):
         return value
