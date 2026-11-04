@@ -96,7 +96,8 @@ async def opn_firewall_list_objects(
 ) -> dict[str, Any]:
     """List filter, dnat, snat, one_to_one, npt, alias, category or group objects.
 
-    Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. 'search' is a text filter. Use the returned UUID for read/edit operations.
+    Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. 'search' is a text
+    filter. Use the returned UUID for read/edit operations.
 
     For filter rules on 26.7, the backend can include legacy/non-MVC entries;
     they are searchable but not editable through the MVC CRUD endpoints.
@@ -111,19 +112,32 @@ async def opn_firewall_list_objects(
 
 
 @mcp.tool()
-async def opn_firewall_get_object(ctx: Context, kind: FirewallResourceName, uuid: str, site: SiteName = "") -> dict[str, Any]:
+async def opn_firewall_get_object(
+    ctx: Context,
+    kind: FirewallResourceName,
+    uuid: str,
+    site: SiteName = "",
+) -> dict[str, Any]:
     """Read one editable firewall configuration object by UUID; does not mutate.
 
-    Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. Read this object's model fields before a targeted patch. 'uuid' is an object UUID.
+    Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. Read this object's
+    model fields before a targeted patch. 'uuid' is an object UUID.
     """
     return await _get(get_api(ctx, site), kind, uuid)
 
 
 @mcp.tool()
-async def opn_firewall_create_object(ctx: Context, kind: FirewallResourceName, fields: dict[str, str], site: SiteName = "") -> dict[str, Any]:
+async def opn_firewall_create_object(
+    ctx: Context,
+    kind: FirewallResourceName,
+    fields: dict[str, str],
+    site: SiteName = "",
+) -> dict[str, Any]:
     """Create one MVC firewall object with model-validated fields; NO automatic apply.
 
-    Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. 'fields' is a mapping from exact installed MVC field names to strings; unknown fields are rejected. Consult existing objects and the target's model rather than guessing fields.
+    Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. 'fields' is a mapping
+    from exact installed MVC field names to strings; unknown fields are rejected. Consult existing objects
+    and the target's model rather than guessing fields.
     """
     resource = _kind(kind)
     api = get_api(ctx, site)
@@ -141,7 +155,9 @@ async def opn_firewall_patch_object(
 ) -> dict[str, Any]:
     """Read-before-write patch one existing MVC firewall object; no automatic apply.
 
-    Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. 'changes' maps exact field names from opn_firewall_get_object for the same kind/UUID to string values. A separate opn_firewall_apply_changes(confirm=true) is needed.
+    Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. 'changes' maps exact
+    field names from opn_firewall_get_object for the same kind/UUID to string values. A separate
+    opn_firewall_apply_changes(confirm=true) is needed.
 
     Only explicit fields are sent; OPNsense setBase merges supplied nodes,
     preserving fields not requested. Reject unknown fields and legacy entries.
@@ -160,10 +176,16 @@ async def opn_firewall_patch_object(
 
 
 @mcp.tool()
-async def opn_firewall_delete_object(ctx: Context, kind: FirewallResourceName, uuid: str, site: SiteName = "") -> dict[str, Any]:
+async def opn_firewall_delete_object(
+    ctx: Context,
+    kind: FirewallResourceName,
+    uuid: str,
+    site: SiteName = "",
+) -> dict[str, Any]:
     """Delete one explicitly identified MVC rule, alias, category or group; no apply.
 
-    Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. Obtain the UUID via opn_firewall_list_objects; deletion is staged, not applied.
+    Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. Obtain the UUID via
+    opn_firewall_list_objects; deletion is staged, not applied.
 
     OPNsense performs reference checks for aliases, categories and groups.
     """
@@ -179,10 +201,17 @@ async def opn_firewall_delete_object(ctx: Context, kind: FirewallResourceName, u
 
 
 @mcp.tool()
-async def opn_firewall_set_enabled(ctx: Context, kind: FirewallToggleKind, uuid: str, enabled: bool, site: SiteName = "") -> dict[str, Any]:
+async def opn_firewall_set_enabled(
+    ctx: Context,
+    kind: FirewallToggleKind,
+    uuid: str,
+    enabled: bool,
+    site: SiteName = "",
+) -> dict[str, Any]:
     """Set enabled status of one rule or alias, not toggle blindly; no apply.
 
-    Only kind values supporting enable/disable: filter, dnat, snat, one_to_one, npt, alias. 'enabled' is the desired Boolean state (not a toggle request); no automatic apply.
+    Only kind values supporting enable/disable: filter, dnat, snat, one_to_one, npt, alias. 'enabled' is
+    the desired Boolean state (not a toggle request); no automatic apply.
 
     DNAT's argument is 'disabled' and is therefore inverted; other rule
     controllers accept 'enabled'. Supplying 0/1 makes retries idempotent.
@@ -201,10 +230,17 @@ async def opn_firewall_set_enabled(ctx: Context, kind: FirewallToggleKind, uuid:
 
 
 @mcp.tool()
-async def opn_firewall_set_logging(ctx: Context, kind: FirewallLoggingKind, uuid: str, enabled: bool, site: SiteName = "") -> dict[str, Any]:
+async def opn_firewall_set_logging(
+    ctx: Context,
+    kind: FirewallLoggingKind,
+    uuid: str,
+    enabled: bool,
+    site: SiteName = "",
+) -> dict[str, Any]:
     """Set logging on exactly one filter/NAT/NPT rule; no firewall apply.
 
-    Only kind values supporting rule logging: filter, dnat, snat, one_to_one, npt. 'enabled' is the desired Boolean state; no automatic apply.
+    Only kind values supporting rule logging: filter, dnat, snat, one_to_one, npt. 'enabled' is the
+    desired Boolean state; no automatic apply.
     """
     resource = _kind(kind)
     if not resource.logging:
@@ -223,7 +259,8 @@ async def opn_firewall_move_rule(
 ) -> dict[str, Any]:
     """Move 1-50 selected MVC rules before one other rule; no apply.
 
-    Only orderable kind values: filter, dnat, snat, one_to_one, npt. 'uuids' is a list of 1–50 distinct rule UUID strings; 'before_uuid' is the destination rule UUID. No automatic apply.
+    Only orderable kind values: filter, dnat, snat, one_to_one, npt. 'uuids' is a list of 1–50 distinct
+    rule UUID strings; 'before_uuid' is the destination rule UUID. No automatic apply.
 
     OPNsense validates ordering and priority groups; cannot move legacy rules.
     """
