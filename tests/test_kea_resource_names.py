@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from opnsense_mcp.mvc_catalog import KeaResourceName, RESOURCES
+from opnsense_mcp.mvc_catalog import RESOURCES, KeaResourceName
 from opnsense_mcp.tools.mvc import (
     _resource,
     opn_kea_add,
