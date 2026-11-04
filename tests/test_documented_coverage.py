@@ -34,4 +34,4 @@ async def test_documented_tool_count_matches_actual_runtime():
 
     count = len(await mcp.list_tools())
     assert count == 147
-    assert f"**{count} MCP tools**" in (_ROOT / "README.md").read_text(encoding="utf-8")
+    assert f"**{count} MCP tools:**" in (_ROOT / "README.md").read_text(encoding="utf-8")
