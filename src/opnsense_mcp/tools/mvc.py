@@ -333,6 +333,43 @@ async def opn_wireguard_patch_instance(
 
 
 @mcp.tool()
+async def opn_wireguard_add_instance(
+    ctx: Context, fields: dict[str, str], site: str = ""
+) -> dict[str, Any]:
+    """Create one independent WireGuard instance; generate its keys locally in OPNsense.
+
+    Does not modify existing WireGuard instances and does not apply changes.
+    Only the newly generated PUBLIC key is included in the response.
+    """
+    api = get_api(ctx, site)
+    api.require_writes()
+    values = _validated_values(fields)
+    template = await api.get("mvc.wireguard.instance.get")
+    form = template.get("server")
+    if not isinstance(form, dict) or set(values) - set(form):
+        raise ValueError("Unknown or unavailable WireGuard instance settings fields")
+    if not values.get("name"):
+        raise ValueError("WireGuard instance name is required")
+    result_keys = await api.get("mvc.wireguard.instance.generate_keypair")
+    if result_keys.get("status") != "ok":
+        raise ValueError("WireGuard keypair generation failed")
+    priv = result_keys.get("privkey")
+    pub = result_keys.get("pubkey")
+    if not isinstance(priv, str) or not isinstance(pub, str) or len(priv) != 44 or len(pub) != 44:
+        raise ValueError("WireGuard keypair generator did not return valid key lengths")
+    values["privkey"] = priv
+    values["pubkey"] = pub
+    result = await api.post("mvc.wireguard.instance.add", {"server": values})
+    return {"result": _sanitize(result), "public_key": pub, "applied": False}
+
+
+@mcp.tool()
+async def opn_wireguard_delete_instance(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
+    """Delete one explicitly selected WireGuard instance; no implicit reconfigure."""
+    return await _delete(get_api(ctx, site), "wireguard", "instance", uuid)
+
+
+@mcp.tool()
 async def opn_kea_list(
     ctx: Context, resource: str, site: str = "", search: str = "", limit: int = 100
 ) -> dict[str, Any]:
