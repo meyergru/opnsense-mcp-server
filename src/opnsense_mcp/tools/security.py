@@ -17,6 +17,7 @@ from fastmcp import Context
 from opnsense_mcp.api_client import OPNsenseAPI, OPNsenseAPIError
 from opnsense_mcp.config_cache import ConfigCache
 from opnsense_mcp.server import get_api, get_config_cache, mcp
+from opnsense_mcp.tool_types import SiteName
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -1445,7 +1446,7 @@ async def _check_gateways(
 
 
 @mcp.tool()
-async def opn_security_audit(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_security_audit(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Run a heuristic CONFIGURATION HARDENING review, not a package CVE audit.
 
     Checks configuration/security posture in 10 areas: firmware, firewall rules (MVC + legacy), NAT/port
@@ -1516,7 +1517,7 @@ async def opn_security_audit(ctx: Context, site: str = "") -> dict[str, Any]:
 
 
 @mcp.tool()
-async def opn_configuration_audit(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_configuration_audit(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Review OPNsense configuration/hardening heuristics, NOT installed package CVEs.
 
     A clearer alias for the original opn_security_audit. Results are context-
