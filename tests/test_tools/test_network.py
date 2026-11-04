@@ -32,6 +32,17 @@ class TestOpnArpTable:
         mock_api.get.assert_called_once_with("interface.arp")
         assert result == {"arp": []}
 
+    async def test_wraps_arp_array_for_mcp(self, mock_api, mock_ctx):
+        row = {"ip": "192.0.2.1", "mac": "00:11:22:33:44:55", "intf": "igb0"}
+        mock_api.get = AsyncMock(return_value=[row])
+        result = await opn_arp_table(mock_ctx)
+        assert result == {"rows": [row], "rowCount": 1}
+        assert isinstance(result, dict)
+
+    async def test_wraps_empty_arp_array_for_mcp(self, mock_api, mock_ctx):
+        mock_api.get = AsyncMock(return_value=[])
+        assert await opn_arp_table(mock_ctx) == {"rows": [], "rowCount": 0}
+
 
 class TestOpnNdpTable:
     """Tests for opn_ndp_table."""
@@ -44,14 +55,15 @@ class TestOpnNdpTable:
         )
         result = await opn_ndp_table(mock_ctx)
         mock_api.get.assert_called_once_with("interface.ndp")
-        assert isinstance(result, list)
-        assert result[0]["ip"] == "fe80::1"
+        assert isinstance(result, dict)
+        assert result["rowCount"] == 1
+        assert result["rows"][0]["ip"] == "fe80::1"
 
     async def test_returns_empty_ndp_table(self, mock_api, mock_ctx):
         mock_api.get = AsyncMock(return_value=[])
         result = await opn_ndp_table(mock_ctx)
         mock_api.get.assert_called_once_with("interface.ndp")
-        assert result == []
+        assert result == {"rows": [], "rowCount": 0}
 
 
 class TestOpnIpv6Status:
