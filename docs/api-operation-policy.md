@@ -6,13 +6,20 @@ or future releases.
 
 ## Coverage
 
-- **113** static logical endpoints in `ENDPOINT_REGISTRY`.
-- **36** dynamically constructed HAProxy resource endpoints (nine resource
+- **129 MCP tools** as of PR #12 (2026-11-04). Tools and API operations
+  are different units: one tool may call multiple endpoint operations.
+- A fixed set of static logical endpoints in `ENDPOINT_REGISTRY`, plus
+  **generated but explicitly enumerated** MVC operations from
+  `mvc_catalog.py` for Kea, radvd, Unbound and WireGuard.
+- **36** dynamically constructed HAProxy CRUD operations (nine resource
   kinds × get/add/set/del), with validated resource identifiers.
 - Some logical endpoints have **multiple differently classified HTTP
   operations** (e.g. GET vs POST `core/firmware/status`).
-- **91 MCP tools** are a separate count: a single tool may call several
-  API operations, and a single operation may serve multiple tools.
+- The authoritative counts of implemented paths and their permissions
+  come from `ENDPOINT_REGISTRY`, `READ_ONLY_GET_ENDPOINTS`,
+  `READ_ONLY_POST_ENDPOINTS`, `DIAGNOSTIC_OPERATIONS` and
+  `WRITE_OPERATIONS` at import time; hardcoded counts in prose are
+  **not** an exhaustive API-coverage guarantee.
 
 The current policy is defined in `api_client.py`:
 
@@ -60,6 +67,15 @@ classified as WRITE and blocked on read-only sites pending separate review. No
 claim is made that `READ` results are automatically free of passwords,
 keys or other sensitive information: output filtering and OPNsense API
 privileges are separate security controls.
+
+## Implementation coverage is not API completeness
+
+The two independent audits are documented in
+[Core API coverage and gaps](core-api-coverage-26.7.md). The OPNsense Core
+26.7 source contains 126 API controller classes across 24 directories.
+A successful permission/registry regression test only proves that our
+**implemented** operations are classified and resolvable. It does not
+discover APIs missing from the MCP server.
 
 ## Regression coverage and limitations
 
