@@ -356,7 +356,7 @@ The upstream server supports OPNsense 24.7+ and automatically chooses camelCase 
 | Write operation denied | Expected when global or site read-only is true. `OPNSENSE_ALLOW_WRITES` does not control named targets. |
 | Raw `config.xml` denied | Expected for HTTP mode. Use inventory and dedicated inspection tools. |
 | Tool output suppressed/truncated | A sensitive field name or size limit was encountered; narrow the query or limit. |
-| GUI firewall rules not listed | MVC rule search does not necessarily include legacy GUI rules. |
+| Classic or automatic firewall rules appear in search but cannot be edited | On OPNsense 26.7, search merges non-MVC rules into the view; use editable MVC object UUIDs for changes. |
 
 A Docker TCP healthcheck proves only that the listener is reachable, not that OPNsense API calls or secret filtering work.
 
