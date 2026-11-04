@@ -21,6 +21,8 @@ from weakref import WeakKeyDictionary
 
 from fastmcp import Context
 
+from dataclasses import replace
+
 from opnsense_mcp.api_client import OPNsenseAPI
 from opnsense_mcp.mvc_catalog import GLOBAL_SETTINGS, MVCResource, RESOURCES
 from opnsense_mcp.server import get_api, get_config_cache, mcp
@@ -36,7 +38,7 @@ _PSK_TTL = 1800
 
 def _resource(family: str, kind: str) -> MVCResource:
     try:
-        return RESOURCES[family][kind]
+        return replace(RESOURCES[family][kind], kind=kind)
     except KeyError:
         raise ValueError(f"Unsupported {family} resource: {kind}") from None
 
