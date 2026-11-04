@@ -52,7 +52,9 @@ async def test_search_dhcpv4_reservations_by_hostname(mock_api, mock_ctx):
 
 async def test_kea_reservation_mac_patch_is_targeted_and_not_applied(mock_api_writes, mock_ctx_writes):
     mock_api_writes.get = AsyncMock(
-        return_value={"reservation": {"hostname": "docker", "ip_address": "192.0.2.40", "hw_address": "aa:bb:cc:dd:ee:ff"}}
+        return_value={
+            "reservation": {"hostname": "docker", "ip_address": "192.0.2.40", "hw_address": "aa:bb:cc:dd:ee:ff"}
+        }
     )
     mock_api_writes.post = AsyncMock(return_value={"result": "saved"})
     result = await opn_kea_patch(
