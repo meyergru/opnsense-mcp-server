@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, Literal
 
 from fastmcp import Context
 
 from opnsense_mcp.api_client import OPNsenseAPIError
 from opnsense_mcp.server import get_api, get_config_cache, get_savepoint_manager, mcp
+from opnsense_mcp.tool_types import SiteName
+
+FirewallAction = Literal["pass", "block", "reject"]
+FirewallDirection = Literal["in", "out"]
+FirewallIPProtocol = Literal["inet", "inet6", "inet46"]
+FirewallAliasType = Literal["host", "network", "port", "urltable", "geoip"]
+FirewallNATProtocol = Literal["TCP", "UDP", "TCP/UDP"]
+
 
 _VALID_ACTIONS = frozenset({"pass", "block", "reject"})
 _VALID_DIRECTIONS = frozenset({"in", "out"})
@@ -39,7 +47,7 @@ async def opn_list_firewall_rules(
     ctx: Context,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List firewall filter rules configured via the MVC API.
 
@@ -63,7 +71,7 @@ async def opn_list_firewall_aliases(
     ctx: Context,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List firewall alias definitions (IP lists, port groups, GeoIP, URLs).
 
@@ -86,7 +94,7 @@ async def opn_firewall_log(
     action: str = "",
     interface: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Get recent firewall log entries (blocked and passed packets).
 
@@ -119,7 +127,7 @@ async def opn_firewall_log(
 
 
 @mcp.tool()
-async def opn_confirm_changes(ctx: Context, revision: str, site: str = "") -> dict[str, Any]:
+async def opn_confirm_changes(ctx: Context, revision: str, site: SiteName = "") -> dict[str, Any]:
     """Confirm pending firewall changes, cancelling the 60-second auto-rollback.
 
     Use this AFTER applying firewall changes (rule add/edit/delete) to make them
@@ -138,7 +146,7 @@ async def opn_confirm_changes(ctx: Context, revision: str, site: str = "") -> di
 async def opn_toggle_firewall_rule(
     ctx: Context,
     uuid: str,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Toggle a firewall filter rule's enabled/disabled state with savepoint protection where supported.
 
@@ -177,10 +185,10 @@ async def opn_toggle_firewall_rule(
 @mcp.tool()
 async def opn_add_firewall_rule(
     ctx: Context,
-    action: str = "pass",
-    direction: str = "in",
+    action: FirewallAction = "pass",
+    direction: FirewallDirection = "in",
     interface: str = "lan",
-    ip_protocol: str = "inet",
+    ip_protocol: FirewallIPProtocol = "inet",
     protocol: str = "any",
     source_net: str = "any",
     source_not: bool = False,
@@ -194,7 +202,7 @@ async def opn_add_firewall_rule(
     sequence: int = 1,
     categories: str = "",
     description: str = "",
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Create a new MVC firewall filter rule with savepoint protection where supported.
 
@@ -295,7 +303,7 @@ async def opn_add_firewall_rule(
 async def opn_delete_firewall_rule(
     ctx: Context,
     uuid: str,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Delete a firewall filter rule by UUID with savepoint protection where supported.
 
@@ -335,10 +343,10 @@ async def opn_delete_firewall_rule(
 async def opn_update_firewall_rule(
     ctx: Context,
     uuid: str,
-    action: str | None = None,
-    direction: str | None = None,
+    action: FirewallAction | None = None,
+    direction: FirewallDirection | None = None,
     interface: str | None = None,
-    ip_protocol: str | None = None,
+    ip_protocol: FirewallIPProtocol | None = None,
     protocol: str | None = None,
     source_net: str | None = None,
     source_not: bool | None = None,
@@ -353,7 +361,7 @@ async def opn_update_firewall_rule(
     categories: str | None = None,
     description: str | None = None,
     enabled: bool | None = None,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Update an existing MVC firewall rule by UUID with savepoint protection where supported.
 
@@ -466,10 +474,10 @@ async def opn_update_firewall_rule(
 async def opn_add_alias(
     ctx: Context,
     name: str,
-    alias_type: str = "host",
+    alias_type: FirewallAliasType = "host",
     content: str = "",
     description: str = "",
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Create a new firewall alias (IP list, network group, port group, etc.).
 
@@ -528,9 +536,9 @@ async def opn_update_alias(
     name: str | None = None,
     content: str | None = None,
     description: str | None = None,
-    alias_type: str | None = None,
+    alias_type: FirewallAliasType | None = None,
     enabled: bool | None = None,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Update an existing firewall alias by UUID (read-modify-write).
 
@@ -593,7 +601,7 @@ async def opn_update_alias(
 async def opn_delete_alias(
     ctx: Context,
     uuid: str,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Delete a firewall alias by UUID.
 
@@ -621,7 +629,7 @@ async def opn_delete_alias(
 async def opn_toggle_alias(
     ctx: Context,
     uuid: str,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Toggle a firewall alias's enabled/disabled state.
 
@@ -647,7 +655,7 @@ async def opn_list_nat_rules(
     ctx: Context,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List NAT port forwarding (DNAT) rules.
 
@@ -673,10 +681,10 @@ async def opn_add_nat_rule(
     destination_port: str = "",
     target_ip: str = "",
     interface: str = "wan",
-    protocol: str = "TCP",
+    protocol: FirewallNATProtocol = "TCP",
     target_port: str = "",
     description: str = "",
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Create a NAT port forwarding rule with savepoint protection where supported.
 
@@ -747,13 +755,13 @@ async def opn_update_nat_rule(
     ctx: Context,
     uuid: str,
     interface: str | None = None,
-    protocol: str | None = None,
+    protocol: FirewallNATProtocol | None = None,
     destination_port: str | None = None,
     target_ip: str | None = None,
     target_port: str | None = None,
     description: str | None = None,
     enabled: bool | None = None,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Update an existing NAT port forwarding rule by UUID with savepoint protection where supported.
 
@@ -829,7 +837,7 @@ async def opn_update_nat_rule(
 async def opn_delete_nat_rule(
     ctx: Context,
     uuid: str,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Delete a NAT port forwarding rule by UUID with savepoint protection where supported.
 
@@ -870,7 +878,7 @@ async def opn_list_firewall_categories(
     ctx: Context,
     search: str = "",
     limit: int = 100,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List firewall rule categories.
 
@@ -890,7 +898,7 @@ async def opn_add_firewall_category(
     ctx: Context,
     name: str,
     color: str = "000000",
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Create a new firewall rule category.
 
@@ -930,7 +938,7 @@ async def opn_add_firewall_category(
 async def opn_delete_firewall_category(
     ctx: Context,
     uuid: str,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Delete a firewall rule category by UUID with savepoint protection where supported.
 
@@ -973,7 +981,7 @@ async def opn_set_rule_categories(
     ctx: Context,
     uuid: str,
     categories: str = "",
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Assign categories to a firewall rule by UUID with savepoint protection where supported.
 
@@ -1055,7 +1063,7 @@ _ICMPV6_ESSENTIAL_RULES: list[dict[str, str]] = [
 async def opn_add_icmpv6_rules(
     ctx: Context,
     interface: str = "lan",
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Create essential ICMPv6 firewall rules required for IPv6 operation.
 

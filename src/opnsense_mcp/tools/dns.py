@@ -8,6 +8,7 @@ from typing import Any
 from fastmcp import Context
 
 from opnsense_mcp.server import get_api, get_config_cache, mcp
+from opnsense_mcp.tool_types import SiteName
 
 _HOSTNAME_RE = re.compile(r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$")
 _DOMAIN_RE = re.compile(
@@ -25,7 +26,7 @@ async def opn_list_dns_overrides(
     ctx: Context,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List Unbound DNS host overrides (local DNS records).
 
@@ -45,7 +46,7 @@ async def opn_list_dns_forwards(
     ctx: Context,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List Unbound DNS forward zones (domain-specific DNS servers).
 
@@ -61,7 +62,7 @@ async def opn_list_dns_forwards(
 
 
 @mcp.tool()
-async def opn_dns_stats(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_dns_stats(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get Unbound DNS resolver statistics (queries, cache hits, uptime).
 
     Use this when you need to check DNS resolver performance, cache hit rates,
@@ -73,7 +74,7 @@ async def opn_dns_stats(ctx: Context, site: str = "") -> dict[str, Any]:
 
 
 @mcp.tool()
-async def opn_reconfigure_unbound(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_reconfigure_unbound(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Apply pending Unbound DNS resolver configuration changes.
 
     Use this after making DNS configuration changes (adding overrides, forward
@@ -98,7 +99,7 @@ async def opn_add_dns_override(
     domain: str,
     server: str,
     description: str = "",
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Add an Unbound DNS host override (A/AAAA record) and apply immediately.
 
@@ -162,7 +163,7 @@ async def opn_update_dns_override(
     server: str | None = None,
     description: str | None = None,
     enabled: bool | None = None,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Update an Unbound DNS host override by UUID and apply immediately.
 
@@ -221,7 +222,7 @@ async def opn_update_dns_override(
 async def opn_delete_dns_override(
     ctx: Context,
     uuid: str,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Delete an Unbound DNS host override by UUID and apply immediately.
 
@@ -272,7 +273,7 @@ def _extract_dnsbl_values(form: dict[str, Any]) -> dict[str, str]:
     return result
 
 
-async def _apply_dnsbl(ctx: Context, site: str = "") -> dict[str, str]:
+async def _apply_dnsbl(ctx: Context, site: SiteName = "") -> dict[str, str]:
     """Regenerate DNSBL blocklist files and restart Unbound to apply them.
 
     Calls ``service/dnsbl`` to regenerate blocklist files on disk, then
@@ -294,7 +295,7 @@ async def opn_list_dnsbl(
     ctx: Context,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List DNSBL (DNS Blocklist) configurations with providers and status.
 
@@ -314,7 +315,7 @@ async def opn_list_dnsbl(
 async def opn_get_dnsbl(
     ctx: Context,
     uuid: str,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Get full DNSBL configuration for a specific blocklist by UUID.
 
@@ -377,7 +378,7 @@ async def opn_set_dnsbl(
     nxdomain: bool | None = None,
     cache_ttl: int | None = None,
     description: str | None = None,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Update a DNSBL blocklist configuration (read-modify-write).
 
@@ -447,7 +448,7 @@ async def opn_add_dnsbl_allowlist(
     ctx: Context,
     uuid: str,
     domains: str,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Add domains to a DNSBL allowlist (whitelist) without overwriting existing entries.
 
@@ -505,7 +506,7 @@ async def opn_remove_dnsbl_allowlist(
     ctx: Context,
     uuid: str,
     domains: str,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Remove domains from a DNSBL allowlist.
 
@@ -558,7 +559,7 @@ async def opn_remove_dnsbl_allowlist(
 
 
 @mcp.tool()
-async def opn_update_dnsbl(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_update_dnsbl(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Reload DNSBL blocklist files and restart Unbound to apply them.
 
     Use this when DNSBL lists need to be refreshed without changing the

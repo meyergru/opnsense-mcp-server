@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Literal
 
 
 @dataclass(frozen=True)
@@ -20,6 +21,12 @@ class FirewallResource:
     logging: bool = False
     toggle: bool = False
     inverted_toggle: bool = False
+
+
+FirewallResourceName = Literal["filter", "dnat", "snat", "one_to_one", "npt", "alias", "category", "group"]
+FirewallToggleKind = Literal["filter", "dnat", "snat", "one_to_one", "npt", "alias"]
+FirewallLoggingKind = Literal["filter", "dnat", "snat", "one_to_one", "npt"]
+FirewallMoveKind = Literal["filter", "dnat", "snat", "one_to_one", "npt"]
 
 
 RESOURCES: dict[str, FirewallResource] = {

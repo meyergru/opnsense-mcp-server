@@ -18,8 +18,16 @@ from weakref import WeakKeyDictionary
 from fastmcp import Context
 
 from opnsense_mcp.api_client import OPNsenseAPI
-from opnsense_mcp.firewall_catalog import RESOURCES, FirewallResource
+from opnsense_mcp.firewall_catalog import (
+    RESOURCES,
+    FirewallLoggingKind,
+    FirewallMoveKind,
+    FirewallResource,
+    FirewallResourceName,
+    FirewallToggleKind,
+)
 from opnsense_mcp.server import get_api, get_config_cache, mcp
+from opnsense_mcp.tool_types import SiteName
 
 _FIELD_RE = re.compile(r"[a-zA-Z][a-zA-Z0-9_-]*\Z")
 _ALIAS_RE = re.compile(r"[a-zA-Z0-9_]{1,128}\Z")
@@ -28,7 +36,7 @@ _LOCKS: WeakKeyDictionary[OPNsenseAPI, asyncio.Lock] = WeakKeyDictionary()
 
 def _kind(value: str) -> FirewallResource:
     if value not in RESOURCES:
-        raise ValueError(f"Unsupported firewall resource: {value}")
+        raise ValueError(f"Unsupported firewall resource: {value}. Valid values: {', '.join(RESOURCES)}")
     return RESOURCES[value]
 
 
@@ -84,9 +92,12 @@ async def _get(api: OPNsenseAPI, kind: str, identity: str) -> dict[str, Any]:
 
 @mcp.tool()
 async def opn_firewall_list_objects(
-    ctx: Context, kind: str, site: str = "", search: str = "", limit: int = 100
+    ctx: Context, kind: FirewallResourceName, site: SiteName = "", search: str = "", limit: int = 100
 ) -> dict[str, Any]:
     """List filter, dnat, snat, one_to_one, npt, alias, category or group objects.
+
+    Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. 'search' is a text
+    filter. Use the returned UUID for read/edit operations.
 
     For filter rules on 26.7, the backend can include legacy/non-MVC entries;
     they are searchable but not editable through the MVC CRUD endpoints.
@@ -101,14 +112,33 @@ async def opn_firewall_list_objects(
 
 
 @mcp.tool()
-async def opn_firewall_get_object(ctx: Context, kind: str, uuid: str, site: str = "") -> dict[str, Any]:
-    """Read one editable firewall configuration object by UUID; does not mutate."""
+async def opn_firewall_get_object(
+    ctx: Context,
+    kind: FirewallResourceName,
+    uuid: str,
+    site: SiteName = "",
+) -> dict[str, Any]:
+    """Read one editable firewall configuration object by UUID; does not mutate.
+
+    Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. Read this object's
+    model fields before a targeted patch. 'uuid' is an object UUID.
+    """
     return await _get(get_api(ctx, site), kind, uuid)
 
 
 @mcp.tool()
-async def opn_firewall_create_object(ctx: Context, kind: str, fields: dict[str, str], site: str = "") -> dict[str, Any]:
-    """Create one MVC firewall object with model-validated fields; NO automatic apply."""
+async def opn_firewall_create_object(
+    ctx: Context,
+    kind: FirewallResourceName,
+    fields: dict[str, str],
+    site: SiteName = "",
+) -> dict[str, Any]:
+    """Create one MVC firewall object with model-validated fields; NO automatic apply.
+
+    Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. 'fields' is a mapping
+    from exact installed MVC field names to strings; unknown fields are rejected. Consult existing objects
+    and the target's model rather than guessing fields.
+    """
     resource = _kind(kind)
     api = get_api(ctx, site)
     api.require_writes()
@@ -121,9 +151,13 @@ async def opn_firewall_create_object(ctx: Context, kind: str, fields: dict[str, 
 
 @mcp.tool()
 async def opn_firewall_patch_object(
-    ctx: Context, kind: str, uuid: str, changes: dict[str, str], site: str = ""
+    ctx: Context, kind: FirewallResourceName, uuid: str, changes: dict[str, str], site: SiteName = ""
 ) -> dict[str, Any]:
     """Read-before-write patch one existing MVC firewall object; no automatic apply.
+
+    Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. 'changes' maps exact
+    field names from opn_firewall_get_object for the same kind/UUID to string values. A separate
+    opn_firewall_apply_changes(confirm=true) is needed.
 
     Only explicit fields are sent; OPNsense setBase merges supplied nodes,
     preserving fields not requested. Reject unknown fields and legacy entries.
@@ -142,8 +176,16 @@ async def opn_firewall_patch_object(
 
 
 @mcp.tool()
-async def opn_firewall_delete_object(ctx: Context, kind: str, uuid: str, site: str = "") -> dict[str, Any]:
+async def opn_firewall_delete_object(
+    ctx: Context,
+    kind: FirewallResourceName,
+    uuid: str,
+    site: SiteName = "",
+) -> dict[str, Any]:
     """Delete one explicitly identified MVC rule, alias, category or group; no apply.
+
+    Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. Obtain the UUID via
+    opn_firewall_list_objects; deletion is staged, not applied.
 
     OPNsense performs reference checks for aliases, categories and groups.
     """
@@ -159,8 +201,17 @@ async def opn_firewall_delete_object(ctx: Context, kind: str, uuid: str, site: s
 
 
 @mcp.tool()
-async def opn_firewall_set_enabled(ctx: Context, kind: str, uuid: str, enabled: bool, site: str = "") -> dict[str, Any]:
+async def opn_firewall_set_enabled(
+    ctx: Context,
+    kind: FirewallToggleKind,
+    uuid: str,
+    enabled: bool,
+    site: SiteName = "",
+) -> dict[str, Any]:
     """Set enabled status of one rule or alias, not toggle blindly; no apply.
+
+    Only kind values supporting enable/disable: filter, dnat, snat, one_to_one, npt, alias. 'enabled' is
+    the desired Boolean state (not a toggle request); no automatic apply.
 
     DNAT's argument is 'disabled' and is therefore inverted; other rule
     controllers accept 'enabled'. Supplying 0/1 makes retries idempotent.
@@ -179,8 +230,18 @@ async def opn_firewall_set_enabled(ctx: Context, kind: str, uuid: str, enabled: 
 
 
 @mcp.tool()
-async def opn_firewall_set_logging(ctx: Context, kind: str, uuid: str, enabled: bool, site: str = "") -> dict[str, Any]:
-    """Set logging on exactly one filter/NAT/NPT rule; no firewall apply."""
+async def opn_firewall_set_logging(
+    ctx: Context,
+    kind: FirewallLoggingKind,
+    uuid: str,
+    enabled: bool,
+    site: SiteName = "",
+) -> dict[str, Any]:
+    """Set logging on exactly one filter/NAT/NPT rule; no firewall apply.
+
+    Only kind values supporting rule logging: filter, dnat, snat, one_to_one, npt. 'enabled' is the
+    desired Boolean state; no automatic apply.
+    """
     resource = _kind(kind)
     if not resource.logging:
         raise ValueError("Logging switch is available only for firewall/NAT/NPT rules")
@@ -194,9 +255,12 @@ async def opn_firewall_set_logging(ctx: Context, kind: str, uuid: str, enabled: 
 
 @mcp.tool()
 async def opn_firewall_move_rule(
-    ctx: Context, kind: str, uuids: list[str], before_uuid: str, site: str = ""
+    ctx: Context, kind: FirewallMoveKind, uuids: list[str], before_uuid: str, site: SiteName = ""
 ) -> dict[str, Any]:
     """Move 1-50 selected MVC rules before one other rule; no apply.
+
+    Only orderable kind values: filter, dnat, snat, one_to_one, npt. 'uuids' is a list of 1–50 distinct
+    rule UUID strings; 'before_uuid' is the destination rule UUID. No automatic apply.
 
     OPNsense validates ordering and priority groups; cannot move legacy rules.
     """
@@ -217,7 +281,7 @@ async def opn_firewall_move_rule(
 
 
 @mcp.tool()
-async def opn_firewall_apply_changes(ctx: Context, site: str = "", confirm: bool = False) -> dict[str, Any]:
+async def opn_firewall_apply_changes(ctx: Context, site: SiteName = "", confirm: bool = False) -> dict[str, Any]:
     """EXPLICITLY reload firewall configuration; may interrupt remote management.
 
     No 60-second savepoint rollback exists on OPNsense 26.7+. Requires
@@ -234,14 +298,14 @@ async def opn_firewall_apply_changes(ctx: Context, site: str = "", confirm: bool
 
 
 @mcp.tool()
-async def opn_firewall_get_source_nat_settings(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_firewall_get_source_nat_settings(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Read 26.7 Source NAT general mode/settings; not the list of SNAT rules."""
     return await get_api(ctx, site).get("fw26.source_nat.get_settings")
 
 
 @mcp.tool()
 async def opn_firewall_patch_source_nat_settings(
-    ctx: Context, changes: dict[str, str], site: str = ""
+    ctx: Context, changes: dict[str, str], site: SiteName = ""
 ) -> dict[str, Any]:
     """Patch Source NAT general settings after verifying the 26.7 schema; no apply."""
     values = _fields(changes)
@@ -258,19 +322,19 @@ async def opn_firewall_patch_source_nat_settings(
 
 
 @mcp.tool()
-async def opn_firewall_get_rule_stats(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_firewall_get_rule_stats(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Read live per-rule packet/byte counters from pf."""
     return await get_api(ctx, site).get("fw26.filter.rule_stats")
 
 
 @mcp.tool()
-async def opn_firewall_get_interface_options(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_firewall_get_interface_options(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Read interface/group selectors used by Firewall 26.7 rules."""
     return await get_api(ctx, site).get("fw26.filter.get_interfaces")
 
 
 @mcp.tool()
-async def opn_firewall_alias_references(ctx: Context, ip: str, site: str = "") -> dict[str, Any]:
+async def opn_firewall_alias_references(ctx: Context, ip: str, site: SiteName = "") -> dict[str, Any]:
     """Find aliases referencing a literal IPv4/IPv6 address or network."""
     try:
         ipaddress.ip_network(ip, strict=False)
@@ -280,7 +344,7 @@ async def opn_firewall_alias_references(ctx: Context, ip: str, site: str = "") -
 
 
 @mcp.tool()
-async def opn_firewall_list_alias_table(ctx: Context, alias: str, site: str = "") -> dict[str, Any]:
+async def opn_firewall_list_alias_table(ctx: Context, alias: str, site: SiteName = "") -> dict[str, Any]:
     """Read resolved IP/table contents of one named firewall alias."""
     if not _ALIAS_RE.fullmatch(alias):
         raise ValueError("Invalid alias name")
@@ -288,7 +352,7 @@ async def opn_firewall_list_alias_table(ctx: Context, alias: str, site: str = ""
 
 
 @mcp.tool()
-async def opn_firewall_legacy_rule_counts(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_firewall_legacy_rule_counts(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Read counts of old legacy firewall and outbound NAT rules; no migration."""
     api = get_api(ctx, site)
     return {
@@ -298,7 +362,7 @@ async def opn_firewall_legacy_rule_counts(ctx: Context, site: str = "") -> dict[
 
 
 @mcp.tool()
-async def opn_firewall_reconfigure_aliases(ctx: Context, site: str = "", confirm: bool = False) -> dict[str, Any]:
+async def opn_firewall_reconfigure_aliases(ctx: Context, site: SiteName = "", confirm: bool = False) -> dict[str, Any]:
     """Explicitly refresh aliases after changes; may refresh firewall tables."""
     api = get_api(ctx, site)
     api.require_writes()
@@ -308,7 +372,7 @@ async def opn_firewall_reconfigure_aliases(ctx: Context, site: str = "", confirm
 
 
 @mcp.tool()
-async def opn_firewall_reconfigure_groups(ctx: Context, site: str = "", confirm: bool = False) -> dict[str, Any]:
+async def opn_firewall_reconfigure_groups(ctx: Context, site: SiteName = "", confirm: bool = False) -> dict[str, Any]:
     """Explicitly reconfigure firewall interface groups; may affect traffic."""
     api = get_api(ctx, site)
     api.require_writes()

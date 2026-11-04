@@ -40,6 +40,21 @@ KeaResourceName = Literal[
 ]
 
 
+UnboundResourceName = Literal["host", "forward", "host_alias", "acl", "dnsbl"]
+
+SettingsSubsystemName = Literal[
+    "kea_dhcpv4",
+    "kea_dhcpv6",
+    "kea_ctrl_agent",
+    "kea_ddns",
+    "radvd",
+    "unbound",
+    "wireguard",
+]
+
+ApplyServiceName = Literal["kea", "radvd", "unbound", "wireguard"]
+
+
 RESOURCES: dict[str, dict[str, MVCResource]] = {
     "wireguard": {
         "peer": MVCResource("wireguard", "wireguard/client", "Client", "client", True),

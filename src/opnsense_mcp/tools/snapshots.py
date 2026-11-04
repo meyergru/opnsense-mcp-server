@@ -12,12 +12,13 @@ from typing import Any
 from fastmcp import Context
 
 from opnsense_mcp.server import get_api, mcp
+from opnsense_mcp.tool_types import SiteName
 
 _NAME_PATTERN = re.compile(r"[A-Za-z0-9_.-]{1,80}\Z")
 
 
 @mcp.tool()
-async def opn_snapshot_supported(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_snapshot_supported(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Check whether ZFS boot-environment snapshots are supported on this site.
 
     Returns OPNsense's 'supported' flag. UFS installations do not support
@@ -27,7 +28,7 @@ async def opn_snapshot_supported(ctx: Context, site: str = "") -> dict[str, Any]
 
 
 @mcp.tool()
-async def opn_list_snapshots(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_list_snapshots(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """List ZFS snapshots/boot environments and their active/boot states.
 
     Does not create, activate or delete a snapshot. Inspect the entries to
@@ -37,7 +38,7 @@ async def opn_list_snapshots(ctx: Context, site: str = "") -> dict[str, Any]:
 
 
 @mcp.tool()
-async def opn_get_snapshot(ctx: Context, uuid: str, site: str = "") -> dict[str, Any]:
+async def opn_get_snapshot(ctx: Context, uuid: str, site: SiteName = "") -> dict[str, Any]:
     """Inspect one ZFS snapshot by its UUID without changing it."""
     if not re.fullmatch(r"[a-fA-F0-9-]{8,64}", uuid):
         return {"error": "Invalid snapshot UUID"}
@@ -45,7 +46,7 @@ async def opn_get_snapshot(ctx: Context, uuid: str, site: str = "") -> dict[str,
 
 
 @mcp.tool()
-async def opn_create_snapshot(ctx: Context, name: str, site: str = "", note: str = "") -> dict[str, Any]:
+async def opn_create_snapshot(ctx: Context, name: str, site: SiteName = "", note: str = "") -> dict[str, Any]:
     """Create a new ZFS boot-environment snapshot with the requested name.
 
     Requires write access on this site. Uses POST /api/core/snapshots/add with

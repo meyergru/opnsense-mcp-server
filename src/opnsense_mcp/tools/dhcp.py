@@ -8,10 +8,11 @@ from fastmcp import Context
 
 from opnsense_mcp.server import get_api, get_config_cache, mcp
 from opnsense_mcp.tool_result import structured_table_result
+from opnsense_mcp.tool_types import SiteName
 
 
 @mcp.tool()
-async def opn_list_dhcp_leases(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_list_dhcp_leases(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """List current DHCPv4 leases from the ISC DHCP server (legacy).
 
     Use this when the OPNsense instance uses the ISC DHCP plugin (os-isc-dhcp).
@@ -28,7 +29,7 @@ async def opn_list_kea_leases(
     ctx: Context,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List current DHCPv4 leases from the Kea DHCP server.
 
@@ -51,7 +52,7 @@ async def opn_list_dnsmasq_leases(
     ctx: Context,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List current DHCPv4 and DHCPv6 leases from the dnsmasq DNS/DHCP server.
 
@@ -78,7 +79,7 @@ async def opn_list_dnsmasq_ranges(
     ctx: Context,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List dnsmasq DHCP ranges (both DHCPv4 and DHCPv6 with RA config).
 
@@ -110,7 +111,7 @@ async def opn_add_dnsmasq_range(
     ra_mode: str = "",
     lease_time: str = "24h",
     description: str = "",
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Create a new dnsmasq DHCP range and apply the configuration.
 
@@ -190,7 +191,7 @@ async def opn_update_dnsmasq_range(
     lease_time: str | None = None,
     description: str | None = None,
     enabled: bool | None = None,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Update a dnsmasq DHCP range by UUID and apply the configuration.
 
@@ -251,7 +252,7 @@ async def opn_update_dnsmasq_range(
 async def opn_delete_dnsmasq_range(
     ctx: Context,
     uuid: str,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Delete a dnsmasq DHCP range by UUID and apply the configuration.
 
@@ -273,7 +274,7 @@ async def opn_delete_dnsmasq_range(
 
 
 @mcp.tool()
-async def opn_reconfigure_dnsmasq(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_reconfigure_dnsmasq(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Apply pending dnsmasq DNS/DHCP configuration changes.
 
     Use this after manually editing dnsmasq settings to apply the changes

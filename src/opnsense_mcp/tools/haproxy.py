@@ -2,12 +2,26 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from fastmcp import Context
 
 from opnsense_mcp.api_client import ENDPOINT_REGISTRY
 from opnsense_mcp.server import get_api, get_config_cache, mcp
+from opnsense_mcp.tool_types import SiteName
+
+HAProxyResourceType = Literal[
+    "frontends",
+    "backends",
+    "servers",
+    "actions",
+    "acls",
+    "healthchecks",
+    "errorfiles",
+    "resolvers",
+    "mailers",
+]
+
 
 # --- Resource type mapping: plural -> singular ---
 _HAPROXY_RESOURCES: dict[str, str] = {
@@ -44,7 +58,7 @@ def _validate_resource_type(resource_type: str) -> str | None:
 
 
 @mcp.tool()
-async def opn_haproxy_status(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_haproxy_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get HAProxy load balancer status and backend health.
 
     Use this when you need to check HAProxy server status, backend availability,
@@ -57,7 +71,7 @@ async def opn_haproxy_status(ctx: Context, site: str = "") -> dict[str, Any]:
 
 
 @mcp.tool()
-async def opn_reconfigure_haproxy(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_reconfigure_haproxy(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Apply pending HAProxy load balancer configuration changes.
 
     Use this after making HAProxy configuration changes to apply them to the
@@ -81,10 +95,10 @@ async def opn_reconfigure_haproxy(ctx: Context, site: str = "") -> dict[str, Any
 @mcp.tool()
 async def opn_haproxy_search(
     ctx: Context,
-    resource_type: str,
+    resource_type: HAProxyResourceType,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Search HAProxy resources by type.
 
@@ -120,11 +134,15 @@ async def opn_haproxy_search(
 @mcp.tool()
 async def opn_haproxy_get(
     ctx: Context,
-    resource_type: str,
+    resource_type: HAProxyResourceType,
     uuid: str,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Get detailed configuration for a specific HAProxy resource.
+
+    Valid resource_type values: frontends, backends, servers, actions,
+    acls, healthchecks, errorfiles, resolvers, mailers.
+    The selector is PLURAL (for example 'servers', not 'server').
 
     Use this to inspect all fields of a single resource before modifying it.
     Returns the full field set including SSL, tuning, persistence, and linked
@@ -148,16 +166,24 @@ async def opn_haproxy_get(
 @mcp.tool()
 async def opn_haproxy_add(
     ctx: Context,
-    resource_type: str,
+    resource_type: HAProxyResourceType,
     config: dict[str, Any],
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Create a new HAProxy resource.
+
+    Valid resource_type values: frontends, backends, servers, actions,
+    acls, healthchecks, errorfiles, resolvers, mailers.
+    The selector is PLURAL (for example 'servers', not 'server').
 
     Use this to add frontends, backends, servers, actions, ACLs, health checks,
     error files, resolvers, or mailers.
 
-    The config dict contains field name-value pairs. Only specify fields you
+    The config dict contains target-version-specific field name-value pairs.
+    To discover valid keys and enum choices, first inspect an existing resource
+    of the same type with opn_haproxy_search and opn_haproxy_get. Do not
+    assume one universal HAProxy field schema across plugin versions.
+    Only specify fields you
     want to set — the API fills in defaults for omitted fields.
 
     Health check example:
@@ -201,14 +227,20 @@ async def opn_haproxy_add(
 @mcp.tool()
 async def opn_haproxy_update(
     ctx: Context,
-    resource_type: str,
+    resource_type: HAProxyResourceType,
     uuid: str,
     config: dict[str, Any],
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Update an existing HAProxy resource.
 
-    Use this to modify any field on a HAProxy resource. Only provide the fields
+    Valid resource_type values: frontends, backends, servers, actions,
+    acls, healthchecks, errorfiles, resolvers, mailers.
+    The selector is PLURAL (for example 'servers', not 'server').
+
+    Use this to modify an existing HAProxy resource. Discover valid config keys
+    and field values with opn_haproxy_get for the same UUID and site.
+    Only provide the fields
     you want to change — omitted fields keep their current values.
 
     To enable/disable a resource, set config={"enabled": "1"} or {"enabled": "0"}.
@@ -240,11 +272,15 @@ async def opn_haproxy_update(
 @mcp.tool()
 async def opn_haproxy_delete(
     ctx: Context,
-    resource_type: str,
+    resource_type: HAProxyResourceType,
     uuid: str,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Delete a HAProxy resource by UUID.
+
+    Valid resource_type values: frontends, backends, servers, actions,
+    acls, healthchecks, errorfiles, resolvers, mailers.
+    The selector is PLURAL (for example 'servers', not 'server').
 
     IMPORTANT: Check for dependencies before deleting:
     - Delete servers before deleting backends that reference them
@@ -272,7 +308,7 @@ async def opn_haproxy_delete(
 
 
 @mcp.tool()
-async def opn_haproxy_configtest(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_haproxy_configtest(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Validate HAProxy configuration syntax before applying.
 
     Use this BEFORE calling opn_reconfigure_haproxy to verify the configuration

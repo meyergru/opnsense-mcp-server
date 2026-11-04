@@ -7,6 +7,7 @@ from typing import Any
 from fastmcp import Context
 
 from opnsense_mcp.server import get_api, get_config_cache, mcp
+from opnsense_mcp.tool_types import SiteName
 
 _SENSITIVE_FIELDS = frozenset({"password", "%password"})
 
@@ -18,7 +19,7 @@ async def opn_list_ddns_accounts(
     ctx: Context,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List Dynamic DNS (DDNS) accounts and their update status.
 
@@ -58,7 +59,7 @@ async def opn_add_ddns_account(
     checkip: str = "web_dyndns",
     interface: str = "",
     description: str = "",
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Create a new Dynamic DNS account and apply the configuration.
 
@@ -132,7 +133,7 @@ async def opn_update_ddns_account(
     interface: str | None = None,
     description: str | None = None,
     enabled: bool | None = None,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Update a Dynamic DNS account by UUID and apply the configuration.
 
@@ -193,7 +194,7 @@ async def opn_update_ddns_account(
 async def opn_delete_ddns_account(
     ctx: Context,
     uuid: str,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Delete a Dynamic DNS account by UUID and apply the configuration.
 
@@ -215,7 +216,7 @@ async def opn_delete_ddns_account(
 
 
 @mcp.tool()
-async def opn_reconfigure_ddclient(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_reconfigure_ddclient(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Apply pending Dynamic DNS configuration changes.
 
     Use this after manually editing DDNS account settings to apply the
@@ -239,7 +240,7 @@ async def opn_list_acme_certs(
     ctx: Context,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List ACME (Let's Encrypt) certificates and their status.
 
@@ -260,7 +261,7 @@ async def opn_list_cron_jobs(
     ctx: Context,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List scheduled cron jobs configured in OPNsense.
 
@@ -276,7 +277,7 @@ async def opn_list_cron_jobs(
 
 
 @mcp.tool()
-async def opn_crowdsec_status(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_crowdsec_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get CrowdSec security engine status and active decisions summary.
 
     Use this when you need to check if CrowdSec is running, see how many
@@ -308,7 +309,7 @@ async def opn_crowdsec_alerts(
     ctx: Context,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List CrowdSec security alerts (detected threats and attacks).
 
@@ -328,7 +329,7 @@ async def opn_crowdsec_alerts(
 
 
 @mcp.tool()
-async def opn_mdns_repeater_status(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_mdns_repeater_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get mDNS Repeater service status and configuration.
 
     Use this to check if the mDNS Repeater is installed, enabled, running,
@@ -360,7 +361,7 @@ async def opn_configure_mdns_repeater(
     ctx: Context,
     enabled: bool = True,
     interfaces: str = "lan",
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Enable and configure the mDNS Repeater to relay multicast DNS between interfaces.
 

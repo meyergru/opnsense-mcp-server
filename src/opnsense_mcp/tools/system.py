@@ -11,6 +11,7 @@ from fastmcp import Context
 from opnsense_mcp import __version__
 from opnsense_mcp.config_cache import SENSITIVE_TAGS
 from opnsense_mcp.server import get_api, get_config_cache, get_savepoint_manager, mcp
+from opnsense_mcp.tool_types import SiteName
 
 
 def _raw_config_export_blocked() -> bool:
@@ -34,7 +35,7 @@ def _strip_sensitive_data(xml_text: str) -> str:
 
 
 @mcp.tool()
-async def opn_system_status(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_system_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get OPNsense system status including firmware version and product info.
 
     Use this when you need to check the current firmware version, system name,
@@ -47,7 +48,7 @@ async def opn_system_status(ctx: Context, site: str = "") -> dict[str, Any]:
 
 
 @mcp.tool()
-async def opn_check_firmware_updates(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_check_firmware_updates(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Check OPNsense firmware repositories for available updates without installing any.
 
     This explicitly calls POST /api/core/firmware/status, unlike the cached
@@ -67,7 +68,7 @@ async def opn_list_services(
     ctx: Context,
     search: str = "",
     limit: int = 50,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """List system services and their running status.
 
@@ -83,7 +84,7 @@ async def opn_list_services(
 
 
 @mcp.tool()
-async def opn_gateway_status(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_gateway_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get gateway status including dpinger health checks.
 
     Use this when you need to check if WAN gateways are up, their latency,
@@ -98,7 +99,7 @@ async def opn_gateway_status(ctx: Context, site: str = "") -> dict[str, Any]:
 async def opn_download_config(
     ctx: Context,
     include_sensitive: bool = False,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Download OPNsense config.xml backup as raw XML.
 
@@ -125,7 +126,7 @@ async def opn_download_config(
 
 
 @mcp.tool()
-async def opn_scan_config(ctx: Context, force: bool = False, site: str = "") -> dict[str, Any]:
+async def opn_scan_config(ctx: Context, force: bool = False, site: SiteName = "") -> dict[str, Any]:
     """Scan the OPNsense configuration and build a cached inventory.
 
     Use this FIRST when starting a new session. Downloads the full config,
@@ -149,7 +150,7 @@ async def opn_get_config_section(
     ctx: Context,
     section: str,
     include_sensitive: bool = False,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Get a specific configuration section as structured JSON.
 
@@ -184,7 +185,7 @@ async def opn_get_config_section(
 
 
 @mcp.tool()
-async def opn_mcp_info(ctx: Context, site: str = "") -> dict[str, Any]:
+async def opn_mcp_info(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get MCP server version and runtime configuration.
 
     Use this to check the MCP server version, whether write mode is enabled,

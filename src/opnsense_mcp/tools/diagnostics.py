@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import Any, Literal
 
 from fastmcp import Context
 
 from opnsense_mcp.server import get_api, mcp
+from opnsense_mcp.tool_types import SiteName
+
+TraceProtocol = Literal["ICMP", "UDP", "TCP"]
+TraceIPVersion = Literal["4", "6"]
 
 _MAX_PING_POLLS = 30
 _PING_POLL_INTERVAL = 1.0
@@ -28,7 +32,7 @@ async def opn_ping(
     ctx: Context,
     host: str,
     count: int = 3,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Ping a host from the OPNsense firewall to test connectivity.
 
@@ -84,14 +88,16 @@ async def opn_ping(
 async def opn_traceroute(
     ctx: Context,
     host: str,
-    protocol: str = "ICMP",
-    ip_version: str = "4",
-    site: str = "",
+    protocol: TraceProtocol = "ICMP",
+    ip_version: TraceIPVersion = "4",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Trace the network path from OPNsense to a destination host.
 
     Use this when you need to diagnose routing issues, identify where packets
     are being dropped, or visualize the network hops to a destination.
+    protocol is exactly ICMP, UDP or TCP; ip_version is a STRING '4' or '6'
+    (not an integer). host is a hostname or IP address.
     Returns: dict with 'result' (str) and 'response' (list of hops).
     """
     if err := _validate_hostname(host):
@@ -121,7 +127,7 @@ async def opn_dns_lookup(
     ctx: Context,
     hostname: str,
     server: str = "",
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Perform a DNS lookup from the OPNsense firewall.
 
@@ -147,7 +153,7 @@ async def opn_pf_states(
     ctx: Context,
     search: str = "",
     limit: int = 200,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Query the active PF (packet filter) state table.
 
