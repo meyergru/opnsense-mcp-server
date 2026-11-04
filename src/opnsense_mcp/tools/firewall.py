@@ -3,12 +3,19 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, Literal
 
 from fastmcp import Context
 
 from opnsense_mcp.api_client import OPNsenseAPIError
 from opnsense_mcp.server import get_api, get_config_cache, get_savepoint_manager, mcp
+
+FirewallAction = Literal["pass", "block", "reject"]
+FirewallDirection = Literal["in", "out"]
+FirewallIPProtocol = Literal["inet", "inet6", "inet46"]
+FirewallAliasType = Literal["host", "network", "port", "urltable", "geoip"]
+FirewallNATProtocol = Literal["TCP", "UDP", "TCP/UDP"]
+
 
 _VALID_ACTIONS = frozenset({"pass", "block", "reject"})
 _VALID_DIRECTIONS = frozenset({"in", "out"})
@@ -177,10 +184,10 @@ async def opn_toggle_firewall_rule(
 @mcp.tool()
 async def opn_add_firewall_rule(
     ctx: Context,
-    action: str = "pass",
-    direction: str = "in",
+    action: FirewallAction = "pass",
+    direction: FirewallDirection = "in",
     interface: str = "lan",
-    ip_protocol: str = "inet",
+    ip_protocol: FirewallIPProtocol = "inet",
     protocol: str = "any",
     source_net: str = "any",
     source_not: bool = False,
@@ -335,10 +342,10 @@ async def opn_delete_firewall_rule(
 async def opn_update_firewall_rule(
     ctx: Context,
     uuid: str,
-    action: str | None = None,
-    direction: str | None = None,
+    action: FirewallAction | None = None,
+    direction: FirewallDirection | None = None,
     interface: str | None = None,
-    ip_protocol: str | None = None,
+    ip_protocol: FirewallIPProtocol | None = None,
     protocol: str | None = None,
     source_net: str | None = None,
     source_not: bool | None = None,
@@ -466,7 +473,7 @@ async def opn_update_firewall_rule(
 async def opn_add_alias(
     ctx: Context,
     name: str,
-    alias_type: str = "host",
+    alias_type: FirewallAliasType = "host",
     content: str = "",
     description: str = "",
     site: str = "",
@@ -528,7 +535,7 @@ async def opn_update_alias(
     name: str | None = None,
     content: str | None = None,
     description: str | None = None,
-    alias_type: str | None = None,
+    alias_type: FirewallAliasType | None = None,
     enabled: bool | None = None,
     site: str = "",
 ) -> dict[str, Any]:
@@ -673,7 +680,7 @@ async def opn_add_nat_rule(
     destination_port: str = "",
     target_ip: str = "",
     interface: str = "wan",
-    protocol: str = "TCP",
+    protocol: FirewallNATProtocol = "TCP",
     target_port: str = "",
     description: str = "",
     site: str = "",
@@ -747,7 +754,7 @@ async def opn_update_nat_rule(
     ctx: Context,
     uuid: str,
     interface: str | None = None,
-    protocol: str | None = None,
+    protocol: FirewallNATProtocol | None = None,
     destination_port: str | None = None,
     target_ip: str | None = None,
     target_port: str | None = None,
