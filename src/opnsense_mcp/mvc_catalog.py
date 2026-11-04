@@ -39,7 +39,7 @@ RESOURCES: dict[str, dict[str, MVCResource]] = {
         "subnet6": MVCResource("kea", "kea/dhcpv6", "Subnet", "subnet6"),
         "reservation6": MVCResource("kea", "kea/dhcpv6", "Reservation", "reservation"),
         "option6": MVCResource("kea", "kea/dhcpv6", "Option", "option"),
-        "pd_pool6": MVCResource("kea", "kea/dhcpv6", "PdPool", "pd_pool6"),
+        "pd_pool6": MVCResource("kea", "kea/dhcpv6", "PdPool", "pd_pool"),
         "ha_peer6": MVCResource("kea", "kea/dhcpv6", "Peer", "peer"),
     },
     "unbound": {
