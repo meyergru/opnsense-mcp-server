@@ -189,10 +189,11 @@ class TestDdnsPlugin:
         mock_api.get = AsyncMock(return_value={"account": {
             "hostnames": "a.example", "password": "DO-NOT-LEAK",
             "resourceId": "public-resource", "uuid": "account-1",
+            "username": "API-TOKEN-AS-USERNAME", "server": "https://example/?key=token",
         }})
         result = await opn_get_ddns_account(mock_ctx, "account-1")
         assert result == {"uuid": "account-1", "account": {
-            "hostnames": "a.example", "resourceId": "public-resource", "uuid": "account-1",
+            "hostnames": "a.example", "uuid": "account-1",
         }}
         mock_api.get.assert_awaited_once_with("dyndns.accounts.get_item", path_suffix="account-1")
 
