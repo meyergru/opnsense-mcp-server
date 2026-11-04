@@ -14,6 +14,12 @@ from opnsense_mcp.tool_types import SiteName
 async def opn_wireguard_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get WireGuard VPN tunnel and peer status.
 
+    BACKEND SELECTION: WireGuard, IPsec and OpenVPN are separate
+    tunnel systems that may coexist for different peers/routes.
+    Do not combine their statuses or infer which VPN carries a
+    specific management path from one daemon's existence.
+    Verify the actual peer, route and interface for this site.
+
     Use this to check tunnel health, peer handshakes, transferred bytes,
     or endpoints when the management route is reachable. IMPORTANT: after
     applying changes to a REMOTE OPNsense managed THROUGH the affected
@@ -32,6 +38,12 @@ async def opn_wireguard_status(ctx: Context, site: SiteName = "") -> dict[str, A
 @mcp.tool()
 async def opn_ipsec_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get IPsec VPN tunnel status (IKE and ESP phases).
+
+    BACKEND SELECTION: WireGuard, IPsec and OpenVPN are separate
+    tunnel systems that may coexist for different peers/routes.
+    Do not combine their statuses or infer which VPN carries a
+    specific management path from one daemon's existence.
+    Verify the actual peer, route and interface for this site.
 
     Use this when you need to check IPsec site-to-site tunnel health,
     see connected peers, or troubleshoot VPN connectivity. Shows both
@@ -54,6 +66,12 @@ async def opn_ipsec_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
 @mcp.tool()
 async def opn_openvpn_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get OpenVPN connection status (instances, sessions, routes).
+
+    BACKEND SELECTION: WireGuard, IPsec and OpenVPN are separate
+    tunnel systems that may coexist for different peers/routes.
+    Do not combine their statuses or infer which VPN carries a
+    specific management path from one daemon's existence.
+    Verify the actual peer, route and interface for this site.
 
     Use this when you need to check OpenVPN server/client status, see
     connected clients, active VPN routes, or troubleshoot OpenVPN tunnels.
