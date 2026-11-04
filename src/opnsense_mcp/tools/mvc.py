@@ -538,7 +538,8 @@ async def opn_unbound_list(
     """List Unbound host overrides, forwards, host aliases, ACLs or DNSBL objects.
 
     Valid resource values: host (host overrides), forward (forward zones), host_alias (aliases of overrides), acl (access controls), dnsbl (blocklist configurations). The 'search' parameter searches these configured objects; it is not an arbitrary API endpoint.
-    """    return await _list(get_api(ctx, site), "unbound", resource, search, limit)
+    """
+    return await _list(get_api(ctx, site), "unbound", resource, search, limit)
 
 
 @mcp.tool()
@@ -546,7 +547,8 @@ async def opn_unbound_get(ctx: Context, resource: UnboundResourceName, uuid: str
     """Read one Unbound configuration object with secrets removed.
 
     resource must be host, forward, host_alias, acl or dnsbl. Use the UUID from opn_unbound_list(resource=<same-value>). 'uuid' is a configuration object UUID, not an IP address.
-    """    return await _get(get_api(ctx, site), "unbound", resource, uuid)
+    """
+    return await _get(get_api(ctx, site), "unbound", resource, uuid)
 
 
 @mcp.tool()
@@ -554,7 +556,8 @@ async def opn_unbound_add(ctx: Context, resource: UnboundResourceName, fields: d
     """Create one Unbound MVC object without restarting DNS.
 
     resource must be host, forward, host_alias, acl or dnsbl. 'fields' is a JSON object mapping exact model field names to strings; fields are checked against this site's installed MVC model. Do not guess field names or infer them from other OPNsense versions. Apply later with opn_service_apply(service='unbound').
-    """    return await _add(get_api(ctx, site), "unbound", resource, fields)
+    """
+    return await _add(get_api(ctx, site), "unbound", resource, fields)
 
 
 @mcp.tool()
@@ -564,7 +567,8 @@ async def opn_unbound_patch(
     """Read-before-write patch an Unbound MVC object without modifying other records.
 
     resource must be host, forward, host_alias, acl or dnsbl. Obtain the UUID and current field names with opn_unbound_list and opn_unbound_get; 'changes' maps only fields to modify to string values. Apply later with opn_service_apply(service='unbound').
-    """    return await _patch(get_api(ctx, site), "unbound", resource, uuid, changes)
+    """
+    return await _patch(get_api(ctx, site), "unbound", resource, uuid, changes)
 
 
 @mcp.tool()
@@ -572,7 +576,8 @@ async def opn_unbound_delete(ctx: Context, resource: UnboundResourceName, uuid: 
     """Delete one Unbound MVC object; explicit apply remains separate.
 
     resource must be host, forward, host_alias, acl or dnsbl. Obtain the UUID using opn_unbound_list; this stages deletion only. Apply later with opn_service_apply(service='unbound').
-    """    return await _delete(get_api(ctx, site), "unbound", resource, uuid)
+    """
+    return await _delete(get_api(ctx, site), "unbound", resource, uuid)
 
 
 @mcp.tool()
@@ -580,7 +585,8 @@ async def opn_unbound_toggle(ctx: Context, resource: UnboundResourceName, uuid: 
     """Enable or disable one Unbound MVC object; no DNS reconfigure.
 
     resource must be host, forward, host_alias, acl or dnsbl. 'enabled' is a Boolean target state (true/false), not a toggle command; apply later with opn_service_apply(service='unbound').
-    """    return await _toggle(get_api(ctx, site), "unbound", resource, uuid, enabled)
+    """
+    return await _toggle(get_api(ctx, site), "unbound", resource, uuid, enabled)
 
 
 @mcp.tool()
