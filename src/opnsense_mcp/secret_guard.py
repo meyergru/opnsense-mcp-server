@@ -33,6 +33,7 @@ _SENSITIVE = frozenset(
         "passwordhash",
         "presharedkey",
         "privatekey",
+        "privkey",
         "psk",
         "secret",
         "sharedsecret",

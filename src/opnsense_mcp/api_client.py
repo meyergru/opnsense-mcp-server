@@ -12,6 +12,7 @@ from typing import Any
 import httpx
 
 from opnsense_mcp.config import OPNsenseConfig
+from opnsense_mcp.mvc_catalog import MVC_ENDPOINTS, MVC_GETS, MVC_SEARCHES, MVC_WRITES
 
 
 class OperationEffect(StrEnum):
@@ -59,6 +60,7 @@ READ_ONLY_GET_ENDPOINTS: frozenset[str] = frozenset(
         "unbound.settings.get",
         "unbound.stats",
         "wireguard.service.show",
+        *MVC_GETS,
         *{
             f"haproxy.settings.get_{name}"
             for name in (
@@ -128,6 +130,7 @@ READ_ONLY_POST_ENDPOINTS: frozenset[str] = frozenset(
         "unbound.search_override",
         "wireguard.client.search_client",
         "wireguard.server.search_server",
+        *MVC_SEARCHES,
     }
 )
 
@@ -138,6 +141,7 @@ READ_ONLY_POST_ENDPOINTS: frozenset[str] = frozenset(
 WRITE_OPERATIONS: frozenset[tuple[str, str]] = frozenset(
     {
         ("POST", "snapshots.add"),
+        *MVC_WRITES,
         ("POST", "firmware.update"),
         ("POST", "firewall.savepoint"),
         ("POST", "firewall.apply"),
@@ -605,6 +609,9 @@ ENDPOINT_REGISTRY: dict[str, tuple[str, str]] = {
         "mdnsrepeater/service/stop",
     ),
 }
+
+# Fixed reviewed MVC resource catalogue (never model-supplied URL paths).
+ENDPOINT_REGISTRY.update(MVC_ENDPOINTS)
 
 _VERSION_THRESHOLD = (25, 7)
 
