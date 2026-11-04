@@ -30,6 +30,13 @@ async def opn_list_dns_overrides(
 ) -> dict[str, Any]:
     """List Unbound DNS host overrides (local DNS records).
 
+    BACKEND SELECTION: This is Unbound-specific DNS data.
+    Dnsmasq, BIND or another resolver may actually answer the
+    relevant clients, zones or interfaces. Unbound can be installed
+    and retain overrides while not handling these queries.
+    Check opn_list_services and client/port/interface DNS routing
+    before considering these entries operational.
+
     Use this when you need to see which hostnames are overridden to specific
     IP addresses in the local DNS resolver.
     Returns: dict with 'rows' (list of overrides) and 'rowCount' (total).
@@ -50,6 +57,13 @@ async def opn_list_dns_forwards(
 ) -> dict[str, Any]:
     """List Unbound DNS forward zones (domain-specific DNS servers).
 
+    BACKEND SELECTION: This is Unbound-specific DNS data.
+    Dnsmasq, BIND or another resolver may actually answer the
+    relevant clients, zones or interfaces. Unbound can be installed
+    and retain overrides while not handling these queries.
+    Check opn_list_services and client/port/interface DNS routing
+    before considering these entries operational.
+
     Use this when you need to check which domains are forwarded to specific
     upstream DNS servers or DNS-over-TLS resolvers.
     Returns: dict with 'rows' (list of forward zones) and 'rowCount' (total).
@@ -65,6 +79,13 @@ async def opn_list_dns_forwards(
 async def opn_dns_stats(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get Unbound DNS resolver statistics (queries, cache hits, uptime).
 
+    BACKEND SELECTION: This is Unbound-specific DNS data.
+    Dnsmasq, BIND or another resolver may actually answer the
+    relevant clients, zones or interfaces. Unbound can be installed
+    and retain overrides while not handling these queries.
+    Check opn_list_services and client/port/interface DNS routing
+    before considering these entries operational.
+
     Use this when you need to check DNS resolver performance, cache hit rates,
     or troubleshoot DNS resolution issues.
     Returns: dict with resolver statistics fields.
@@ -76,6 +97,12 @@ async def opn_dns_stats(ctx: Context, site: SiteName = "") -> dict[str, Any]:
 @mcp.tool()
 async def opn_reconfigure_unbound(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Apply pending Unbound DNS resolver configuration changes.
+
+    BACKEND SELECTION: This modifies only Unbound, not dnsmasq
+    or other DNS servers. Verify Unbound is intended to resolve
+    the relevant clients/zones before making changes.
+    Configuration may exist after a resolver migration, but be
+    unused. Do not edit an inactive backend unless requested.
 
     Use this after making DNS configuration changes (adding overrides, forward
     zones, etc.) to apply them to the running Unbound service. This restarts
@@ -102,6 +129,12 @@ async def opn_add_dns_override(
     site: SiteName = "",
 ) -> dict[str, Any]:
     """Add an Unbound DNS host override (A/AAAA record) and apply immediately.
+
+    BACKEND SELECTION: This modifies only Unbound, not dnsmasq
+    or other DNS servers. Verify Unbound is intended to resolve
+    the relevant clients/zones before making changes.
+    Configuration may exist after a resolver migration, but be
+    unused. Do not edit an inactive backend unless requested.
 
     Use this when you need to create a local DNS record that resolves a hostname
     to a specific IP address. Useful for split-horizon DNS, internal services,
@@ -167,6 +200,12 @@ async def opn_update_dns_override(
 ) -> dict[str, Any]:
     """Update an Unbound DNS host override by UUID and apply immediately.
 
+    BACKEND SELECTION: This modifies only Unbound, not dnsmasq
+    or other DNS servers. Verify Unbound is intended to resolve
+    the relevant clients/zones before making changes.
+    Configuration may exist after a resolver migration, but be
+    unused. Do not edit an inactive backend unless requested.
+
     Use this when you need to change the hostname, domain, IP address, or other
     properties of a DNS override. Only the parameters you provide are changed;
     all other settings are preserved.
@@ -225,6 +264,12 @@ async def opn_delete_dns_override(
     site: SiteName = "",
 ) -> dict[str, Any]:
     """Delete an Unbound DNS host override by UUID and apply immediately.
+
+    BACKEND SELECTION: This modifies only Unbound, not dnsmasq
+    or other DNS servers. Verify Unbound is intended to resolve
+    the relevant clients/zones before making changes.
+    Configuration may exist after a resolver migration, but be
+    unused. Do not edit an inactive backend unless requested.
 
     The deletion is applied immediately (Unbound is reconfigured automatically).
     DNS changes cannot be auto-reverted — verify the UUID before calling.
@@ -299,6 +344,13 @@ async def opn_list_dnsbl(
 ) -> dict[str, Any]:
     """List DNSBL (DNS Blocklist) configurations with providers and status.
 
+    BACKEND SELECTION: This is Unbound-specific DNS data.
+    Dnsmasq, BIND or another resolver may actually answer the
+    relevant clients, zones or interfaces. Unbound can be installed
+    and retain overrides while not handling these queries.
+    Check opn_list_services and client/port/interface DNS routing
+    before considering these entries operational.
+
     Use this when you need to see which DNS blocklists are configured, which
     providers are active, and what allowlist/blocklist entries exist.
     Use opn_get_dnsbl with a UUID from the results for full details.
@@ -318,6 +370,13 @@ async def opn_get_dnsbl(
     site: SiteName = "",
 ) -> dict[str, Any]:
     """Get full DNSBL configuration for a specific blocklist by UUID.
+
+    BACKEND SELECTION: This is Unbound-specific DNS data.
+    Dnsmasq, BIND or another resolver may actually answer the
+    relevant clients, zones or interfaces. Unbound can be installed
+    and retain overrides while not handling these queries.
+    Check opn_list_services and client/port/interface DNS routing
+    before considering these entries operational.
 
     Use this when you need to see all available providers and their selection
     state, current allowlist/blocklist entries, and other DNSBL settings.
@@ -381,6 +440,12 @@ async def opn_set_dnsbl(
     site: SiteName = "",
 ) -> dict[str, Any]:
     """Update a DNSBL blocklist configuration (read-modify-write).
+
+    BACKEND SELECTION: This modifies only Unbound, not dnsmasq
+    or other DNS servers. Verify Unbound is intended to resolve
+    the relevant clients/zones before making changes.
+    Configuration may exist after a resolver migration, but be
+    unused. Do not edit an inactive backend unless requested.
 
     Use this when you need to change DNSBL settings — providers, allowlists,
     blocklists, etc. Only the parameters you provide are changed; all other
@@ -452,6 +517,12 @@ async def opn_add_dnsbl_allowlist(
 ) -> dict[str, Any]:
     """Add domains to a DNSBL allowlist (whitelist) without overwriting existing entries.
 
+    BACKEND SELECTION: This modifies only Unbound, not dnsmasq
+    or other DNS servers. Verify Unbound is intended to resolve
+    the relevant clients/zones before making changes.
+    Configuration may exist after a resolver migration, but be
+    unused. Do not edit an inactive backend unless requested.
+
     Use this when a domain is blocked by DNSBL and you need to allowlist it
     (e.g. googleads.g.doubleclick.net blocking YouTube). Existing allowlist
     entries are preserved. Changes are applied immediately.
@@ -510,6 +581,12 @@ async def opn_remove_dnsbl_allowlist(
 ) -> dict[str, Any]:
     """Remove domains from a DNSBL allowlist.
 
+    BACKEND SELECTION: This modifies only Unbound, not dnsmasq
+    or other DNS servers. Verify Unbound is intended to resolve
+    the relevant clients/zones before making changes.
+    Configuration may exist after a resolver migration, but be
+    unused. Do not edit an inactive backend unless requested.
+
     Use this when you no longer need a domain allowlisted and want to re-enable
     DNSBL blocking for it. Changes are applied immediately.
 
@@ -561,6 +638,12 @@ async def opn_remove_dnsbl_allowlist(
 @mcp.tool()
 async def opn_update_dnsbl(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Reload DNSBL blocklist files and restart Unbound to apply them.
+
+    BACKEND SELECTION: This modifies only Unbound, not dnsmasq
+    or other DNS servers. Verify Unbound is intended to resolve
+    the relevant clients/zones before making changes.
+    Configuration may exist after a resolver migration, but be
+    unused. Do not edit an inactive backend unless requested.
 
     Use this when DNSBL lists need to be refreshed without changing the
     configuration — for example after a service restart that lost loaded

@@ -430,6 +430,13 @@ async def opn_kea_list(
 ) -> dict[str, Any]:
     """List Kea configuration resources (static reservations, subnets, options, HA peers).
 
+    BACKEND SELECTION: These are KEA configuration objects, not proof
+    that Kea serves DHCP on any interface/IP family. ISC and dnsmasq
+    may instead provide DHCP, even when Kea reservations, subnets or
+    options remain readable. Check opn_scan_config, opn_list_services
+    and the relevant interface/subnet before using these records as
+    operational state. Do not mix different engines' reservation tables.
+
     The resource parameter is a SINGLE exact name, NOT 'reservations' or 'hosts':
     DHCPv4: reservation4, subnet4, option4, ha_peer4.
     DHCPv6: reservation6, subnet6, option6, pd_pool6, ha_peer6.
@@ -450,6 +457,13 @@ async def opn_kea_list(
 async def opn_kea_get(ctx: Context, resource: KeaResourceName, uuid: str, site: SiteName = "") -> dict[str, Any]:
     """Read one configured Kea object by UUID.
 
+    BACKEND SELECTION: These are KEA configuration objects, not proof
+    that Kea serves DHCP on any interface/IP family. ISC and dnsmasq
+    may instead provide DHCP, even when Kea reservations, subnets or
+    options remain readable. Check opn_scan_config, opn_list_services
+    and the relevant interface/subnet before using these records as
+    operational state. Do not mix different engines' reservation tables.
+
     For a DHCPv4 static reservation use resource="reservation4" and the UUID
     returned by opn_kea_list(resource="reservation4"). The result contains
     fields such as "hw_address" and "ip_address" (subject to the installed
@@ -464,6 +478,13 @@ async def opn_kea_add(
 ) -> dict[str, Any]:
     """Stage creation of one Kea configuration object; does not apply.
 
+    BACKEND SELECTION: This operates on Kea configuration only.
+    Check opn_scan_config, opn_list_services and the relevant subnet
+    or interface to confirm Kea is the intended DHCP backend.
+    Inactive Kea reservations and options may remain after migration.
+    Never change these in place of the active ISC/dnsmasq settings
+    unless explicitly requested. Applying Kea is a separate operation.
+
     For a DHCPv4 static MAC/IP reservation use resource="reservation4".
     Fields must be valid for the target OPNsense version (e.g. "hw_address",
     "ip_address"); they are checked against that site's actual MVC form.
@@ -477,6 +498,13 @@ async def opn_kea_patch(
     ctx: Context, resource: KeaResourceName, uuid: str, changes: dict[str, str], site: SiteName = ""
 ) -> dict[str, Any]:
     """Stage a targeted read-before-write patch of an existing Kea object.
+
+    BACKEND SELECTION: This operates on Kea configuration only.
+    Check opn_scan_config, opn_list_services and the relevant subnet
+    or interface to confirm Kea is the intended DHCP backend.
+    Inactive Kea reservations and options may remain after migration.
+    Never change these in place of the active ISC/dnsmasq settings
+    unless explicitly requested. Applying Kea is a separate operation.
 
     For a DHCPv4 MAC reservation: list resource="reservation4" to obtain the
     correct UUID and site, then call opn_kea_patch(resource="reservation4",
@@ -493,6 +521,13 @@ async def opn_kea_patch(
 async def opn_kea_delete(ctx: Context, resource: KeaResourceName, uuid: str, site: SiteName = "") -> dict[str, Any]:
     """Stage deletion of one explicitly identified Kea configuration object.
 
+    BACKEND SELECTION: This operates on Kea configuration only.
+    Check opn_scan_config, opn_list_services and the relevant subnet
+    or interface to confirm Kea is the intended DHCP backend.
+    Inactive Kea reservations and options may remain after migration.
+    Never change these in place of the active ISC/dnsmasq settings
+    unless explicitly requested. Applying Kea is a separate operation.
+
     To delete a DHCPv4 static reservation use resource="reservation4" and
     its UUID from opn_kea_list, not a live lease identifier. This does not
     apply changes; use opn_service_apply(service="kea", site="<site>").
@@ -502,37 +537,85 @@ async def opn_kea_delete(ctx: Context, resource: KeaResourceName, uuid: str, sit
 
 @mcp.tool()
 async def opn_radvd_list(ctx: Context, site: SiteName = "", search: str = "") -> dict[str, Any]:
-    """List radvd IPv6 Router Advertisement entries."""
+    """List radvd IPv6 Router Advertisement entries.
+
+    BACKEND SELECTION: This is radvd-specific configuration.
+    Router Advertisements may instead come from dnsmasq or another
+    RA daemon. A configured radvd entry does not prove it is active.
+    Check opn_list_services and per-interface RA settings; do not
+    merge both sources as if they were simultaneously authoritative.
+    Never enable competing RA transmitters on the same interface.
+    """
     return await _list(get_api(ctx, site), "radvd", "entry", search, 100)
 
 
 @mcp.tool()
 async def opn_radvd_get(ctx: Context, uuid: str, site: SiteName = "") -> dict[str, Any]:
-    """Read one radvd entry."""
+    """Read one radvd entry.
+
+    BACKEND SELECTION: This is radvd-specific configuration.
+    Router Advertisements may instead come from dnsmasq or another
+    RA daemon. A configured radvd entry does not prove it is active.
+    Check opn_list_services and per-interface RA settings; do not
+    merge both sources as if they were simultaneously authoritative.
+    Never enable competing RA transmitters on the same interface.
+    """
     return await _get(get_api(ctx, site), "radvd", "entry", uuid)
 
 
 @mcp.tool()
 async def opn_radvd_add(ctx: Context, fields: dict[str, str], site: SiteName = "") -> dict[str, Any]:
-    """Create one radvd entry; does not reconfigure daemon."""
+    """Create one radvd entry; does not reconfigure daemon.
+
+    BACKEND SELECTION: Modify radvd only after checking which service
+    is intended to send IPv6 Router Advertisements on this interface.
+    Dnsmasq may own RA instead, and existing radvd entries may be
+    inactive. Check opn_list_services and interface-specific settings.
+    Do not configure competing RA daemons on the same interface.
+    This only stages a change; applying radvd is a separate operation.
+    """
     return await _add(get_api(ctx, site), "radvd", "entry", fields)
 
 
 @mcp.tool()
 async def opn_radvd_patch(ctx: Context, uuid: str, changes: dict[str, str], site: SiteName = "") -> dict[str, Any]:
-    """Read-before-write patch one radvd entry without affecting others."""
+    """Read-before-write patch one radvd entry without affecting others.
+
+    BACKEND SELECTION: Modify radvd only after checking which service
+    is intended to send IPv6 Router Advertisements on this interface.
+    Dnsmasq may own RA instead, and existing radvd entries may be
+    inactive. Check opn_list_services and interface-specific settings.
+    Do not configure competing RA daemons on the same interface.
+    This only stages a change; applying radvd is a separate operation.
+    """
     return await _patch(get_api(ctx, site), "radvd", "entry", uuid, changes)
 
 
 @mcp.tool()
 async def opn_radvd_delete(ctx: Context, uuid: str, site: SiteName = "") -> dict[str, Any]:
-    """Delete one radvd entry without restarting radvd."""
+    """Delete one radvd entry without restarting radvd.
+
+    BACKEND SELECTION: Modify radvd only after checking which service
+    is intended to send IPv6 Router Advertisements on this interface.
+    Dnsmasq may own RA instead, and existing radvd entries may be
+    inactive. Check opn_list_services and interface-specific settings.
+    Do not configure competing RA daemons on the same interface.
+    This only stages a change; applying radvd is a separate operation.
+    """
     return await _delete(get_api(ctx, site), "radvd", "entry", uuid)
 
 
 @mcp.tool()
 async def opn_radvd_toggle(ctx: Context, uuid: str, enabled: bool, site: SiteName = "") -> dict[str, Any]:
-    """Enable/disable one radvd entry, no automatic reconfigure."""
+    """Enable/disable one radvd entry, no automatic reconfigure.
+
+    BACKEND SELECTION: Modify radvd only after checking which service
+    is intended to send IPv6 Router Advertisements on this interface.
+    Dnsmasq may own RA instead, and existing radvd entries may be
+    inactive. Check opn_list_services and interface-specific settings.
+    Do not configure competing RA daemons on the same interface.
+    This only stages a change; applying radvd is a separate operation.
+    """
     return await _toggle(get_api(ctx, site), "radvd", "entry", uuid, enabled)
 
 
@@ -629,6 +712,12 @@ async def opn_unbound_toggle(
 async def opn_service_apply(ctx: Context, service: ApplyServiceName, site: SiteName = "") -> dict[str, Any]:
     """Explicitly apply pending WireGuard/Kea/radvd/Unbound changes on one site.
 
+    BACKEND SELECTION: For Kea, radvd and Unbound, confirm the
+    selected service actually owns the intended DHCP, RA or DNS
+    function on the relevant interface; dnsmasq or other services
+    may be responsible instead. Applying dormant settings can
+    affect traffic. A running service alone is not proof of ownership.
+
     service is exactly one of: wireguard, kea, radvd, unbound.
 
     May restart services or disrupt traffic. This is not called automatically
@@ -662,7 +751,14 @@ async def opn_kea_list_leases6(
     limit: int = 100,
     site: SiteName = "",
 ) -> dict[str, Any]:
-    """List Kea DHCPv6 leases without modifying lease state."""
+    """List Kea DHCPv6 leases without modifying lease state.
+
+    BACKEND SELECTION: Read only Kea DHCPv6 lease records here.
+    Check which DHCPv6 service actually manages the relevant interface
+    (opn_scan_config and opn_list_services are only starting points).
+    Other backends may hold historical leases; do not combine them or
+    infer activity solely because this endpoint returns data.
+    """
     if not 1 <= limit <= 500:
         raise ValueError("limit must be 1..500")
     result = await get_api(ctx, site).post(
@@ -674,7 +770,14 @@ async def opn_kea_list_leases6(
 
 @mcp.tool()
 async def opn_kea_delete_lease(ctx: Context, ip: str, site: SiteName = "") -> dict[str, Any]:
-    """Explicitly remove a Kea lease by IP address. This does not change reservations."""
+    """Explicitly remove a Kea lease by IP address. This does not change reservations.
+
+    BACKEND SELECTION: This deletes a KEA lease, never a reservation
+    or an ISC/dnsmasq lease. Verify that Kea serves this IP family
+    and target interface; stale lease records may persist otherwise.
+    This is a write operation, so do not delete merely to reconcile
+    differences between multiple backends.
+    """
     import ipaddress
 
     address = str(ipaddress.ip_address(ip))
@@ -686,6 +789,13 @@ async def opn_kea_delete_lease(ctx: Context, ip: str, site: SiteName = "") -> di
 @mcp.tool()
 async def opn_mvc_get_settings(ctx: Context, subsystem: SettingsSubsystemName, site: SiteName = "") -> dict[str, Any]:
     """Read global settings of Kea DHCPv4/v6/DDNS/control-agent, radvd, Unbound or WireGuard.
+
+    BACKEND SELECTION: Some subsystems overlap in functionality.
+    Kea, ISC and dnsmasq can provide DHCP; radvd and dnsmasq can
+    provide RAs; Unbound and dnsmasq can resolve DNS. These are
+    subsystem-specific settings, not proof of active responsibility.
+    Check service status and the relevant interface/function before
+    interpreting them as live configuration.
 
     subsystem must be exactly one of: kea_dhcpv4, kea_dhcpv6,
     kea_ctrl_agent, kea_ddns, radvd, unbound, wireguard.
@@ -703,6 +813,12 @@ async def opn_mvc_patch_settings(
     ctx: Context, subsystem: SettingsSubsystemName, changes: dict[str, Any], site: SiteName = ""
 ) -> dict[str, Any]:
     """Patch selected global settings of one subsystem, never apply automatically.
+
+    BACKEND SELECTION: Check the active service and target
+    interface/function before editing settings of an alternative
+    DHCP, DNS or RA backend. Unused configurations can remain after
+    migration. Do not modify an inactive subsystem just because
+    its settings are readable, unless the user requested it.
 
     subsystem must be exactly one of: kea_dhcpv4, kea_dhcpv6,
     kea_ctrl_agent, kea_ddns, radvd, unbound, wireguard.

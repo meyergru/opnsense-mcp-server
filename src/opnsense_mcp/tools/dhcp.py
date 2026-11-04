@@ -15,6 +15,13 @@ from opnsense_mcp.tool_types import SiteName
 async def opn_list_dhcp_leases(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """List current DHCPv4 leases from the ISC DHCP server (legacy).
 
+    BACKEND SELECTION: ISC, Kea and dnsmasq are alternative DHCP engines.
+    Do not query and merge all lease tables by default. First inspect
+    opn_scan_config and opn_list_services on the same site, then establish
+    which engine serves the relevant interface and IP family. An API
+    returning leases does not prove this engine is active; stale records
+    can survive a backend migration. dhcp.active is only a site-level hint.
+
     Use this when the OPNsense instance uses the ISC DHCP plugin (os-isc-dhcp).
     ISC DHCP is legacy and being phased out — most 26.x instances use dnsmasq or Kea.
     Use opn_scan_config first to check which DHCP backend is active.
@@ -32,6 +39,13 @@ async def opn_list_kea_leases(
     site: SiteName = "",
 ) -> dict[str, Any]:
     """List current DHCPv4 leases from the Kea DHCP server.
+
+    BACKEND SELECTION: ISC, Kea and dnsmasq are alternative DHCP engines.
+    Do not query and merge all lease tables by default. First inspect
+    opn_scan_config and opn_list_services on the same site, then establish
+    which engine serves the relevant interface and IP family. An API
+    returning leases does not prove this engine is active; stale records
+    can survive a backend migration. dhcp.active is only a site-level hint.
 
     Use this when the OPNsense instance uses Kea for DHCP (available since 24.7).
     Kea is the modern replacement for ISC DHCP, recommended for HA setups.
@@ -55,6 +69,13 @@ async def opn_list_dnsmasq_leases(
     site: SiteName = "",
 ) -> dict[str, Any]:
     """List current DHCPv4 and DHCPv6 leases from the dnsmasq DNS/DHCP server.
+
+    BACKEND SELECTION: ISC, Kea and dnsmasq are alternative DHCP engines.
+    Do not query and merge all lease tables by default. First inspect
+    opn_scan_config and opn_list_services on the same site, then establish
+    which engine serves the relevant interface and IP family. An API
+    returning leases does not prove this engine is active; stale records
+    can survive a backend migration. dhcp.active is only a site-level hint.
 
     Use this when the OPNsense instance uses dnsmasq for DHCP (default in 26.x).
     dnsmasq is a lightweight combined DNS/DHCP server that handles both
@@ -82,6 +103,13 @@ async def opn_list_dnsmasq_ranges(
     site: SiteName = "",
 ) -> dict[str, Any]:
     """List dnsmasq DHCP ranges (both DHCPv4 and DHCPv6 with RA config).
+
+    BACKEND SELECTION: This is a dnsmasq-specific configuration, not
+    generic DHCP/RA state. Kea or ISC may serve DHCP instead, and radvd
+    may provide IPv6 Router Advertisements. Dnsmasq can run for DNS
+    without serving DHCP or sending RAs. Check opn_scan_config and
+    opn_list_services, then verify the target interface/IP-family role.
+    Do not mistake inactive settings for the operational configuration.
 
     Use this to see configured DHCP address pools and Router Advertisement
     settings for each interface. Both IPv4 and IPv6 ranges appear in the
@@ -114,6 +142,13 @@ async def opn_add_dnsmasq_range(
     site: SiteName = "",
 ) -> dict[str, Any]:
     """Create a new dnsmasq DHCP range and apply the configuration.
+
+    BACKEND SELECTION: This changes dnsmasq, not Kea, ISC or radvd.
+    Confirm dnsmasq is intended for DHCP/RA on the target interface and
+    IP family before writing. It can be DNS-only while DHCP or RAs are
+    supplied by other services. Check opn_scan_config, opn_list_services
+    and the interface-specific settings. Do not modify an inactive
+    backend unless the user explicitly requests its configuration.
 
     Use this to add DHCPv4 or DHCPv6 address ranges with optional Router
     Advertisement (RA) configuration.
@@ -195,6 +230,13 @@ async def opn_update_dnsmasq_range(
 ) -> dict[str, Any]:
     """Update a dnsmasq DHCP range by UUID and apply the configuration.
 
+    BACKEND SELECTION: This changes dnsmasq, not Kea, ISC or radvd.
+    Confirm dnsmasq is intended for DHCP/RA on the target interface and
+    IP family before writing. It can be DNS-only while DHCP or RAs are
+    supplied by other services. Check opn_scan_config, opn_list_services
+    and the interface-specific settings. Do not modify an inactive
+    backend unless the user explicitly requests its configuration.
+
     Use this when you need to change the address range, lease time, RA settings,
     or other properties. Only the parameters you provide are changed; all other
     settings are preserved.
@@ -256,6 +298,13 @@ async def opn_delete_dnsmasq_range(
 ) -> dict[str, Any]:
     """Delete a dnsmasq DHCP range by UUID and apply the configuration.
 
+    BACKEND SELECTION: This changes dnsmasq, not Kea, ISC or radvd.
+    Confirm dnsmasq is intended for DHCP/RA on the target interface and
+    IP family before writing. It can be DNS-only while DHCP or RAs are
+    supplied by other services. Check opn_scan_config, opn_list_services
+    and the interface-specific settings. Do not modify an inactive
+    backend unless the user explicitly requests its configuration.
+
     The deletion is applied immediately (dnsmasq is reconfigured automatically).
     Use opn_list_dnsmasq_ranges first to find the UUID.
     Returns: dict with 'result' (str), 'uuid' (str), and 'reconfigure_status'.
@@ -276,6 +325,13 @@ async def opn_delete_dnsmasq_range(
 @mcp.tool()
 async def opn_reconfigure_dnsmasq(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Apply pending dnsmasq DNS/DHCP configuration changes.
+
+    BACKEND SELECTION: This changes dnsmasq, not Kea, ISC or radvd.
+    Confirm dnsmasq is intended for DHCP/RA on the target interface and
+    IP family before writing. It can be DNS-only while DHCP or RAs are
+    supplied by other services. Check opn_scan_config, opn_list_services
+    and the interface-specific settings. Do not modify an inactive
+    backend unless the user explicitly requests its configuration.
 
     Use this after manually editing dnsmasq settings to apply the changes
     to the running dnsmasq service.

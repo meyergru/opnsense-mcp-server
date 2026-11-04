@@ -61,6 +61,13 @@ def _validate_resource_type(resource_type: str) -> str | None:
 async def opn_haproxy_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get HAProxy load balancer status and backend health.
 
+    BACKEND SELECTION: These are HAProxy-only records/status.
+    Nginx, Caddy or another proxy may handle the actual ingress.
+    Multiple proxies can also be chained, rather than exclusive.
+    A configured/healthy HAProxy backend does not prove traffic
+    reaches it. Verify the active request path, listeners and
+    upstream/downstream roles before treating these as live routing.
+
     Use this when you need to check HAProxy server status, backend availability,
     or connection statistics.
     Note: Requires the HAProxy plugin (os-haproxy).
@@ -73,6 +80,12 @@ async def opn_haproxy_status(ctx: Context, site: SiteName = "") -> dict[str, Any
 @mcp.tool()
 async def opn_reconfigure_haproxy(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Apply pending HAProxy load balancer configuration changes.
+
+    BACKEND SELECTION: This operates on HAProxy, not Nginx/Caddy.
+    Verify HAProxy's intended role in the real ingress/proxy chain,
+    active listeners and routing before changing its configuration.
+    Other proxies may be the entry point or forward to HAProxy.
+    Do not alter unused HAProxy configuration unless requested.
 
     Use this after making HAProxy configuration changes to apply them to the
     running HAProxy service. This reconfigures HAProxy with the new settings.
@@ -101,6 +114,13 @@ async def opn_haproxy_search(
     site: SiteName = "",
 ) -> dict[str, Any]:
     """Search HAProxy resources by type.
+
+    BACKEND SELECTION: These are HAProxy-only records/status.
+    Nginx, Caddy or another proxy may handle the actual ingress.
+    Multiple proxies can also be chained, rather than exclusive.
+    A configured/healthy HAProxy backend does not prove traffic
+    reaches it. Verify the active request path, listeners and
+    upstream/downstream roles before treating these as live routing.
 
     Use this to list and search any HAProxy resource. All resource types use
     the same paginated search pattern.
@@ -140,6 +160,13 @@ async def opn_haproxy_get(
 ) -> dict[str, Any]:
     """Get detailed configuration for a specific HAProxy resource.
 
+    BACKEND SELECTION: These are HAProxy-only records/status.
+    Nginx, Caddy or another proxy may handle the actual ingress.
+    Multiple proxies can also be chained, rather than exclusive.
+    A configured/healthy HAProxy backend does not prove traffic
+    reaches it. Verify the active request path, listeners and
+    upstream/downstream roles before treating these as live routing.
+
     Valid resource_type values: frontends, backends, servers, actions,
     acls, healthchecks, errorfiles, resolvers, mailers.
     The selector is PLURAL (for example 'servers', not 'server').
@@ -171,6 +198,12 @@ async def opn_haproxy_add(
     site: SiteName = "",
 ) -> dict[str, Any]:
     """Create a new HAProxy resource.
+
+    BACKEND SELECTION: This operates on HAProxy, not Nginx/Caddy.
+    Verify HAProxy's intended role in the real ingress/proxy chain,
+    active listeners and routing before changing its configuration.
+    Other proxies may be the entry point or forward to HAProxy.
+    Do not alter unused HAProxy configuration unless requested.
 
     Valid resource_type values: frontends, backends, servers, actions,
     acls, healthchecks, errorfiles, resolvers, mailers.
@@ -234,6 +267,12 @@ async def opn_haproxy_update(
 ) -> dict[str, Any]:
     """Update an existing HAProxy resource.
 
+    BACKEND SELECTION: This operates on HAProxy, not Nginx/Caddy.
+    Verify HAProxy's intended role in the real ingress/proxy chain,
+    active listeners and routing before changing its configuration.
+    Other proxies may be the entry point or forward to HAProxy.
+    Do not alter unused HAProxy configuration unless requested.
+
     Valid resource_type values: frontends, backends, servers, actions,
     acls, healthchecks, errorfiles, resolvers, mailers.
     The selector is PLURAL (for example 'servers', not 'server').
@@ -278,6 +317,12 @@ async def opn_haproxy_delete(
 ) -> dict[str, Any]:
     """Delete a HAProxy resource by UUID.
 
+    BACKEND SELECTION: This operates on HAProxy, not Nginx/Caddy.
+    Verify HAProxy's intended role in the real ingress/proxy chain,
+    active listeners and routing before changing its configuration.
+    Other proxies may be the entry point or forward to HAProxy.
+    Do not alter unused HAProxy configuration unless requested.
+
     Valid resource_type values: frontends, backends, servers, actions,
     acls, healthchecks, errorfiles, resolvers, mailers.
     The selector is PLURAL (for example 'servers', not 'server').
@@ -310,6 +355,13 @@ async def opn_haproxy_delete(
 @mcp.tool()
 async def opn_haproxy_configtest(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Validate HAProxy configuration syntax before applying.
+
+    BACKEND SELECTION: These are HAProxy-only records/status.
+    Nginx, Caddy or another proxy may handle the actual ingress.
+    Multiple proxies can also be chained, rather than exclusive.
+    A configured/healthy HAProxy backend does not prove traffic
+    reaches it. Verify the active request path, listeners and
+    upstream/downstream roles before treating these as live routing.
 
     Use this BEFORE calling opn_reconfigure_haproxy to verify the configuration
     is valid. This runs 'haproxy -c' internally and reports any syntax errors.
