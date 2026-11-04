@@ -8,6 +8,7 @@ from typing import Any, Literal
 from fastmcp import Context
 
 from opnsense_mcp.server import get_api, mcp
+from opnsense_mcp.tool_types import SiteName
 
 TraceProtocol = Literal["ICMP", "UDP", "TCP"]
 TraceIPVersion = Literal["4", "6"]
@@ -31,7 +32,7 @@ async def opn_ping(
     ctx: Context,
     host: str,
     count: int = 3,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Ping a host from the OPNsense firewall to test connectivity.
 
@@ -89,7 +90,7 @@ async def opn_traceroute(
     host: str,
     protocol: TraceProtocol = "ICMP",
     ip_version: TraceIPVersion = "4",
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Trace the network path from OPNsense to a destination host.
 
@@ -126,7 +127,7 @@ async def opn_dns_lookup(
     ctx: Context,
     hostname: str,
     server: str = "",
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Perform a DNS lookup from the OPNsense firewall.
 
@@ -152,7 +153,7 @@ async def opn_pf_states(
     ctx: Context,
     search: str = "",
     limit: int = 200,
-    site: str = "",
+    site: SiteName = "",
 ) -> dict[str, Any]:
     """Query the active PF (packet filter) state table.
 
