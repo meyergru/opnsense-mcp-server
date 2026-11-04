@@ -83,12 +83,8 @@ def _relation(value: Any) -> str:  # noqa: ANN401
         return value
     if isinstance(value, list) and all(isinstance(v, str) for v in value):
         return ",".join(value)
-    if isinstance(value, dict) and all(
-        isinstance(v, dict) and "selected" in v for v in value.values()
-    ):
-        return ",".join(
-            k for k, details in value.items() if str(details.get("selected")).lower() in {"true", "1"}
-        )
+    if isinstance(value, dict) and all(isinstance(v, dict) and "selected" in v for v in value.values()):
+        return ",".join(k for k, details in value.items() if str(details.get("selected")).lower() in {"true", "1"})
     raise ValueError("Cannot safely preserve existing WireGuard instance assignments")
 
 
@@ -126,9 +122,7 @@ async def _get(api: OPNsenseAPI, family: str, kind: str, obj_id: str) -> dict[st
     return {"uuid": obj_id, "fields": _sanitize(result[resource.field])}
 
 
-async def _add(
-    api: OPNsenseAPI, family: str, kind: str, data: dict[str, str], psk_ref: str = ""
-) -> dict[str, Any]:
+async def _add(api: OPNsenseAPI, family: str, kind: str, data: dict[str, str], psk_ref: str = "") -> dict[str, Any]:
     resource = _resource(family, kind)
     api.require_writes()
     values = _validated_values(data)
@@ -156,8 +150,7 @@ async def _add(
 
 
 async def _patch(
-    api: OPNsenseAPI, family: str, kind: str, obj_id: str,
-    changes: dict[str, str], psk_ref: str = ""
+    api: OPNsenseAPI, family: str, kind: str, obj_id: str, changes: dict[str, str], psk_ref: str = ""
 ) -> dict[str, Any]:
     resource = _resource(family, kind)
     api.require_writes()
@@ -198,9 +191,7 @@ async def _delete(api: OPNsenseAPI, family: str, kind: str, obj_id: str) -> dict
     return {"uuid": target, "result": _sanitize(result), "applied": False}
 
 
-async def _toggle(
-    api: OPNsenseAPI, family: str, kind: str, obj_id: str, enabled: bool
-) -> dict[str, Any]:
+async def _toggle(api: OPNsenseAPI, family: str, kind: str, obj_id: str, enabled: bool) -> dict[str, Any]:
     """Idempotently ensure an object is enabled or disabled.
 
     OPNsense MVC toggle*Action only accepts UUID and TOGGLES the state; it
@@ -292,9 +283,7 @@ async def opn_wireguard_delete_peer(ctx: Context, uuid: str, site: str = "") -> 
 
 
 @mcp.tool()
-async def opn_wireguard_toggle_peer(
-    ctx: Context, uuid: str, enabled: bool, site: str = ""
-) -> dict[str, Any]:
+async def opn_wireguard_toggle_peer(ctx: Context, uuid: str, enabled: bool, site: str = "") -> dict[str, Any]:
     """Enable/disable exactly one WireGuard peer, idempotently, without applying.
 
     Reads current enabled state first, then invokes OPNsense's toggleClient
@@ -316,9 +305,7 @@ async def opn_wireguard_get_instance(ctx: Context, uuid: str, site: str = "") ->
 
 
 @mcp.tool()
-async def opn_wireguard_toggle_instance(
-    ctx: Context, uuid: str, enabled: bool, site: str = ""
-) -> dict[str, Any]:
+async def opn_wireguard_toggle_instance(ctx: Context, uuid: str, enabled: bool, site: str = "") -> dict[str, Any]:
     """Enable/disable exactly one WireGuard instance; apply separately."""
     return await _toggle(get_api(ctx, site), "wireguard", "instance", uuid, enabled)
 
@@ -332,9 +319,7 @@ async def opn_wireguard_patch_instance(
 
 
 @mcp.tool()
-async def opn_wireguard_add_instance(
-    ctx: Context, fields: dict[str, str], site: str = ""
-) -> dict[str, Any]:
+async def opn_wireguard_add_instance(ctx: Context, fields: dict[str, str], site: str = "") -> dict[str, Any]:
     """Create one independent WireGuard instance; generate its keys locally in OPNsense.
 
     Does not modify existing WireGuard instances and does not apply changes.
@@ -453,9 +438,7 @@ async def opn_unbound_get(ctx: Context, resource: str, uuid: str, site: str = ""
 
 
 @mcp.tool()
-async def opn_unbound_add(
-    ctx: Context, resource: str, fields: dict[str, str], site: str = ""
-) -> dict[str, Any]:
+async def opn_unbound_add(ctx: Context, resource: str, fields: dict[str, str], site: str = "") -> dict[str, Any]:
     """Create one Unbound MVC object without restarting DNS."""
     return await _add(get_api(ctx, site), "unbound", resource, fields)
 
@@ -475,9 +458,7 @@ async def opn_unbound_delete(ctx: Context, resource: str, uuid: str, site: str =
 
 
 @mcp.tool()
-async def opn_unbound_toggle(
-    ctx: Context, resource: str, uuid: str, enabled: bool, site: str = ""
-) -> dict[str, Any]:
+async def opn_unbound_toggle(ctx: Context, resource: str, uuid: str, enabled: bool, site: str = "") -> dict[str, Any]:
     """Enable or disable one Unbound MVC object; no DNS reconfigure."""
     return await _toggle(get_api(ctx, site), "unbound", resource, uuid, enabled)
 
@@ -498,11 +479,8 @@ async def opn_service_apply(ctx: Context, service: str, site: str = "") -> dict[
     return {"service": service, "result": _sanitize(result)}
 
 
-
 @mcp.tool()
-async def opn_kea_list_leases6(
-    ctx: Context, search: str = "", limit: int = 100, site: str = ""
-) -> dict[str, Any]:
+async def opn_kea_list_leases6(ctx: Context, search: str = "", limit: int = 100, site: str = "") -> dict[str, Any]:
     """List Kea DHCPv6 leases without modifying lease state."""
     if not 1 <= limit <= 500:
         raise ValueError("limit must be 1..500")
