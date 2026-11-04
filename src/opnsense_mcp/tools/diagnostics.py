@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import Any, Literal
 
 from fastmcp import Context
 
 from opnsense_mcp.server import get_api, mcp
+
+TraceProtocol = Literal["ICMP", "UDP", "TCP"]
+TraceIPVersion = Literal["4", "6"]
 
 _MAX_PING_POLLS = 30
 _PING_POLL_INTERVAL = 1.0
@@ -84,14 +87,16 @@ async def opn_ping(
 async def opn_traceroute(
     ctx: Context,
     host: str,
-    protocol: str = "ICMP",
-    ip_version: str = "4",
+    protocol: TraceProtocol = "ICMP",
+    ip_version: TraceIPVersion = "4",
     site: str = "",
 ) -> dict[str, Any]:
     """Trace the network path from OPNsense to a destination host.
 
     Use this when you need to diagnose routing issues, identify where packets
     are being dropped, or visualize the network hops to a destination.
+    protocol is exactly ICMP, UDP or TCP; ip_version is a STRING '4' or '6'
+    (not an integer). host is a hostname or IP address.
     Returns: dict with 'result' (str) and 'response' (list of hops).
     """
     if err := _validate_hostname(host):
