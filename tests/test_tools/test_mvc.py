@@ -146,14 +146,14 @@ async def test_kea_add_validates_template_and_never_applies(mock_api_writes, moc
     )
     assert r["result"] == "saved"
     mock_api_writes.post.assert_awaited_once()
-    assert mock_api_writes.post.await_args.args[0] == "mvc.kea.reservation.get".replace(".get", ".add")
+    assert mock_api_writes.post.await_args.args[0] == "mvc.kea.reservation4.add"
 
 
 async def test_kea_list_uses_explicit_registered_search(mock_api, mock_ctx):
     mock_api.post = AsyncMock(return_value={"rows": []})
     await opn_kea_list(mock_ctx, resource="pd_pool6")
     mock_api.post.assert_awaited_once()
-    assert mock_api.post.await_args.args[0] == "mvc.kea.pdpool.get".replace(".get", ".search")
+    assert mock_api.post.await_args.args[0] == "mvc.kea.pd_pool6.search"
 
 
 async def test_unbound_patch_is_single_object_no_auto_apply(mock_api_writes, mock_ctx_writes):
@@ -207,7 +207,7 @@ async def test_wireguard_peer_disable_only_toggles_target_uuid(mock_api_writes, 
     assert result["enabled"] is False
     assert result["changed"] is True
     assert result["applied"] is False
-    mock_api_writes.post.assert_awaited_once_with("mvc.wireguard.client.toggle", path_suffix=PEER)
+    mock_api_writes.post.assert_awaited_once_with("mvc.wireguard.peer.toggle", path_suffix=PEER)
 
 
 async def test_wireguard_peer_disable_is_idempotent(mock_api_writes, mock_ctx_writes):
@@ -231,7 +231,7 @@ async def test_wireguard_peer_enable_calls_correct_toggle_only_once(mock_api_wri
     mock_api_writes.post = AsyncMock(return_value={"result": "Enabled"})
     result = await opn_wireguard_toggle_peer(mock_ctx_writes, uuid=PEER, enabled=True)
     assert result["changed"] is True
-    mock_api_writes.post.assert_awaited_once_with("mvc.wireguard.client.toggle", path_suffix=PEER)
+    mock_api_writes.post.assert_awaited_once_with("mvc.wireguard.peer.toggle", path_suffix=PEER)
 
 
 async def test_wireguard_peer_toggle_denied_read_only(mock_api, mock_ctx):
@@ -248,7 +248,7 @@ async def test_wireguard_instance_disable_no_auto_reconfigure(mock_api_writes, m
     mock_api_writes.post = AsyncMock(return_value={"result": "Disabled"})
     result = await opn_wireguard_toggle_instance(mock_ctx_writes, uuid=INSTANCE, enabled=False)
     assert result["applied"] is False
-    mock_api_writes.post.assert_awaited_once_with("mvc.wireguard.server.toggle", path_suffix=INSTANCE)
+    mock_api_writes.post.assert_awaited_once_with("mvc.wireguard.instance.toggle", path_suffix=INSTANCE)
 
 
 async def test_wireguard_peer_delete_is_explicit_no_auto_apply(mock_api_writes, mock_ctx_writes):
@@ -257,4 +257,4 @@ async def test_wireguard_peer_delete_is_explicit_no_auto_apply(mock_api_writes, 
     mock_api_writes.post = AsyncMock(return_value={"result": "deleted"})
     result = await opn_wireguard_delete_peer(mock_ctx_writes, uuid=PEER)
     assert result["applied"] is False
-    mock_api_writes.post.assert_awaited_once_with("mvc.wireguard.client.del", path_suffix=PEER)
+    mock_api_writes.post.assert_awaited_once_with("mvc.wireguard.peer.del", path_suffix=PEER)
