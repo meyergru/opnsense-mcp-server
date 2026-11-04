@@ -22,6 +22,8 @@ from opnsense_mcp.tools.mvc import (
     opn_wireguard_generate_psk,
     opn_wireguard_get_peer,
     opn_wireguard_patch_peer,
+    opn_wireguard_toggle_peer,
+    opn_wireguard_toggle_instance,
 )
 
 PEER = "11111111-1111-4111-8111-111111111111"
@@ -196,3 +198,63 @@ async def test_global_settings_read_and_patch_are_individual(mock_api_writes, mo
 def test_sanitize_masks_secrets_recursively():
     data = {"server": {"privkey": "SECRET", "psk": "SECRET2", "pubkey": "PUBLIC"}, "rows": [{"api_secret": "SECRET3"}]}
     assert _sanitize(data) == {"server": {"pubkey": "PUBLIC"}, "rows": [{}]}
+
+
+async def test_wireguard_peer_disable_only_toggles_target_uuid(mock_api_writes, mock_ctx_writes):
+    mock_api_writes.get = AsyncMock(return_value={"client": {"enabled": "1", "name": "peer-A"}})
+    mock_api_writes.post = AsyncMock(return_value={"result": "Disabled"})
+    result = await opn_wireguard_toggle_peer(mock_ctx_writes, uuid=PEER, enabled=False)
+    assert result["enabled"] is False
+    assert result["changed"] is True
+    assert result["applied"] is False
+    mock_api_writes.post.assert_awaited_once_with("mvc.wireguard.client.toggle", path_suffix=PEER)
+
+
+async def test_wireguard_peer_disable_is_idempotent(mock_api_writes, mock_ctx_writes):
+    mock_api_writes.get = AsyncMock(return_value={"client": {"enabled": "0"}})
+    mock_api_writes.post = AsyncMock()
+    result = await opn_wireguard_toggle_peer(mock_ctx_writes, uuid=PEER, enabled=False)
+    assert result["changed"] is False
+    mock_api_writes.post.assert_not_awaited()
+
+
+async def test_wireguard_peer_enable_is_idempotent(mock_api_writes, mock_ctx_writes):
+    mock_api_writes.get = AsyncMock(return_value={"client": {"enabled": "1"}})
+    mock_api_writes.post = AsyncMock()
+    result = await opn_wireguard_toggle_peer(mock_ctx_writes, uuid=PEER, enabled=True)
+    assert result["changed"] is False
+    mock_api_writes.post.assert_not_awaited()
+
+
+async def test_wireguard_peer_enable_calls_correct_toggle_only_once(mock_api_writes, mock_ctx_writes):
+    mock_api_writes.get = AsyncMock(return_value={"client": {"enabled": "0"}})
+    mock_api_writes.post = AsyncMock(return_value={"result": "Enabled"})
+    result = await opn_wireguard_toggle_peer(mock_ctx_writes, uuid=PEER, enabled=True)
+    assert result["changed"] is True
+    mock_api_writes.post.assert_awaited_once_with("mvc.wireguard.client.toggle", path_suffix=PEER)
+
+
+async def test_wireguard_peer_toggle_denied_read_only(mock_api, mock_ctx):
+    mock_api.get = AsyncMock()
+    mock_api.post = AsyncMock()
+    with pytest.raises(WriteDisabledError):
+        await opn_wireguard_toggle_peer(mock_ctx, uuid=PEER, enabled=False)
+    mock_api.get.assert_not_awaited()
+    mock_api.post.assert_not_awaited()
+
+
+async def test_wireguard_instance_disable_no_auto_reconfigure(mock_api_writes, mock_ctx_writes):
+    mock_api_writes.get = AsyncMock(return_value={"server": {"enabled": "1"}})
+    mock_api_writes.post = AsyncMock(return_value={"result": "Disabled"})
+    result = await opn_wireguard_toggle_instance(mock_ctx_writes, uuid=INSTANCE, enabled=False)
+    assert result["applied"] is False
+    mock_api_writes.post.assert_awaited_once_with("mvc.wireguard.server.toggle", path_suffix=INSTANCE)
+
+
+async def test_wireguard_peer_delete_is_explicit_no_auto_apply(mock_api_writes, mock_ctx_writes):
+    from opnsense_mcp.tools.mvc import opn_wireguard_delete_peer
+
+    mock_api_writes.post = AsyncMock(return_value={"result": "deleted"})
+    result = await opn_wireguard_delete_peer(mock_ctx_writes, uuid=PEER)
+    assert result["applied"] is False
+    mock_api_writes.post.assert_awaited_once_with("mvc.wireguard.client.del", path_suffix=PEER)
