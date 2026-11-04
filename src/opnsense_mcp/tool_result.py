@@ -17,6 +17,4 @@ def structured_table_result(value: object) -> dict[str, Any]:
         return cast(dict[str, Any], value)
     if isinstance(value, list):
         return {"rows": value, "rowCount": len(value)}
-    raise OPNsenseAPIError(
-        f"Unexpected table response type: {type(value).__name__} (expected object or array)"
-    )
+    raise OPNsenseAPIError(f"Unexpected table response type: {type(value).__name__} (expected object or array)")
