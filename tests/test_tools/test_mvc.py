@@ -258,3 +258,35 @@ async def test_wireguard_peer_delete_is_explicit_no_auto_apply(mock_api_writes, 
     result = await opn_wireguard_delete_peer(mock_ctx_writes, uuid=PEER)
     assert result["applied"] is False
     mock_api_writes.post.assert_awaited_once_with("mvc.wireguard.peer.del", path_suffix=PEER)
+
+
+async def test_wireguard_instance_create_generates_private_key_inside_server(mock_api_writes, mock_ctx_writes):
+    from opnsense_mcp.tools.mvc import opn_wireguard_add_instance
+
+    private = "A" * 43 + "="
+    public = "B" * 43 + "="
+    mock_api_writes.get = AsyncMock(
+        side_effect=[
+            {"server": {"name": "", "privkey": "", "pubkey": ""}},
+            {"status": "ok", "privkey": private, "pubkey": public},
+        ]
+    )
+    mock_api_writes.post = AsyncMock(return_value={"result": "saved", "uuid": INSTANCE})
+    result = await opn_wireguard_add_instance(mock_ctx_writes, {"name": "wg-new"})
+    assert result["public_key"] == public
+    assert private not in str(result)
+    mock_api_writes.post.assert_awaited_once_with(
+        "mvc.wireguard.instance.add",
+        {"server": {"name": "wg-new", "privkey": private, "pubkey": public}},
+    )
+
+
+async def test_wireguard_instance_delete_is_one_object_no_apply(mock_api_writes, mock_ctx_writes):
+    from opnsense_mcp.tools.mvc import opn_wireguard_delete_instance
+
+    mock_api_writes.post = AsyncMock(return_value={"result": "deleted"})
+    result = await opn_wireguard_delete_instance(mock_ctx_writes, uuid=INSTANCE)
+    assert result["applied"] is False
+    mock_api_writes.post.assert_awaited_once_with(
+        "mvc.wireguard.instance.del", path_suffix=INSTANCE
+    )
