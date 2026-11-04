@@ -56,12 +56,42 @@ def _snake(action: str) -> str:
     return re.sub(r"(?<!^)(?=[A-Z])", "_", action).lower()
 
 
+# Global configurations use MVC getAction/setAction (partial setNodes on OPNsense).
+GLOBAL_SETTINGS: dict[str, tuple[str, str]] = {
+    "kea_dhcpv4": ("kea/dhcpv4", "dhcpv4"),
+    "kea_dhcpv6": ("kea/dhcpv6", "dhcpv6"),
+    "kea_ctrl_agent": ("kea/ctrlAgent", "ctrlagent"),
+    "kea_ddns": ("kea/ddns", "ddns"),
+    "radvd": ("radvd/settings", "radvd"),
+    "unbound": ("unbound/settings", "unbound"),
+}
+
+APPLY_SERVICES = frozenset({"kea", "radvd", "unbound", "wireguard"})
+
+
 def generate_operations() -> tuple[dict[str, tuple[str, str]], frozenset[str], frozenset[str], frozenset[tuple[str, str]]]:
     """Return fixed registry and explicit HTTP-method permissions for these resources."""
     endpoints: dict[str, tuple[str, str]] = {}
     gets: set[str] = set()
     searches: set[str] = set()
     writes: set[tuple[str, str]] = set()
+    for name, (controller, _) in GLOBAL_SETTINGS.items():
+        for verb in ("get", "set"):
+            key = f"mvc.settings.{name}.{verb}"
+            endpoints[key] = (f"{controller}/{verb}", f"{controller}/{verb}")
+            if verb == "get":
+                gets.add(key)
+            else:
+                writes.add(("POST", key))
+    for service in APPLY_SERVICES:
+        key = f"mvc.service.{service}.reconfigure"
+        path = f"{service}/service/reconfigure"
+        endpoints[key] = (path, path)
+        writes.add(("POST", key))
+    endpoints["mvc.kea.leases6.search"] = ("kea/leases6/search", "kea/leases6/search")
+    searches.add("mvc.kea.leases6.search")
+    endpoints["mvc.kea.leases.del"] = ("kea/leases/delLease", "kea/leases/del_lease")
+    writes.add(("POST", "mvc.kea.leases.del"))
     for resources in RESOURCES.values():
         for resource in resources.values():
             for verb in ("search", "get", "add", "set", "del", "toggle"):
