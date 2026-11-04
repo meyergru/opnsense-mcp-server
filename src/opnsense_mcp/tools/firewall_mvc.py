@@ -78,7 +78,7 @@ def _checked(model: dict[str, Any], data: dict[str, str]) -> None:
 
 
 async def _get(api: OPNsenseAPI, kind: str, identity: str) -> dict[str, Any]:
-    obj = _kind(kind)
+    _kind(kind)
     return await api.get(f"fw26.{kind}.get", path_suffix=_uuid(identity))
 
 
