@@ -29,7 +29,6 @@ PEER = "11111111-1111-4111-8111-111111111111"
 INSTANCE = "22222222-2222-4222-8222-222222222222"
 
 
-
 async def test_wireguard_tool_descriptions_explain_remote_first_management_risk():
     """The model sees ordering and no-poll guidance in actual registered tool descriptions."""
     from opnsense_mcp.server import mcp
@@ -62,6 +61,7 @@ async def test_wireguard_tool_descriptions_explain_remote_first_management_risk(
     ):
         assert "REMOTE" in descriptions[name], name
         assert "LOCAL" in descriptions[name], name
+
 
 def test_all_approved_mvc_endpoints_are_in_global_registry():
     from opnsense_mcp.api_client import ENDPOINT_REGISTRY
