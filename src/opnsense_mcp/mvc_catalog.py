@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from typing import Literal
+from typing import Literal
 
 
 @dataclass(frozen=True)
@@ -38,6 +39,21 @@ KeaResourceName = Literal[
     "pd_pool6",
     "ha_peer6",
 ]
+
+
+UnboundResourceName = Literal["host", "forward", "host_alias", "acl", "dnsbl"]
+
+SettingsSubsystemName = Literal[
+    "kea_dhcpv4",
+    "kea_dhcpv6",
+    "kea_ctrl_agent",
+    "kea_ddns",
+    "radvd",
+    "unbound",
+    "wireguard",
+]
+
+ApplyServiceName = Literal["kea", "radvd", "unbound", "wireguard"]
 
 
 RESOURCES: dict[str, dict[str, MVCResource]] = {
