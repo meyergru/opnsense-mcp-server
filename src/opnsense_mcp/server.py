@@ -17,6 +17,7 @@ from opnsense_mcp import __version__
 from opnsense_mcp.api_client import OPNsenseAPI, SavepointManager
 from opnsense_mcp.config_cache import ConfigCache
 from opnsense_mcp.error_results import ErrorResultMiddleware
+from opnsense_mcp.log_sanitizer import ExpectedToolErrorFilter
 from opnsense_mcp.secret_guard import SecretOutputGuard
 from opnsense_mcp.targets import TargetRegistry
 from opnsense_mcp.tool_audit import ToolAuditMiddleware
@@ -139,6 +140,7 @@ def main() -> None:
         level=getattr(logging, _transport.log_level),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
+    logging.getLogger("fastmcp.server.server").addFilter(ExpectedToolErrorFilter())
     if _transport.transport == "stdio":
         mcp.run(transport="stdio")
     else:
