@@ -1,11 +1,13 @@
 # Portainer Stack for dedicated VM "mcp".
-# First deployment: publish your reviewed image to GHCR, then fill in credentials.
+# First deployment: publish a reviewed main commit to GHCR, set MCP_IMAGE_SHA
+# as a Portainer Stack environment variable to that exact 40-hex commit hash,
+# then fill in the target credentials.
 # All target settings and tokens deliberately live in this Compose file.
 name: opnsense-mcp
 
 services:
   opnsense-mcp:
-    image: ghcr.io/meyergru/opnsense-mcp-server:dev
+    image: ghcr.io/meyergru/opnsense-mcp-server:sha-${MCP_IMAGE_SHA:?Set MCP_IMAGE_SHA to the reviewed published commit SHA in Portainer Stack variables}
     restart: unless-stopped
     init: true
 
