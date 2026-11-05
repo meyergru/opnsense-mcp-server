@@ -102,6 +102,9 @@ environment:
 | `OPNSENSE_<SITE>_API_KEY` | *required* | API key of this target. |
 | `OPNSENSE_<SITE>_API_SECRET` | *required* | API secret of this target. |
 | `OPNSENSE_<SITE>_VERIFY_SSL` | `true` | Verify the HTTPS certificate. |
+| `OPNSENSE_MCP_ADDITIONAL_CA_FILE` | unset | Optional absolute path to additional PEM root CA inside container, added to default CA trust; fails startup for missing/invalid file. |
+| `OPNSENSE_MCP_LOG_LEVEL` | `INFO` | Python log level: `DEBUG`, `INFO`, `WARNING`, `ERROR`. |
+| `OPNSENSE_MCP_LOG_TOOL_CALLS` | `errors` | Audit policy: `none`, `errors`, `all`; never logs tool input/output or secrets. |
 
 Site aliases start with a lower-case letter and may contain lower-case letters, digits, underscores and interior dots. Environment prefixes are upper-case with dots normalized to underscores: `opnsense.mgsoft` → `OPNSENSE_OPNSENSE_MGSOFT_URL` (and `_API_KEY`, `_API_SECRET`, `_VERIFY_SSL`, `_READ_ONLY`). Aliases that would normalize to the same prefix (such as `opnsense.mgsoft` and `opnsense_mgsoft`) are rejected. Named targets inherit `OPNSENSE_MCP_READ_ONLY=true` by default, with optional per-site overrides. `OPNSENSE_ALLOW_WRITES` is legacy-only and does not control named targets.
 
@@ -404,3 +407,29 @@ See [OPNsense Core 26.7 API coverage and remaining gaps](docs/core-api-coverage-
 ## Upstream and license
 
 This repository originated as a fork of [lucamarien/opnsense-mcp-server](https://github.com/lucamarien/opnsense-mcp-server). Original copyright notices are retained. Licensed under **MIT**; see [LICENSE](LICENSE) and [CONTRIBUTING.md](CONTRIBUTING.md).
+
+
+## Optional internal CA and safe tool audit (next release)
+
+Mount your trusted CA PEM read-only from the Docker host and set the corresponding
+container path; do not modify the image or run `update-ca-certificates`:
+
+```yaml
+services:
+  opnsense-mcp:
+    environment:
+      OPNSENSE_MCP_ADDITIONAL_CA_FILE: "/etc/mcp/ca.crt"
+      OPNSENSE_MCP_LOG_LEVEL: "INFO"
+      OPNSENSE_MCP_LOG_TOOL_CALLS: "all" # none | errors | all
+      OPNSENSE_LOCAL_VERIFY_SSL: "true"
+    volumes:
+      - /YOUR/HOST/PATH/internal-ca.crt:/etc/mcp/ca.crt:ro
+```
+
+The optional CA is appended to the system trust roots. Using `VERIFY_SSL=false`
+intentionally disables certificate verification even with a configured CA.
+A startup `READY` line confirms that the server's targets were initialized.
+Tool audit messages report **only** the tool name, validated site alias,
+result category and duration. They never include API credentials, arguments,
+API responses or Python exception text. Error reporting does not override
+existing MCP exception masking, tool schemas, or server read-only policy.
