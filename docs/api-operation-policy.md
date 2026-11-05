@@ -6,7 +6,7 @@ or future releases.
 
 ## Coverage
 
-- **297** registered logical endpoints in `ENDPOINT_REGISTRY`: 114 original/static mappings, 114 generated reviewed MVC mappings for Kea/radvd/Unbound/WireGuard, and 69 generated reviewed Firewall 26.7 mappings.
+- **298** registered logical endpoints in `ENDPOINT_REGISTRY`: 114 original/static mappings, 115 generated reviewed MVC mappings for Kea/radvd/Unbound/WireGuard (including separate Kea IPv4/IPv6 lease deletion controllers), and 69 generated reviewed Firewall 26.7 mappings.
 - **36** dynamically constructed HAProxy resource endpoints (nine resource
   kinds × get/add/set/del), with validated resource identifiers.
 - Some logical endpoints have **multiple differently classified HTTP
