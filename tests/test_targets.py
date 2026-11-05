@@ -247,3 +247,10 @@ async def test_dotted_alias_inherits_global_read_only_by_default():
         assert registry.resolve("opnsense.mgsoft").api._config.allow_writes is False
     finally:
         await registry.close()
+
+
+def test_missing_additional_ca_rejected_at_preflight():
+    env = {**_env(), "OPNSENSE_MCP_ADDITIONAL_CA_FILE": "/nonexistent-mcp-ca.pem"}
+    with patch.dict("os.environ", env, clear=True):
+        with pytest.raises(ValueError, match="ADDITIONAL_CA_FILE"):
+            TargetRegistry.configs_from_environment()
