@@ -51,7 +51,10 @@ def load_transport_config() -> TransportConfig:
         raise ValueError("OPNSENSE_MCP_LOG_TOOL_CALLS must be none, errors or all")
 
     if value == "stdio":
-        return TransportConfig(transport="stdio", host="", port=0, token=None, max_result_bytes=max_bytes, log_level=log_level, log_tool_calls=log_tool_calls)
+        return TransportConfig(
+            transport="stdio", host="", port=0, token=None, max_result_bytes=max_bytes,
+            log_level=log_level, log_tool_calls=log_tool_calls,
+        )
 
     token = os.environ.get("OPNSENSE_MCP_AUTH_TOKEN", "")
     if not _TOKEN_PATTERN.fullmatch(token):
@@ -66,7 +69,10 @@ def load_transport_config() -> TransportConfig:
         raise ValueError("OPNSENSE_MCP_PORT must be an integer") from exc
     if port < 1 or port > 65535:
         raise ValueError("OPNSENSE_MCP_PORT must be between 1 and 65535")
-    return TransportConfig(transport="http", host=host, port=port, token=token, max_result_bytes=max_bytes, log_level=log_level, log_tool_calls=log_tool_calls)
+    return TransportConfig(
+        transport="http", host=host, port=port, token=token, max_result_bytes=max_bytes,
+        log_level=log_level, log_tool_calls=log_tool_calls,
+    )
 
 
 def build_auth(config: TransportConfig) -> StaticTokenVerifier | None:
