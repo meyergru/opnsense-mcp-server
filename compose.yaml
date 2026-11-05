@@ -5,7 +5,7 @@ name: opnsense-mcp
 
 services:
   opnsense-mcp:
-    # Deliberately pinned to a reviewed release; publishing does not redeploy.
+    # Deliberately pinned to 0.8.0 until 0.8.1 is manually published and selected.
     image: ghcr.io/meyergru/opnsense-mcp-server:0.8.0
     restart: unless-stopped
     init: true
