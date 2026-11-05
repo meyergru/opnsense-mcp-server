@@ -360,6 +360,7 @@ do not use it.**
 - **No direct SSH or shell:** Requests use the OPNsense REST API. The container is configured as non-root, with read-only root filesystem and dropped capabilities.
 - **Controlled updates:** Watchtower opt-out; the GHCR publishing workflow must be started manually. Audit dependencies and prefer SHA-tagged images rather than automatic updates.
 - **Wire confidentiality:** The supplied HTTP example uses **unencrypted HTTP**, including for the bearer token. Restrict it to a trusted internal network or use TLS when required.
+- **Secret exchange is a functional requirement, not universally forbidden:** See [Secret-handling boundaries](docs/secret-handling.md). Intentionally setting a DDNS password/token, provisioning a WireGuard peer on a device without MCP support (e.g. FritzBox or UniFi), changing a password or requesting a newly created API credential may require handling secret material. These operations are not inherently suspicious; the user must explicitly authorize the sensitive workflow and accept exposure to the AI client and its transport. The default output guard still prevents accidental secret-field disclosure. The current API does **not** provide a generic authorized secret-reveal tool; do not mistake documentation for an implemented capability.
 
 This implementation is **not certified as exfiltration-proof or comprehensively secret-safe**. An external firewall boundary and least-privilege API accounts remain mandatory before using real credentials.
 
