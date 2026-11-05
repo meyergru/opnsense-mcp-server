@@ -630,7 +630,7 @@ _SAVEPOINTS_REMOVED_IN = (26, 7)
 # The allowed characters cover UUIDs, IPv4/IPv6 leases, aliases, rule move
 # selectors and revision identifiers; percent escapes and query delimiters
 # are deliberately not accepted in caller-supplied path components.
-_PATH_SUFFIX_PATTERN = re.compile(r"[A-Za-z0-9_.,:/-]+\\Z")
+_PATH_SUFFIX_PATTERN = re.compile(r"[A-Za-z0-9_.,:/-]+\Z")
 
 
 def _validated_path_suffix(value: str) -> str:
