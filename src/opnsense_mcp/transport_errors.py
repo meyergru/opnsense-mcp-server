@@ -28,7 +28,7 @@ def classify_transport_error(exc: httpx.HTTPError) -> tuple[str, str]:
     for cause in chain:
         if isinstance(cause, ssl.SSLCertVerificationError):
             code = getattr(cause, "verify_code", None)
-            reason = str(getattr(cause, "verify_message", "")).lower()
+            reason = (str(getattr(cause, "verify_message", "")) + " " + str(cause)).lower()
             if code in (62, 64) or "hostname mismatch" in reason or "ip address mismatch" in reason:
                 return "tls_hostname_mismatch", "Server certificate does not match the configured hostname or IP"
             if code == 10 or "certificate has expired" in reason:
