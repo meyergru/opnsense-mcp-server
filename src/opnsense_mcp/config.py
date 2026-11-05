@@ -15,6 +15,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from opnsense_mcp.tls import validate_additional_ca
+
 _TRUTHY = frozenset({"true", "1", "yes"})
 _FALSY = frozenset({"false", "0", "no"})
 
@@ -32,6 +34,7 @@ class OPNsenseConfig:
     api_secret: str
     verify_ssl: bool
     allow_writes: bool
+    additional_ca_file: str = ""
 
     def __repr__(self) -> str:
         return f"OPNsenseConfig(url={self.url!r}, verify_ssl={self.verify_ssl}, allow_writes={self.allow_writes})"
@@ -103,10 +106,14 @@ def load_config() -> OPNsenseConfig:
     if "OPNSENSE_MCP_READ_ONLY" in os.environ:
         allow_writes = not mcp_read_only_enabled()
 
+    ca_file = os.environ.get("OPNSENSE_MCP_ADDITIONAL_CA_FILE", "").strip()
+    validate_additional_ca(ca_file)
+
     return OPNsenseConfig(
         url=url,
         api_key=api_key,
         api_secret=api_secret,
         verify_ssl=verify_ssl,
         allow_writes=allow_writes,
+        additional_ca_file=ca_file,
     )
