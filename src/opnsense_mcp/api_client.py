@@ -752,10 +752,12 @@ class OPNsenseAPI:
             OPNsenseAPIError: If the API returns an error.
         """
         self._authorize_operation("GET", endpoint)
+        if path_suffix:
+            path_suffix = _validated_path_suffix(path_suffix)
         await self._ensure_version_detected()
         path = self._resolve_endpoint(endpoint)
         if path_suffix:
-            path = f"{path}/{_validated_path_suffix(path_suffix)}"
+            path = f"{path}/{path_suffix}"
         self._check_blocklist(path)
         return await self._request("GET", path)
 
@@ -782,10 +784,12 @@ class OPNsenseAPI:
             OPNsenseAPIError: If the API returns an error.
         """
         self._authorize_operation("POST", endpoint)
+        if path_suffix:
+            path_suffix = _validated_path_suffix(path_suffix)
         await self._ensure_version_detected()
         path = self._resolve_endpoint(endpoint)
         if path_suffix:
-            path = f"{path}/{_validated_path_suffix(path_suffix)}"
+            path = f"{path}/{path_suffix}"
         self._check_blocklist(path)
         return await self._request("POST", path, data=data)
 
