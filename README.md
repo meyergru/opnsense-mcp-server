@@ -201,7 +201,7 @@ The firmware monitor cannot correlate `upgradestatus` to the job UUID: a `backen
 | `opn_update_nat_rule` | Update NAT port forwarding rule with savepoint (OPNsense < 26.7). Params: `uuid`, `interface`, `protocol`, `destination_port`, `target_ip`, `target_port`, `description`, `enabled` | Yes |
 | `opn_delete_nat_rule` | Delete a NAT port forwarding rule by UUID with savepoint (OPNsense < 26.7). Params: `uuid` | Yes |
 
-> **Note:** Named targets are always read-only. The older savepoint functionality applies only to legacy write-enabled stdio configurations.
+> **Note:** Named targets are read-only by default, but an explicit per-site `OPNSENSE_<SITE>_READ_ONLY=false` override permits reviewed write operations. On OPNsense 26.7+ firewall savepoint/automatic rollback is unavailable, regardless of transport.
 
 ### Firewall 26.7 MVC resources (18 additional tools)
 
