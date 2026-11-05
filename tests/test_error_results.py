@@ -1,4 +1,5 @@
 """End-to-end FastMCP surface for errors: a certificate failure must reach caller."""
+
 from __future__ import annotations
 
 import pytest
@@ -15,8 +16,7 @@ async def test_certificate_error_reaches_mcp_caller_as_structured_iserror() -> N
 
     @mcp.tool()
     async def broken(site: str = "") -> dict:
-        raise OPNsenseAPIError("SECRET downstream https://hidden.invalid/path",
-                              code="tls_hostname_mismatch")
+        raise OPNsenseAPIError("SECRET downstream https://hidden.invalid/path", code="tls_hostname_mismatch")
 
     result = await mcp.call_tool("broken", {"site": "opnsense.thomas"})
     assert result.is_error is True
