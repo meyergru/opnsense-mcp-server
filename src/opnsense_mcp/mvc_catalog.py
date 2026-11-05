@@ -127,8 +127,12 @@ def generate_operations() -> tuple[
     gets.add("mvc.wireguard.instance.generate_keypair")
     endpoints["mvc.kea.leases6.search"] = ("kea/leases6/search", "kea/leases6/search")
     searches.add("mvc.kea.leases6.search")
-    endpoints["mvc.kea.leases.del"] = ("kea/leases/delLease", "kea/leases/del_lease")
-    writes.add(("POST", "mvc.kea.leases.del"))
+    # LeasesController is abstract: the GUI uses the concrete leases4/leases6
+    # controllers for runtime lease deletion, not /kea/leases/del_lease.
+    for family in (4, 6):
+        key = f"mvc.kea.leases{family}.del"
+        endpoints[key] = (f"kea/leases{family}/delLease", f"kea/leases{family}/del_lease")
+        writes.add(("POST", key))
     for resources in RESOURCES.values():
         for kind, resource in resources.items():
             for verb in ("search", "get", "add", "set", "del", "toggle"):
