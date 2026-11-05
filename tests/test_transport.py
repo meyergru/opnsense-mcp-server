@@ -82,3 +82,18 @@ def test_response_limit_from_environment():
     with patch.dict("os.environ", {"OPNSENSE_MCP_MAX_RESULT_BYTES": "8192"}, clear=True):
         settings = load_transport_config()
     assert settings.max_result_bytes == 8192
+
+
+@pytest.mark.parametrize("mode", ["none", "errors", "all"])
+def test_tool_logging_mode(mode):
+    with patch.dict("os.environ", {"OPNSENSE_MCP_LOG_TOOL_CALLS": mode}, clear=True):
+        assert load_transport_config().log_tool_calls == mode
+
+
+def test_invalid_logging_options():
+    with patch.dict("os.environ", {"OPNSENSE_MCP_LOG_TOOL_CALLS": "verbose"}, clear=True):
+        with pytest.raises(ValueError, match="LOG_TOOL_CALLS"):
+            load_transport_config()
+    with patch.dict("os.environ", {"OPNSENSE_MCP_LOG_LEVEL": "TRACE"}, clear=True):
+        with pytest.raises(ValueError, match="LOG_LEVEL"):
+            load_transport_config()
