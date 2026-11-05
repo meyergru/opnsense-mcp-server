@@ -146,8 +146,9 @@ class TestVersionDetection:
     async def test_detection_failure_raises_error(self, mock_config, mock_httpx_client):
         mock_httpx_client.get.side_effect = httpx.ConnectError("refused")
         api = _make_api(mock_config, mock_httpx_client)
-        with pytest.raises(OPNsenseAPIError, match="Failed to connect"):
+        with pytest.raises(OPNsenseAPIError, match="Version detection failed") as err:
             await api._ensure_version_detected()
+        assert err.value.code == "connect_error"
 
     async def test_detection_http_error(self, mock_config, mock_httpx_client):
         mock_httpx_client.get.return_value = _make_response(status_code=401)
@@ -258,8 +259,9 @@ class TestHTTPMethods:
     async def test_connect_error_raises_api_error(self, mock_config, mock_httpx_client):
         mock_httpx_client.get.side_effect = httpx.ConnectError("refused")
         api = _make_api_with_version(mock_config, mock_httpx_client, (25, 1))
-        with pytest.raises(OPNsenseAPIError, match="Connection failed"):
+        with pytest.raises(OPNsenseAPIError, match="TCP/DNS connection") as err:
             await api.get("firmware.status")
+        assert err.value.code == "connect_error"
 
 
 # --- Error Parsing Tests ---
