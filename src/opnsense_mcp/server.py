@@ -17,8 +17,8 @@ from opnsense_mcp import __version__
 from opnsense_mcp.api_client import OPNsenseAPI, SavepointManager
 from opnsense_mcp.config_cache import ConfigCache
 from opnsense_mcp.secret_guard import SecretOutputGuard
-from opnsense_mcp.tool_audit import ToolAuditMiddleware
 from opnsense_mcp.targets import TargetRegistry
+from opnsense_mcp.tool_audit import ToolAuditMiddleware
 from opnsense_mcp.transport import build_auth, load_transport_config
 
 
