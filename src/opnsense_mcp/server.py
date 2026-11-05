@@ -5,6 +5,7 @@ Registers all tool modules and starts STDIO or authenticated Streamable HTTP.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator
 from typing import Any, cast
 
@@ -17,6 +18,7 @@ from opnsense_mcp.api_client import OPNsenseAPI, SavepointManager
 from opnsense_mcp.config_cache import ConfigCache
 from opnsense_mcp.secret_guard import SecretOutputGuard
 from opnsense_mcp.targets import TargetRegistry
+from opnsense_mcp.tool_audit import ToolAuditMiddleware
 from opnsense_mcp.transport import build_auth, load_transport_config
 
 
@@ -24,6 +26,8 @@ from opnsense_mcp.transport import build_auth, load_transport_config
 async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
     """Initialize the OPNsense API client, savepoint manager, and config cache."""
     targets = TargetRegistry.from_environment()
+    logger = logging.getLogger("opnsense_mcp")
+    logger.info("READY opnsense-mcp version=%s sites=%d", __version__, len(targets.names))
     try:
         yield {"targets": targets}
     finally:
@@ -34,6 +38,7 @@ _transport = load_transport_config()
 mcp = FastMCP("opnsense", version=__version__, lifespan=app_lifespan, auth=build_auth(_transport))
 mcp.add_middleware(ResponseLimitingMiddleware(max_size=_transport.max_result_bytes))
 mcp.add_middleware(SecretOutputGuard())
+mcp.add_middleware(ToolAuditMiddleware(_transport.log_tool_calls))
 
 
 @mcp.tool()
@@ -128,6 +133,10 @@ from opnsense_mcp.tools import (  # noqa: E402
 
 def main() -> None:
     """Entry point for the OPNsense MCP server."""
+    logging.basicConfig(
+        level=getattr(logging, _transport.log_level),
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
     if _transport.transport == "stdio":
         mcp.run(transport="stdio")
     else:

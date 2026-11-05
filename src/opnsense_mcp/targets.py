@@ -23,6 +23,7 @@ from urllib.parse import urlsplit
 from opnsense_mcp.api_client import OPNsenseAPI, SavepointManager
 from opnsense_mcp.config import ConfigError, OPNsenseConfig, load_config, mcp_read_only_enabled
 from opnsense_mcp.config_cache import ConfigCache
+from opnsense_mcp.tls import validate_additional_ca
 
 _SITE_PATTERN = re.compile(r"[a-z](?:[a-z0-9_]|\.(?=[a-z0-9])){0,63}\Z")
 
@@ -120,6 +121,8 @@ class TargetRegistry:
         if len(set(env_names)) != len(env_names):
             raise ConfigError("OPNSENSE_SITES aliases map to conflicting environment prefixes")
 
+        ca_file = os.environ.get("OPNSENSE_MCP_ADDITIONAL_CA_FILE", "").strip()
+        validate_additional_ca(ca_file)
         configs: dict[str, OPNsenseConfig] = {}
         for name in names:
             prefix = f"OPNSENSE_{name.upper().replace('.', '_')}_"
@@ -145,6 +148,7 @@ class TargetRegistry:
                 api_secret=values["API_SECRET"],
                 verify_ssl=ssl_value == "true",
                 allow_writes=not mcp_read_only_enabled(name),
+                additional_ca_file=ca_file,
             )
         return configs
 
