@@ -1,7 +1,7 @@
 """Keep Python runtime, package metadata and release-notes versions aligned."""
 
-from pathlib import Path
 import tomllib
+from pathlib import Path
 
 from opnsense_mcp import __version__
 
