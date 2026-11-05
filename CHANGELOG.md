@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.8.2] - 2026-11-05
+
+### Fixed
+
+- Stop swallowing underlying TLS validation failures during automatic
+  OPNsense firmware-version detection and ordinary API requests.
+- Distinguish hostname/certificate mismatches, expired certificates,
+  untrusted CA chains, connection/read timeouts and failed API credentials.
+- Deliver sanitized, structured `isError=true` MCP tool results with stable
+  error types and safe messages instead of opaque framework errors.
+- Prevent FastMCP's raw traceback logs for expected OPNsense API failures,
+  without suppressing unexpected programming errors.
+
+### Security and operations
+
+- Never return raw upstream exception text, full URLs, response bodies,
+  API credentials or tracebacks to MCP clients.
+- Add regression coverage for SSL/TLS classification, FastMCP error-result
+  serialization, audit safety and traceback suppression.
+- The published 0.8.1 image remains unchanged; 0.8.2 publication is manual
+  and does not automatically deploy a container.
+
 ## [0.8.1] - 2026-11-05
 
 ### Added

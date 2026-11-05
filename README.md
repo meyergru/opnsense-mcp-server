@@ -433,3 +433,20 @@ Tool audit messages report **only** the tool name, validated site alias,
 result category and duration. They never include API credentials, arguments,
 API responses or Python exception text. Error reporting does not override
 existing MCP exception masking, tool schemas, or server read-only policy.
+
+## Actionable TLS and transport errors (0.8.2)
+
+Errors from OPNsense version detection and API calls are classified as
+`tls_hostname_mismatch`, `tls_untrusted_ca`, `tls_certificate_expired`,
+`tls_certificate_invalid`, `connect_timeout`, `read_timeout`,
+`authentication_failed`, `permission_denied` or other bounded categories.
+
+The MCP caller receives `isError=true` and a structured `error.type`,
+`error.message`, `error.http_status` result. Neither exception strings,
+server URLs, credentials nor Python tracebacks are forwarded. Known OPNsense
+API failures no longer generate raw FastMCP exception traces in normal Docker
+logs; tool-audit records remain separately configurable.
+
+This feature requires the manually published `0.8.2` image. The checked-in
+Compose template deliberately retains its older pin until you explicitly
+change the tag in Portainer.
