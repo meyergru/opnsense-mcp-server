@@ -10,8 +10,13 @@ from opnsense_mcp.log_sanitizer import ExpectedToolErrorFilter
 
 def _record(error: BaseException) -> logging.LogRecord:
     return logging.LogRecord(
-        "fastmcp.server.server", logging.ERROR, __file__, 1,
-        "Error calling tool", (), (type(error), error, None),
+        "fastmcp.server.server",
+        logging.ERROR,
+        __file__,
+        1,
+        "Error calling tool",
+        (),
+        (type(error), error, None),
     )
 
 
