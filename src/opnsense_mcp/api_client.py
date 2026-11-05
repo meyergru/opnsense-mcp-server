@@ -6,8 +6,8 @@ endpoint blocklist, and error response parsing.
 
 from __future__ import annotations
 
-from enum import StrEnum
 import re
+from enum import StrEnum
 from typing import Any
 
 import httpx
