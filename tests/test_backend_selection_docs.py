@@ -89,3 +89,18 @@ def test_backend_selection_guidance_covers_distinct_service_roles():
     assert "Nginx" in inspect.getdoc(haproxy.opn_haproxy_search)
     assert "Caddy" in inspect.getdoc(haproxy.opn_haproxy_search)
     assert "chained" in inspect.getdoc(haproxy.opn_haproxy_search)
+
+
+def test_kea_lease_and_arp_docs_explain_real_backend_semantics():
+    from opnsense_mcp.tools import mvc, network
+
+    delete_doc = inspect.getdoc(mvc.opn_kea_delete_lease)
+    assert delete_doc is not None
+    assert "leases4/del_lease" in delete_doc
+    assert "leases6/del_lease" in delete_doc
+    assert "valid_lifetime" in delete_doc
+    assert "restart" in delete_doc
+    arp_doc = inspect.getdoc(network.opn_arp_table)
+    assert arp_doc is not None
+    assert "manufacturer/mac_info" in arp_doc
+    assert "OUI" in arp_doc

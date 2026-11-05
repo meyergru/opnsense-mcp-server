@@ -30,6 +30,10 @@ async def opn_arp_table(ctx: Context, site: SiteName = "") -> dict[str, Any]:
 
     Use this when you need to find which MAC address is associated with an IP,
     identify devices on a network segment, or troubleshoot connectivity.
+    OPNsense enriches some ARP entries with manufacturer/mac_info from its
+    MAC vendor database. Use those fields when present; no separate OUI lookup
+    is required. Vendor information may be missing or inaccurate and does not
+    prove the identity of a device.
     Returns: dict containing 'rows' (ARP entries) and 'rowCount' when the API returns an array.
     """
     api = get_api(ctx, site)
