@@ -12,6 +12,8 @@ from typing import Any
 
 import httpx
 
+from opnsense_mcp.tls import verification
+
 from opnsense_mcp.config import OPNsenseConfig
 from opnsense_mcp.firewall_catalog import FIREWALL_ENDPOINTS, FIREWALL_GETS, FIREWALL_SEARCHES, FIREWALL_WRITES
 from opnsense_mcp.mvc_catalog import MVC_ENDPOINTS, MVC_GETS, MVC_SEARCHES, MVC_WRITES
@@ -691,7 +693,7 @@ class OPNsenseAPI:
         self._client = httpx.AsyncClient(
             base_url=config.url,
             auth=httpx.BasicAuth(config.api_key, config.api_secret),
-            verify=config.verify_ssl,
+            verify=verification(config.verify_ssl, config.additional_ca_file),
             timeout=httpx.Timeout(30.0),
             follow_redirects=False,
         )
