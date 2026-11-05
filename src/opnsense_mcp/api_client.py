@@ -12,11 +12,10 @@ from typing import Any
 
 import httpx
 
-from opnsense_mcp.tls import verification
-
 from opnsense_mcp.config import OPNsenseConfig
 from opnsense_mcp.firewall_catalog import FIREWALL_ENDPOINTS, FIREWALL_GETS, FIREWALL_SEARCHES, FIREWALL_WRITES
 from opnsense_mcp.mvc_catalog import MVC_ENDPOINTS, MVC_GETS, MVC_SEARCHES, MVC_WRITES
+from opnsense_mcp.tls import verification
 
 
 class OperationEffect(StrEnum):
