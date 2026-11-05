@@ -2,6 +2,23 @@
 
 A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible AI clients, including **OpenWebUI**, to several **named OPNsense firewalls** over their REST APIs. This is a fork of [lucamarien/opnsense-mcp-server](https://github.com/lucamarien/opnsense-mcp-server), with the original MIT license retained.
 
+> [!CAUTION]
+> **If you do not trust this MCP server, do not use it.**
+>
+> This is a **security-critical firewall management component**, not an ordinary
+> read-only data connector. It holds OPNsense API credentials and may control
+> firewalls that enforce its own access restrictions. A compromised server,
+> dependency, deployment image, or authorized AI client can misuse legitimately
+> available operations. Prompt-injected tool results can also mislead an AI
+> client into invoking other permitted tools.
+>
+> A DMZ, container isolation, access controls and read-only defaults reduce
+> exposure; **none proves that the server or its output is harmless**. Auditing
+> the repository does not establish that an independently built or running
+> container contains exactly the audited code. Deployment requires an explicit
+> decision to trust the source, dependencies, runtime and clients. If that trust
+> is not justified, **do not deploy or connect this server to any firewall**.
+
 **147 MCP tools:** including single-site Kea, radvd, Unbound, WireGuard and Firewall 26.7 resource operations; see the [tool reference](#available-tools-147).
 
 ## Architecture and configuration ownership
@@ -184,7 +201,7 @@ The firmware monitor cannot correlate `upgradestatus` to the job UUID: a `backen
 | `opn_update_nat_rule` | Update NAT port forwarding rule with savepoint (OPNsense < 26.7). Params: `uuid`, `interface`, `protocol`, `destination_port`, `target_ip`, `target_port`, `description`, `enabled` | Yes |
 | `opn_delete_nat_rule` | Delete a NAT port forwarding rule by UUID with savepoint (OPNsense < 26.7). Params: `uuid` | Yes |
 
-> **Note:** Named targets are always read-only. The older savepoint functionality applies only to legacy write-enabled stdio configurations.
+> **Note:** Named targets are read-only by default, but an explicit per-site `OPNSENSE_<SITE>_READ_ONLY=false` override permits reviewed write operations. On OPNsense 26.7+ firewall savepoint/automatic rollback is unavailable, regardless of transport.
 
 ### Firewall 26.7 MVC resources (18 additional tools)
 
@@ -327,6 +344,14 @@ For **legacy single-target stdio only**, the inherited `OPNSENSE_ALLOW_WRITES=tr
 Over HTTP, `opn_download_config` and `opn_get_config_section` return an error rather than returning arbitrary `config.xml` data. The summarized inventory tool `opn_scan_config` can still read the configuration internally.
 
 ## Security model
+
+**Trust is a prerequisite, not a safeguard that can be added later.** This
+server can administer network boundaries, including boundaries protecting its
+own execution environment. No software-only control within that same trust
+boundary can guarantee safety after a full compromise. Externally enforced
+limits can reduce blast radius but cannot eliminate the need to trust the
+administrator-facing component and its AI clients. **If you do not trust it,
+do not use it.**
 
 - **HTTP authentication:** FastMCP checks a mandatory bearer token. Clients knowing that token can potentially query **all** configured sites; individual client/site authorization has not been implemented.
 - **Separate VM:** Enforce an **external** egress allowlist allowing only the selected OPNsense API IP/port pairs. Block unrestricted public Internet, other internal hosts, DNS and IPv6 paths. Never trust container-local firewall rules against malicious container code.

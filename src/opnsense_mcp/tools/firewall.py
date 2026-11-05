@@ -157,8 +157,9 @@ async def opn_toggle_firewall_rule(
     in 60 seconds unless confirmed with opn_confirm_changes. OPNsense 26.7 removed
     the savepoint API upstream, so on 26.7+ changes apply immediately and are NOT
     rolled back automatically.
-    Check opn_mcp_info first: if 'savepoint_support' is false, take a config backup
-    with opn_download_config before changing rules that could lock you out.
+    On OPNsense 26.7+ there is no savepoint rollback: arrange an out-of-band
+    configuration backup (for example via the OPNsense GUI) before any change
+    that could lock out management. opn_download_config is blocked over HTTP.
     Use opn_list_firewall_rules first to find the UUID of the rule.
     Returns: dict with 'revision' (str) for confirming and 'uuid' (str).
     """
@@ -212,8 +213,9 @@ async def opn_add_firewall_rule(
     in 60 seconds unless confirmed with opn_confirm_changes. OPNsense 26.7 removed
     the savepoint API upstream, so on 26.7+ changes apply immediately and are NOT
     rolled back automatically.
-    Check opn_mcp_info first: if 'savepoint_support' is false, take a config backup
-    with opn_download_config before changing rules that could lock you out.
+    On OPNsense 26.7+ there is no savepoint rollback: arrange an out-of-band
+    configuration backup (for example via the OPNsense GUI) before any change
+    that could lock out management. opn_download_config is blocked over HTTP.
 
     IMPORTANT: This creates MVC rules (Settings > Firewall > Automation), not
     legacy GUI rules.
@@ -313,8 +315,9 @@ async def opn_delete_firewall_rule(
     in 60 seconds unless confirmed with opn_confirm_changes. OPNsense 26.7 removed
     the savepoint API upstream, so on 26.7+ changes apply immediately and are NOT
     rolled back automatically.
-    Check opn_mcp_info first: if 'savepoint_support' is false, take a config backup
-    with opn_download_config before changing rules that could lock you out.
+    On OPNsense 26.7+ there is no savepoint rollback: arrange an out-of-band
+    configuration backup (for example via the OPNsense GUI) before any change
+    that could lock out management. opn_download_config is blocked over HTTP.
     Use opn_list_firewall_rules first to find the UUID of the rule to delete.
     Returns: dict with 'revision' (str) for confirming and 'result' (str).
     """
@@ -373,8 +376,9 @@ async def opn_update_firewall_rule(
     in 60 seconds unless confirmed with opn_confirm_changes. OPNsense 26.7 removed
     the savepoint API upstream, so on 26.7+ changes apply immediately and are NOT
     rolled back automatically.
-    Check opn_mcp_info first: if 'savepoint_support' is false, take a config backup
-    with opn_download_config before changing rules that could lock you out.
+    On OPNsense 26.7+ there is no savepoint rollback: arrange an out-of-band
+    configuration backup (for example via the OPNsense GUI) before any change
+    that could lock out management. opn_download_config is blocked over HTTP.
     Use opn_list_firewall_rules first to find the UUID.
 
     Parameters:
@@ -693,8 +697,9 @@ async def opn_add_nat_rule(
     in 60 seconds unless confirmed with opn_confirm_changes. OPNsense 26.7 removed
     the savepoint API upstream, so on 26.7+ changes apply immediately and are NOT
     rolled back automatically.
-    Check opn_mcp_info first: if 'savepoint_support' is false, take a config backup
-    with opn_download_config before changing rules that could lock you out.
+    On OPNsense 26.7+ there is no savepoint rollback: arrange an out-of-band
+    configuration backup (for example via the OPNsense GUI) before any change
+    that could lock out management. opn_download_config is blocked over HTTP.
 
     Parameters:
     - destination_port: external port to forward (e.g. '8080', '3000-3010') — required
@@ -773,8 +778,9 @@ async def opn_update_nat_rule(
     in 60 seconds unless confirmed with opn_confirm_changes. OPNsense 26.7 removed
     the savepoint API upstream, so on 26.7+ changes apply immediately and are NOT
     rolled back automatically.
-    Check opn_mcp_info first: if 'savepoint_support' is false, take a config backup
-    with opn_download_config before changing rules that could lock you out.
+    On OPNsense 26.7+ there is no savepoint rollback: arrange an out-of-band
+    configuration backup (for example via the OPNsense GUI) before any change
+    that could lock out management. opn_download_config is blocked over HTTP.
     Use opn_list_nat_rules first to find the UUID.
 
     Parameters:
@@ -847,8 +853,9 @@ async def opn_delete_nat_rule(
     in 60 seconds unless confirmed with opn_confirm_changes. OPNsense 26.7 removed
     the savepoint API upstream, so on 26.7+ changes apply immediately and are NOT
     rolled back automatically.
-    Check opn_mcp_info first: if 'savepoint_support' is false, take a config backup
-    with opn_download_config before changing rules that could lock you out.
+    On OPNsense 26.7+ there is no savepoint rollback: arrange an out-of-band
+    configuration backup (for example via the OPNsense GUI) before any change
+    that could lock out management. opn_download_config is blocked over HTTP.
     Use opn_list_nat_rules first to find the UUID of the rule to delete.
     Returns: dict with 'revision' (str) for confirming and 'result' (str).
     """
@@ -951,8 +958,9 @@ async def opn_delete_firewall_category(
     in 60 seconds unless confirmed with opn_confirm_changes. OPNsense 26.7 removed
     the savepoint API upstream, so on 26.7+ changes apply immediately and are NOT
     rolled back automatically.
-    Check opn_mcp_info first: if 'savepoint_support' is false, take a config backup
-    with opn_download_config before changing rules that could lock you out.
+    On OPNsense 26.7+ there is no savepoint rollback: arrange an out-of-band
+    configuration backup (for example via the OPNsense GUI) before any change
+    that could lock out management. opn_download_config is blocked over HTTP.
     Returns: dict with 'revision' (str) for confirming and 'result' (str).
     """
     api = get_api(ctx, site)
@@ -990,8 +998,9 @@ async def opn_set_rule_categories(
     in 60 seconds unless confirmed with opn_confirm_changes. OPNsense 26.7 removed
     the savepoint API upstream, so on 26.7+ changes apply immediately and are NOT
     rolled back automatically.
-    Check opn_mcp_info first: if 'savepoint_support' is false, take a config backup
-    with opn_download_config before changing rules that could lock you out.
+    On OPNsense 26.7+ there is no savepoint rollback: arrange an out-of-band
+    configuration backup (for example via the OPNsense GUI) before any change
+    that could lock out management. opn_download_config is blocked over HTTP.
 
     Parameters:
     - uuid: the firewall rule UUID (from opn_list_firewall_rules)
@@ -1082,8 +1091,9 @@ async def opn_add_icmpv6_rules(
     in 60 seconds unless confirmed with opn_confirm_changes. OPNsense 26.7 removed
     the savepoint API upstream, so on 26.7+ changes apply immediately and are NOT
     rolled back automatically.
-    Check opn_mcp_info first: if 'savepoint_support' is false, take a config backup
-    with opn_download_config before changing rules that could lock you out.
+    On OPNsense 26.7+ there is no savepoint rollback: arrange an out-of-band
+    configuration backup (for example via the OPNsense GUI) before any change
+    that could lock out management. opn_download_config is blocked over HTTP.
 
     Parameters:
     - interface: target interface (e.g. 'lan', 'opt1', 'opt2')
