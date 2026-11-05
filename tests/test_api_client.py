@@ -437,6 +437,55 @@ class TestPathSuffix:
         await api.post("firewall.apply", path_suffix="")
         mock_httpx_client.post.assert_called_once_with("/firewall/filter/apply", json=None)
 
+    @pytest.mark.parametrize(
+        "suffix",
+        [
+            "../core/system/reboot",
+            "123/../../core/firmware/upgrade",
+            "123/./other",
+            "/absolute",
+            "abc//def",
+            "abc/",
+            "abc%2f..%2fother",
+            "abc%252fdef",
+            "abc?extra=1",
+            "abc#fragment",
+            "abc\\\\def",
+            "abc%00def",
+            "abc\\nother",
+            "abc other",
+        ],
+    )
+    async def test_untrusted_suffix_rejected_before_network(self, suffix, mock_config_writes, mock_httpx_client):
+        api = _make_api_with_version(mock_config_writes, mock_httpx_client, (26, 7))
+        with pytest.raises(ValueError, match="Invalid API path suffix"):
+            await api.post("firewall.apply", path_suffix=suffix)
+        mock_httpx_client.post.assert_not_called()
+        mock_httpx_client.get.assert_not_called()
+
+    async def test_get_suffix_rejected_before_network(self, mock_config, mock_httpx_client):
+        api = _make_api_with_version(mock_config, mock_httpx_client, (26, 7))
+        with pytest.raises(ValueError, match="Invalid API path suffix"):
+            await api.get("firewall.alias.get", path_suffix="../../core/system/reboot")
+        mock_httpx_client.get.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "suffix",
+        [
+            "550e8400-e29b-41d4-a716-446655440000",
+            "192.0.2.1",
+            "2001:db8::1",
+            "rule_one",
+            "rule-id/1",
+            "550e8400-e29b-41d4-a716-446655440000,550e8400-e29b-41d4-a716-446655440001/550e8400-e29b-41d4-a716-446655440002",
+        ],
+    )
+    async def test_valid_suffix_preserves_existing_api_uses(self, suffix, mock_config_writes, mock_httpx_client):
+        api = _make_api_with_version(mock_config_writes, mock_httpx_client, (26, 7))
+        mock_httpx_client.post.return_value = _make_response(json_data={"status": "ok"})
+        await api.post("firewall.apply", path_suffix=suffix)
+        mock_httpx_client.post.assert_called_once_with(f"/firewall/filter/apply/{suffix}", json=None)
+
     async def test_suffix_checked_against_blocklist(self, mock_config_writes, mock_httpx_client):
         api = _make_api_with_version(mock_config_writes, mock_httpx_client, (25, 1))
         ENDPOINT_REGISTRY["_test_suffix"] = ("core/system/halt", "core/system/halt")
