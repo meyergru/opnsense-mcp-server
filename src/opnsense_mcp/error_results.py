@@ -31,7 +31,7 @@ def safe_error(exc: Exception) -> tuple[str, str, int | None]:
         return "invalid_site", "Unknown or ambiguous site; call opn_list_targets", None
     if isinstance(exc, OPNsenseAPIError):
         status = exc.status_code or None
-        if status in _HTTP_CODES:
+        if status is not None and status in _HTTP_CODES:
             code, message = _HTTP_CODES[status]
             return code, message, status
         if status is not None:
