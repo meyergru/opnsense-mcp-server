@@ -7,7 +7,7 @@ name: opnsense-mcp
 
 services:
   opnsense-mcp:
-    image: ghcr.io/meyergru/opnsense-mcp-server:sha-${MCP_IMAGE_SHA:?Set MCP_IMAGE_SHA to the reviewed published commit SHA in Portainer Stack variables}
+    image: "ghcr.io/meyergru/opnsense-mcp-server:sha-${MCP_IMAGE_SHA:?Set MCP_IMAGE_SHA to the reviewed published commit SHA in Portainer Stack variables}"
     restart: unless-stopped
     init: true
 
