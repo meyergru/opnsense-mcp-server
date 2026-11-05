@@ -456,9 +456,7 @@ class TestPathSuffix:
             "abc other",
         ],
     )
-    async def test_untrusted_suffix_rejected_before_network(
-        self, suffix, mock_config_writes, mock_httpx_client
-    ):
+    async def test_untrusted_suffix_rejected_before_network(self, suffix, mock_config_writes, mock_httpx_client):
         api = _make_api_with_version(mock_config_writes, mock_httpx_client, (26, 7))
         with pytest.raises(ValueError, match="Invalid API path suffix"):
             await api.post("firewall.apply", path_suffix=suffix)
@@ -482,9 +480,7 @@ class TestPathSuffix:
             "550e8400-e29b-41d4-a716-446655440000,550e8400-e29b-41d4-a716-446655440001/550e8400-e29b-41d4-a716-446655440002",
         ],
     )
-    async def test_valid_suffix_preserves_existing_api_uses(
-        self, suffix, mock_config_writes, mock_httpx_client
-    ):
+    async def test_valid_suffix_preserves_existing_api_uses(self, suffix, mock_config_writes, mock_httpx_client):
         api = _make_api_with_version(mock_config_writes, mock_httpx_client, (26, 7))
         mock_httpx_client.post.return_value = _make_response(json_data={"status": "ok"})
         await api.post("firewall.apply", path_suffix=suffix)
