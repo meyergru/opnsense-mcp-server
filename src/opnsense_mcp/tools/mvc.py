@@ -789,10 +789,13 @@ async def opn_kea_delete_lease(ctx: Context, ip: str, site: SiteName = "") -> di
 
     parsed_ip = ipaddress.ip_address(ip)
     address = str(parsed_ip)
-    endpoint = "mvc.kea.leases4.del" if parsed_ip.version == 4 else "mvc.kea.leases6.del"
     api = get_api(ctx, site)
     api.require_writes()
-    return cast(dict[str, Any], _sanitize(await api.post(endpoint, path_suffix=address)))
+    if parsed_ip.version == 4:
+        result = await api.post("mvc.kea.leases4.del", path_suffix=address)
+    else:
+        result = await api.post("mvc.kea.leases6.del", path_suffix=address)
+    return cast(dict[str, Any], _sanitize(result))
 
 
 @mcp.tool()
