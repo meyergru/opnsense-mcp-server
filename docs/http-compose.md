@@ -13,10 +13,15 @@ stdio-to-HTTP gateway, reverse proxy, database, or extra worker process.
 ## Review and build
 
 1. Review the code and current CI results (lint, tests, security and Docker smoke).
-2. Run **Publish reviewed MCP image to GHCR** manually on the `main`
-   branch from GitHub Actions. The workflow publishes both
-   `ghcr.io/meyergru/opnsense-mcp-server:dev` and a commit-specific
-   `sha-<commit>` tag. No automatic publication occurs.
+2. On GitHub, open **Actions → Publish reviewed MCP image to GHCR → Run workflow**
+   and select `main`. This is the **only manual publication step** after
+   preparing and merging a reviewed release version. The workflow validates
+   that the Python and package versions agree, rejects an existing release
+   tag, publishes versioned (`:0.8.0`), commit-specific (`:sha-<commit>`) and
+   compatibility (`:dev`) GHCR images, and creates GitHub pre-release
+   `v0.8.0` from the same commit. No commit or tag automatically publishes.
+   For later releases, bump the project version and changelog first.
+   The running Portainer container is **not** automatically redeployed.
 3. In Portainer on VM `mcp`, paste [compose.yaml](../compose.yaml) into a
    **Web editor** Stack and enter target/API credentials there. Do not
    commit real credentials to the public repository.

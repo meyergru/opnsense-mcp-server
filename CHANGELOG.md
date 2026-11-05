@@ -4,6 +4,41 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] - 2026-11-05
+
+First explicitly versioned pre-1.0 release of this multi-target OPNsense MCP fork.
+
+### Added
+
+- Native authenticated Streamable HTTP transport and named OPNsense targets with
+  independent credentials, operation policies, connections and caches.
+- Expanded reviewed MCP tooling for OPNsense 26.7 firewall MVC, Kea DHCPv4/v6,
+  radvd, Unbound, WireGuard and supporting diagnostics.
+- Read-only-by-default operation classification, fail-closed unknown endpoints,
+  credential-field output filtering and Docker deployment hardening.
+- Clear agent-facing resource enums, backend-selection guidance and a documented
+  trust model: **if you do not trust this firewall-control MCP server, do not use it**.
+- Documentation for intentional secret provisioning versus accidental disclosure,
+  including DDNS inputs and WireGuard peers without an MCP-managed counterpart.
+
+### Fixed
+
+- MCP tool-result compatibility, parameter descriptions and backend ambiguity.
+- Version-specific firewall savepoint behavior and WireGuard object patch semantics.
+- API path suffix validation to block traversal and URL metacharacters while
+  preserving valid UUID, address and composite selectors; regression coverage added.
+
+### Release and deployment notes
+
+- This is a **pre-1.0** release, not a claim of exhaustive OPNsense API coverage
+  or security certification.
+- CI covers unit tests, lint, type checking, dependency/security checks and
+  authenticated Docker smoke tests. It does **not** certify live production
+  firewall behavior, third-party dependencies or prompt-injection resistance.
+- Reviewed production deployments should use the immutable-in-practice
+  commit-specific image tag or published digest. Publishing does not automatically
+  redeploy an existing Portainer stack.
+
 ## [0.4.1] - 2026-08-19
 
 ### Added

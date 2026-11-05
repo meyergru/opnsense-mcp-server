@@ -1,12 +1,18 @@
 name: Publish reviewed MCP image to GHCR
 
-# Deliberately manual: image updates must never be published by tag or push.
+# Deliberately manual: neither pushing code nor tagging starts publication.
+# Run this once per reviewed version on the main branch. The workflow publishes
+# a versioned image and creates a GitHub pre-release for the same commit.
 on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
+
+concurrency:
+  group: reviewed-mcp-release
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -14,16 +20,77 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Validate version and reject existing tags
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(python -c 'import tomllib; from pathlib import Path; print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])')"
+          RUNTIME="$(python -c 'import re; from pathlib import Path; print(re.search(r"__version__ = \"([^\"]+)\"", Path("src/opnsense_mcp/__init__.py").read_text()).group(1))')"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ || "$VERSION" != "$RUNTIME" ]]; then
+            echo "::error::Project and runtime versions must match an X.Y.Z release version"
+            exit 1
+          fi
+          if [[ "$(git ls-remote --tags --refs origin "refs/tags/v${VERSION}" | wc -l)" != "0" ]]; then
+            echo "::error::Tag v${VERSION} already exists; never republish a released version"
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Publishing v${VERSION} from commit $GITHUB_SHA"
+
       - uses: docker/setup-buildx-action@v4
+
       - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v7
+
+      - name: Build and publish versioned image
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
           tags: |
-            ghcr.io/meyergru/opnsense-mcp-server:dev
+            ghcr.io/meyergru/opnsense-mcp-server:${{ steps.version.outputs.version }}
             ghcr.io/meyergru/opnsense-mcp-server:sha-${{ github.sha }}
+            ghcr.io/meyergru/opnsense-mcp-server:dev
+          labels: |
+            org.opencontainers.image.source=https://github.com/meyergru/opnsense-mcp-server
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Prepare release notes from changelog
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          version = os.environ["RELEASE_VERSION"]
+          changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+          marker = f"## [{version}]"
+          if marker not in changelog:
+              raise SystemExit(f"Missing release notes for {version} in CHANGELOG.md")
+          notes = changelog.split(marker, 1)[1].split("\n## [", 1)[0].strip()
+          if not notes:
+              raise SystemExit("Empty release notes")
+          Path("/tmp/opnsense-mcp-release-notes.md").write_text(notes + "\n", encoding="utf-8")
+          PY
+
+      - name: Create GitHub pre-release for the published commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v${RELEASE_VERSION}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "v${RELEASE_VERSION}" \
+            --prerelease \
+            --notes-file /tmp/opnsense-mcp-release-notes.md
