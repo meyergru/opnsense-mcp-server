@@ -16,6 +16,7 @@ from fastmcp.server.middleware.response_limiting import ResponseLimitingMiddlewa
 from opnsense_mcp import __version__
 from opnsense_mcp.api_client import OPNsenseAPI, SavepointManager
 from opnsense_mcp.config_cache import ConfigCache
+from opnsense_mcp.error_results import ErrorResultMiddleware
 from opnsense_mcp.secret_guard import SecretOutputGuard
 from opnsense_mcp.targets import TargetRegistry
 from opnsense_mcp.tool_audit import ToolAuditMiddleware
@@ -39,6 +40,7 @@ mcp = FastMCP("opnsense", version=__version__, lifespan=app_lifespan, auth=build
 mcp.add_middleware(ResponseLimitingMiddleware(max_size=_transport.max_result_bytes))
 mcp.add_middleware(SecretOutputGuard())
 mcp.add_middleware(ToolAuditMiddleware(_transport.log_tool_calls))
+mcp.add_middleware(ErrorResultMiddleware())
 
 
 @mcp.tool()
