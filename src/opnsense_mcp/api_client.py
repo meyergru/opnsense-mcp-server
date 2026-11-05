@@ -6,6 +6,7 @@ endpoint blocklist, and error response parsing.
 
 from __future__ import annotations
 
+import re
 from enum import StrEnum
 from typing import Any
 
@@ -713,6 +714,23 @@ class OPNsenseAPI:
             if not self._config.allow_writes:
                 raise WriteDisabledError(f"{method} operation not permitted in read-only mode: {endpoint}")
 
+    @staticmethod
+    def _validated_path_suffix(suffix: str) -> str:
+        """Accept literal API path segments, never URL syntax or traversal.
+
+        A few reviewed operations use two suffix segments or comma-separated
+        UUID lists. Reject URL escapes and dot segments before HTTPX can
+        normalize the URL into a different API operation.
+        """
+        if not isinstance(suffix, str) or len(suffix) > 2048:
+            raise ValueError("Invalid API path suffix")
+        if not suffix:
+            return suffix
+        segments = suffix.split("/")
+        if any(part in {".", ".."} or not re.fullmatch(r"[A-Za-z0-9_.,:-]+", part) for part in segments):
+            raise ValueError("Invalid API path suffix: expected literal path segments without URL escapes")
+        return suffix
+
     async def get(
         self,
         endpoint: str,
@@ -733,6 +751,7 @@ class OPNsenseAPI:
             BlockedEndpointError: If the endpoint is on the blocklist.
             OPNsenseAPIError: If the API returns an error.
         """
+        path_suffix = self._validated_path_suffix(path_suffix)
         self._authorize_operation("GET", endpoint)
         await self._ensure_version_detected()
         path = self._resolve_endpoint(endpoint)
@@ -763,6 +782,7 @@ class OPNsenseAPI:
             BlockedEndpointError: If the endpoint is on the blocklist.
             OPNsenseAPIError: If the API returns an error.
         """
+        path_suffix = self._validated_path_suffix(path_suffix)
         self._authorize_operation("POST", endpoint)
         await self._ensure_version_detected()
         path = self._resolve_endpoint(endpoint)
