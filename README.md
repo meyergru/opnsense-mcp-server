@@ -55,7 +55,7 @@ CI runs pytest, Ruff, mypy, security/dependency checks and a real Docker HTTP sm
 2. Review [compose.yaml](compose.yaml), then paste it into a **Portainer Web editor Stack** (not a Git-backed Stack) on your dedicated `mcp` VM.
 3. Configure `OPNSENSE_SITES` and the matching `OPNSENSE_<SITE>_URL`, `_API_KEY`, `_API_SECRET`, `_VERIFY_SSL` variables in the Stack. No separate TOML or secrets files are required.
 4. Generate a random 64-character hexadecimal MCP token with `openssl rand -hex 32`; enter it as `OPNSENSE_MCP_AUTH_TOKEN`.
-5. If needed, publish the reviewed `main` image using the **manual** [GHCR workflow](.github/workflows/publish-ghcr.yml). It publishes `ghcr.io/meyergru/opnsense-mcp-server:dev` and `sha-<commit>` tags. No image is published by ordinary commits or version tags. Prefer an explicit SHA-tag for deployment.
+5. If needed, publish the reviewed `main` image using the **manual** [GHCR workflow](.github/workflows/publish-ghcr.yml). It publishes `sha-<commit>` and `:dev` tags. Set the **Portainer Stack variable** `MCP_IMAGE_SHA` to the published 40-character Git commit SHA; [compose.yaml](compose.yaml) now requires the `sha-<commit>` image instead of silently pulling mutable `:dev`. If the required image has not been published, deployment must fail rather than substitute an unreviewed image.
 6. Before starting against live firewalls, enforce VM-level inbound and outbound restrictions and the OPNsense API privileges.
 7. In OpenWebUI, configure a **Streamable HTTP MCP** connection to `http://<mcp-host>:8000/mcp` with header `Authorization: Bearer <MCP_TOKEN>`. Internal DNS must resolve `mcp` if you use that hostname.
 8. Use `opn_list_targets()`, then a harmless check such as `opn_system_status(site="local")`.
@@ -344,6 +344,14 @@ For **legacy single-target stdio only**, the inherited `OPNSENSE_ALLOW_WRITES=tr
 Over HTTP, `opn_download_config` and `opn_get_config_section` return an error rather than returning arbitrary `config.xml` data. The summarized inventory tool `opn_scan_config` can still read the configuration internally.
 
 ## Security model
+
+**Secret transfer is operation-specific.** WireGuard public keys may be exchanged
+openly, while private keys should normally remain on their owning devices.
+DDNS credentials currently pass through the AI client as ordinary tool
+arguments; future explicit password-setting or one-time token-export operations
+must document their exposure paths. A second device without an MCP connection
+cannot resolve an internal opaque PSK reference. See [Secrets and manual
+hand-off](docs/secret-handling.md) for the current behavior and trade-offs.
 
 **Trust is a prerequisite, not a safeguard that can be added later.** This
 server can administer network boundaries, including boundaries protecting its
