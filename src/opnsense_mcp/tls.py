@@ -1,4 +1,5 @@
 """Optional internal root CA layered onto the operating system certificate store."""
+
 from __future__ import annotations
 
 import os
