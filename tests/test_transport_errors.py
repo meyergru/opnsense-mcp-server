@@ -1,4 +1,5 @@
 """Regression coverage for TLS certificate failures that must reach MCP callers."""
+
 from __future__ import annotations
 
 import ssl
