@@ -1,4 +1,5 @@
 """Bounded tool audit: names/site aliases/status only, no arguments or results."""
+
 from __future__ import annotations
 
 import logging
@@ -43,18 +44,25 @@ class ToolAuditMiddleware(Middleware):
         except Exception as exc:
             logger.warning(
                 "tool=%s site=%s result=error error_class=%s duration_ms=%d",
-                name, site, type(exc).__name__, round((time.monotonic()-start)*1000),
+                name,
+                site,
+                type(exc).__name__,
+                round((time.monotonic() - start) * 1000),
             )
             raise
         status = "error" if getattr(result, "is_error", False) else "success"
         if status == "error":
             logger.warning(
                 "tool=%s site=%s result=error duration_ms=%d",
-                name, site, round((time.monotonic()-start)*1000),
+                name,
+                site,
+                round((time.monotonic() - start) * 1000),
             )
         elif self.mode == "all":
             logger.info(
                 "tool=%s site=%s result=success duration_ms=%d",
-                name, site, round((time.monotonic()-start)*1000),
+                name,
+                site,
+                round((time.monotonic() - start) * 1000),
             )
         return result
