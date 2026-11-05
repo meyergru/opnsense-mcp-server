@@ -1,4 +1,5 @@
 """Present safe, machine-readable tool failures to MCP callers."""
+
 from __future__ import annotations
 
 from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
@@ -23,6 +24,16 @@ _HTTP_CODES = {
 
 def safe_error(exc: Exception) -> tuple[str, str, int | None]:
     """Never forward upstream response bodies or raw Python exception strings."""
+    # FastMCP wraps handler exceptions in ToolError before on_call_tool sees
+    # them; find the original, trusted exception class in the cause chain.
+    current: BaseException | None = exc
+    visited: set[int] = set()
+    while current is not None and id(current) not in visited:
+        visited.add(id(current))
+        if isinstance(current, (OPNsenseAPIError, TargetError)):
+            exc = current
+            break
+        current = current.__cause__ or current.__context__
     if isinstance(exc, WriteDisabledError):
         return "write_disabled", "Operation blocked by the read-only safety policy", None
     if isinstance(exc, BlockedEndpointError):
