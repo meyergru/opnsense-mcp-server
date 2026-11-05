@@ -770,20 +770,29 @@ async def opn_kea_list_leases6(
 
 @mcp.tool()
 async def opn_kea_delete_lease(ctx: Context, ip: str, site: SiteName = "") -> dict[str, Any]:
-    """Explicitly remove a Kea lease by IP address. This does not change reservations.
+    """Delete one Kea DHCPv4 or DHCPv6 runtime lease by its IP address.
 
     BACKEND SELECTION: This deletes a KEA lease, never a reservation
-    or an ISC/dnsmasq lease. Verify that Kea serves this IP family
-    and target interface; stale lease records may persist otherwise.
-    This is a write operation, so do not delete merely to reconcile
-    differences between multiple backends.
+    or an ISC/dnsmasq lease. Verify Kea serves this IP family and
+    interface; stale lease records may persist after backend migration.
+    Do not delete merely to reconcile different DHCP engines.
+
+    API COMPATIBILITY: OPNsense 26.7 uses POST to /api/kea/leases4/del_lease/
+    or /api/kea/leases6/del_lease/ (selected from the IP version).
+    The shared Kea LeasesController is abstract, not directly callable.
+    Lease deletion is a runtime operation, not a configuration update: do
+    NOT restart/reconfigure Kea after an API failure. If the installed
+    API lacks deletion, report the error; leases normally expire according
+    to valid_lifetime. A successful response has status='ok'.
     """
     import ipaddress
 
-    address = str(ipaddress.ip_address(ip))
+    parsed_ip = ipaddress.ip_address(ip)
+    address = str(parsed_ip)
+    endpoint = "mvc.kea.leases4.del" if parsed_ip.version == 4 else "mvc.kea.leases6.del"
     api = get_api(ctx, site)
     api.require_writes()
-    return cast(dict[str, Any], _sanitize(await api.post("mvc.kea.leases.del", path_suffix=address)))
+    return cast(dict[str, Any], _sanitize(await api.post(endpoint, path_suffix=address)))
 
 
 @mcp.tool()
