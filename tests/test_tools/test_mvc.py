@@ -11,6 +11,7 @@ from opnsense_mcp.mvc_catalog import MVC_ENDPOINTS, MVC_GETS, MVC_SEARCHES, MVC_
 from opnsense_mcp.tools.mvc import (
     _sanitize,
     opn_kea_add,
+    opn_kea_delete_lease,
     opn_kea_list,
     opn_mvc_get_settings,
     opn_mvc_patch_settings,
@@ -190,6 +191,51 @@ async def test_kea_list_uses_explicit_registered_search(mock_api, mock_ctx):
     await opn_kea_list(mock_ctx, resource="pd_pool6")
     mock_api.post.assert_awaited_once()
     assert mock_api.post.await_args.args[0] == "mvc.kea.pd_pool6.search"
+
+
+@pytest.mark.parametrize(
+    ("ip", "endpoint"),
+    [
+        ("192.0.2.17", "mvc.kea.leases4.del"),
+        ("2001:db8::17", "mvc.kea.leases6.del"),
+    ],
+)
+async def test_kea_delete_lease_uses_concrete_v4_v6_controller(mock_api_writes, mock_ctx_writes, ip, endpoint):
+    mock_api_writes.post = AsyncMock(return_value={"status": "ok"})
+    result = await opn_kea_delete_lease(mock_ctx_writes, ip=ip)
+    assert result == {"status": "ok"}
+    mock_api_writes.post.assert_awaited_once_with(endpoint, path_suffix=ip)
+
+
+def test_kea_delete_lease_endpoints_match_opnsense_gui():
+    assert MVC_ENDPOINTS["mvc.kea.leases4.del"] == (
+        "kea/leases4/delLease",
+        "kea/leases4/del_lease",
+    )
+    assert MVC_ENDPOINTS["mvc.kea.leases6.del"] == (
+        "kea/leases6/delLease",
+        "kea/leases6/del_lease",
+    )
+    assert "mvc.kea.leases.del" not in MVC_ENDPOINTS
+    for endpoint in ("mvc.kea.leases4.del", "mvc.kea.leases6.del"):
+        assert ("POST", endpoint) in MVC_WRITES
+        assert operation_effect("POST", endpoint) is OperationEffect.WRITE
+
+
+async def test_kea_delete_lease_error_never_restarts_service(mock_api_writes, mock_ctx_writes):
+    from opnsense_mcp.api_client import OPNsenseAPIError
+
+    mock_api_writes.post = AsyncMock(side_effect=OPNsenseAPIError("Endpoint not found", 404))
+    with pytest.raises(OPNsenseAPIError, match="Endpoint not found"):
+        await opn_kea_delete_lease(mock_ctx_writes, ip="192.0.2.17")
+    mock_api_writes.post.assert_awaited_once_with("mvc.kea.leases4.del", path_suffix="192.0.2.17")
+
+
+async def test_kea_delete_lease_rejects_invalid_ip_before_network(mock_api_writes, mock_ctx_writes):
+    mock_api_writes.post = AsyncMock()
+    with pytest.raises(ValueError):
+        await opn_kea_delete_lease(mock_ctx_writes, ip="not-an-ip")
+    mock_api_writes.post.assert_not_awaited()
 
 
 async def test_unbound_patch_is_single_object_no_auto_apply(mock_api_writes, mock_ctx_writes):
