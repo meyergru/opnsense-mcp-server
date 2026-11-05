@@ -84,6 +84,10 @@ async def opn_add_ddns_account(
     take effect immediately.
 
     Note: Requires the Dynamic DNS plugin (os-ddclient).
+    SECRET HANDLING: The username/password or provider API token is passed
+    as an ordinary MCP tool argument through the invoking AI client,
+    not an opaque reference. Use only if the user accepts that exposure;
+    this tool must not return the credential.
     Returns: dict with 'result', 'uuid' of the new account, and reconfigure status.
     """
     if not service.strip():
@@ -156,6 +160,9 @@ async def opn_update_ddns_account(
     - description: human-readable description
     - enabled: enable/disable the account
 
+    SECRET HANDLING: New username/password/API token values are ordinary MCP
+    arguments. The AI client can observe them; this is not the WireGuard
+    opaque-PSK flow. Do not return or log them as tool output.
     Returns: dict with 'result' (str), 'uuid' (str), and 'reconfigure_status'.
     """
     api = get_api(ctx, site)
