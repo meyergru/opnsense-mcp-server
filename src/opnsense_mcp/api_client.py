@@ -16,6 +16,7 @@ from opnsense_mcp.config import OPNsenseConfig
 from opnsense_mcp.firewall_catalog import FIREWALL_ENDPOINTS, FIREWALL_GETS, FIREWALL_SEARCHES, FIREWALL_WRITES
 from opnsense_mcp.mvc_catalog import MVC_ENDPOINTS, MVC_GETS, MVC_SEARCHES, MVC_WRITES
 from opnsense_mcp.tls import verification
+from opnsense_mcp.transport_errors import classify_transport_error
 
 
 class OperationEffect(StrEnum):
@@ -646,9 +647,10 @@ def _validated_path_suffix(value: str) -> str:
 class OPNsenseAPIError(Exception):
     """Raised when the OPNsense API returns an error."""
 
-    def __init__(self, message: str, status_code: int = 0) -> None:
+    def __init__(self, message: str, status_code: int = 0, *, code: str = "api_error") -> None:
         super().__init__(message)
         self.status_code = status_code
+        self.code = code
 
 
 class BlockedEndpointError(OPNsenseAPIError):
@@ -831,12 +833,9 @@ class OPNsenseAPI:
                 response = await self._client.get(f"/{path}")
             else:
                 response = await self._client.post(f"/{path}", json=data)
-        except httpx.TimeoutException as exc:
-            msg = f"Request timed out: {path}"
-            raise OPNsenseAPIError(msg) from exc
-        except httpx.ConnectError as exc:
-            msg = f"Connection failed: {path}"
-            raise OPNsenseAPIError(msg) from exc
+        except httpx.HTTPError as exc:
+            code, message = classify_transport_error(exc)
+            raise OPNsenseAPIError(message, code=code) from None
 
         if response.status_code >= 400:
             error_msg = self._parse_error_response(response)
@@ -861,12 +860,9 @@ class OPNsenseAPI:
                 response = await self._client.get(f"/{path}")
             else:
                 response = await self._client.post(f"/{path}")
-        except httpx.TimeoutException as exc:
-            msg = f"Request timed out: {path}"
-            raise OPNsenseAPIError(msg) from exc
-        except httpx.ConnectError as exc:
-            msg = f"Connection failed: {path}"
-            raise OPNsenseAPIError(msg) from exc
+        except httpx.HTTPError as exc:
+            code, message = classify_transport_error(exc)
+            raise OPNsenseAPIError(message, code=code) from None
 
         if response.status_code >= 400:
             error_msg = self._parse_error_response(response)
@@ -885,13 +881,16 @@ class OPNsenseAPI:
 
         try:
             response = await self._client.get(f"/{path}")
-        except (httpx.TimeoutException, httpx.ConnectError) as exc:
-            msg = "Failed to connect to OPNsense for version detection"
-            raise OPNsenseAPIError(msg) from exc
+        except httpx.HTTPError as exc:
+            code, message = classify_transport_error(exc)
+            raise OPNsenseAPIError(f"Version detection failed: {message}", code=code) from None
 
         if response.status_code >= 400:
             msg = f"Version detection failed: HTTP {response.status_code}"
-            raise OPNsenseAPIError(msg, status_code=response.status_code)
+            code = {401: "authentication_failed", 403: "permission_denied", 404: "endpoint_not_found"}.get(
+                response.status_code, "upstream_http_error"
+            )
+            raise OPNsenseAPIError(msg, status_code=response.status_code, code=code)
 
         try:
             body: dict[str, Any] = response.json()
