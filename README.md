@@ -269,7 +269,7 @@ The new MVC tools provide **single-site** list/get/add/patch/delete operations. 
 | WireGuard peers | `opn_wireguard_list_peers`, `opn_wireguard_get_peer`, `opn_wireguard_add_peer`, `opn_wireguard_patch_peer`, `opn_wireguard_delete_peer`, **`opn_wireguard_toggle_peer`** |
 | WireGuard instances | `opn_wireguard_list_instances`, `opn_wireguard_get_instance`, `opn_wireguard_add_instance`, `opn_wireguard_patch_instance`, `opn_wireguard_delete_instance`, `opn_wireguard_toggle_instance` |
 | WireGuard key rotation | `opn_wireguard_generate_psk` creates a 30-minute in-memory opaque reference for use in two independently ordered peer patches, without exposing the secret to Qwen |
-| Kea DHCPv4/v6 | `opn_kea_list/get/add/patch/delete` (subnets, reservations, options, HA peers, IPv6 PD pools); `opn_kea_list_leases6`, `opn_kea_delete_lease` |
+| Kea DHCPv4/v6 | `opn_kea_list/get/add/patch/delete` (subnets, reservations, options, HA peers, IPv6 PD pools); `opn_kea_list_leases6`; `opn_kea_delete_lease` deletes runtime leases through the concrete `leases4`/`leases6` API controllers (no service restart or reconfigure) |
 | radvd | `opn_radvd_list/get/add/patch/delete/toggle` |
 | Unbound | `opn_unbound_list/get/add/patch/delete/toggle` (host overrides, forwards, aliases, ACLs, DNSBL) |
 | Global settings | `opn_mvc_get_settings` and `opn_mvc_patch_settings` for Kea DHCPv4/v6, DDNS, control-agent, radvd, Unbound and WireGuard |
