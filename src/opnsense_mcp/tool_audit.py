@@ -10,7 +10,7 @@ from fastmcp.tools import ToolResult
 from mcp.types import CallToolRequestParams
 
 logger = logging.getLogger("opnsense_mcp.audit")
-_NAME = re.compile(r"[a-zA-Z][a-zA-Z0-9_.-]{0,99}\\Z")
+_NAME = re.compile(r"[a-zA-Z][a-zA-Z0-9_.-]{0,99}\Z")
 
 
 def _label(value: object, default: str) -> str:
