@@ -14,13 +14,19 @@ stdio-to-HTTP gateway, reverse proxy, database, or extra worker process.
 
 1. Review the code and current CI results (lint, tests, security and Docker smoke).
 2. Run **Publish reviewed MCP image to GHCR** manually on the `main`
-   branch from GitHub Actions. The workflow publishes both
-   `ghcr.io/meyergru/opnsense-mcp-server:dev` and a commit-specific
-   `sha-<commit>` tag. No automatic publication occurs.
-3. In Portainer on VM `mcp`, paste [compose.yaml](../compose.yaml) into a
+   branch from GitHub Actions, **after reviewing and merging the intended
+   commit**. The workflow publishes `sha-<commit>` and mutable `:dev` tags.
+   No automatic publication occurs.
+3. In Portainer, set the **Stack environment variable** `MCP_IMAGE_SHA`
+   to the exact 40-character Git commit SHA published in step 2. The Compose
+   image `ghcr.io/meyergru/opnsense-mcp-server:sha-${MCP_IMAGE_SHA}`
+   is mandatory; missing variables cause Compose to fail rather than
+   silently pulling the mutable `:dev` tag. For stronger registry-level
+   immutability, a verified image digest can be used instead.
+4. In Portainer on VM `mcp`, paste [compose.yaml](../compose.yaml) into a
    **Web editor** Stack and enter target/API credentials there. Do not
    commit real credentials to the public repository.
-4. Allow OpenWebUI to reach the VM on TCP/8000; enforce an externally managed
+5. Allow OpenWebUI to reach the VM on TCP/8000; enforce an externally managed
    outbound allowlist of exact OPNsense API IP/port pairs before connecting
    real firewalls.
 
@@ -54,6 +60,11 @@ on its MCP connection. The URI `mcp` resolves only if your internal DNS
 provides it; Docker service names do not automatically resolve across VMs.
 
 ## Security / limitations
+
+Secrets passed to tools (for example DDNS provider passwords) may transit the
+AI client and its logs. Opaque WireGuard PSK references work only where both
+endpoints can resolve them; unmanaged Fritzbox/UniFi devices require an
+explicit trusted hand-off. See [Secrets and manual hand-off](secret-handling.md).
 
 Plain HTTP sends the bearer token without TLS; only use this over your
 trusted, firewall-restricted management network. TLS termination or a native
