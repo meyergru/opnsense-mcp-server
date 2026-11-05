@@ -52,8 +52,13 @@ def load_transport_config() -> TransportConfig:
 
     if value == "stdio":
         return TransportConfig(
-            transport="stdio", host="", port=0, token=None, max_result_bytes=max_bytes,
-            log_level=log_level, log_tool_calls=log_tool_calls,
+            transport="stdio",
+            host="",
+            port=0,
+            token=None,
+            max_result_bytes=max_bytes,
+            log_level=log_level,
+            log_tool_calls=log_tool_calls,
         )
 
     token = os.environ.get("OPNSENSE_MCP_AUTH_TOKEN", "")
@@ -70,8 +75,13 @@ def load_transport_config() -> TransportConfig:
     if port < 1 or port > 65535:
         raise ValueError("OPNSENSE_MCP_PORT must be between 1 and 65535")
     return TransportConfig(
-        transport="http", host=host, port=port, token=token, max_result_bytes=max_bytes,
-        log_level=log_level, log_tool_calls=log_tool_calls,
+        transport="http",
+        host=host,
+        port=port,
+        token=token,
+        max_result_bytes=max_bytes,
+        log_level=log_level,
+        log_tool_calls=log_tool_calls,
     )
 
 
