@@ -24,6 +24,10 @@ services:
       OPNSENSE_MCP_MAX_RESULT_BYTES: "16384"
       # Global operation policy: true means no configuration changes on any site.
       OPNSENSE_MCP_READ_ONLY: "true"
+      OPNSENSE_MCP_LOG_LEVEL: "INFO"
+      OPNSENSE_MCP_LOG_TOOL_CALLS: "errors" # none | errors | all
+      # Optional: additional internal PEM CA, in addition to system CAs.
+      # OPNSENSE_MCP_ADDITIONAL_CA_FILE: "/etc/mcp/ca.crt"
       # Generate with: openssl rand -hex 32 (64 characters)
       OPNSENSE_MCP_AUTH_TOKEN: ""
 
@@ -38,6 +42,9 @@ services:
       # Optional per-site override (leave unset to inherit global policy):
       # OPNSENSE_LOCAL_READ_ONLY: "true"
 
+    # Change the host path to your CA file and uncomment both lines:
+    # volumes:
+    #   - /YOUR/HOST/PATH/internal-ca.crt:/etc/mcp/ca.crt:ro
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=16m
