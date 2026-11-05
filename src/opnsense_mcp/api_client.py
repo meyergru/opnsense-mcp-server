@@ -7,6 +7,7 @@ endpoint blocklist, and error response parsing.
 from __future__ import annotations
 
 from enum import StrEnum
+import re
 from typing import Any
 
 import httpx
@@ -624,6 +625,23 @@ _VERSION_THRESHOLD = (25, 7)
 _SAVEPOINTS_REMOVED_IN = (26, 7)
 
 
+# Path suffixes are object identifiers or small, documented composite selectors.
+# Prevent untrusted values from changing the endpoint route via URL normalization.
+# The allowed characters cover UUIDs, IPv4/IPv6 leases, aliases, rule move
+# selectors and revision identifiers; percent escapes and query delimiters
+# are deliberately not accepted in caller-supplied path components.
+_PATH_SUFFIX_PATTERN = re.compile(r"[A-Za-z0-9_.,:/-]+\\Z")
+
+
+def _validated_path_suffix(value: str) -> str:
+    """Keep the effective HTTP path within the reviewed logical operation."""
+    if not isinstance(value, str) or not value or not _PATH_SUFFIX_PATTERN.fullmatch(value):
+        raise ValueError("Invalid API path suffix")
+    if any(segment in {"", ".", ".."} for segment in value.split("/")):
+        raise ValueError("Invalid API path suffix: empty or traversal segment")
+    return value
+
+
 class OPNsenseAPIError(Exception):
     """Raised when the OPNsense API returns an error."""
 
@@ -737,7 +755,7 @@ class OPNsenseAPI:
         await self._ensure_version_detected()
         path = self._resolve_endpoint(endpoint)
         if path_suffix:
-            path = f"{path}/{path_suffix}"
+            path = f"{path}/{_validated_path_suffix(path_suffix)}"
         self._check_blocklist(path)
         return await self._request("GET", path)
 
@@ -767,7 +785,7 @@ class OPNsenseAPI:
         await self._ensure_version_detected()
         path = self._resolve_endpoint(endpoint)
         if path_suffix:
-            path = f"{path}/{path_suffix}"
+            path = f"{path}/{_validated_path_suffix(path_suffix)}"
         self._check_blocklist(path)
         return await self._request("POST", path, data=data)
 
