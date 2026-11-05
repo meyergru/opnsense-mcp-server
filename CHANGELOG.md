@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.8.1] - 2026-11-05
+
+### Added
+
+- Optional `OPNSENSE_MCP_ADDITIONAL_CA_FILE` to trust a read-only-mounted
+  internal CA in addition to the container's standard CA certificates.
+- Configurable `OPNSENSE_MCP_LOG_LEVEL` and
+  `OPNSENSE_MCP_LOG_TOOL_CALLS=none|errors|all` controls.
+- Startup `READY` log entry after successful target initialization.
+
+### Security and operations
+
+- Tool audit records tool name, validated site alias, outcome and duration,
+  but deliberately excludes tool parameters, response contents and exception
+  messages containing possibly sensitive data.
+- Optional CA file is validated at startup, and unreadable/malformed mounts
+  are rejected before the server begins accepting requests.
+- No automatic deployment; existing Portainer stacks remain pinned to 0.8.0
+  until the 0.8.1 GHCR image is published and explicitly selected.
+
 ## [0.8.0] - 2026-11-05
 
 First explicitly versioned pre-1.0 release of this multi-target OPNsense MCP fork.
