@@ -1,4 +1,5 @@
 """Conservative HTTPX/TLS error classification; never expose exception strings."""
+
 from __future__ import annotations
 
 import ssl
