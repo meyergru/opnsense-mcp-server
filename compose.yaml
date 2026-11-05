@@ -5,7 +5,8 @@ name: opnsense-mcp
 
 services:
   opnsense-mcp:
-    image: ghcr.io/meyergru/opnsense-mcp-server:dev
+    # Deliberately pinned to a reviewed release; publishing does not redeploy.
+    image: ghcr.io/meyergru/opnsense-mcp-server:0.8.0
     restart: unless-stopped
     init: true
 
