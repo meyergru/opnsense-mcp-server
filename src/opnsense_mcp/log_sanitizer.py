@@ -1,4 +1,5 @@
 """Suppress FastMCP's raw traceback for errors already sanitized for MCP clients."""
+
 from __future__ import annotations
 
 import logging
