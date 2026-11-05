@@ -1,5 +1,12 @@
 # Streamable HTTP + Portainer deployment
 
+> [!CAUTION]
+> **If you do not trust this MCP server, do not use it.** It holds
+> administrative API credentials for firewalls that may also protect its own
+> network boundary. A DMZ and default read-only setting cannot prove that
+> compromised software, dependencies or AI clients will be harmless.
+> Deploy only after deliberately accepting this trust relationship.
+
 Native FastMCP HTTP transport listens on port 8000 at `/mcp`. There is no
 stdio-to-HTTP gateway, reverse proxy, database, or extra worker process.
 
