@@ -19,7 +19,26 @@ A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible 
 > decision to trust the source, dependencies, runtime and clients. If that trust
 > is not justified, **do not deploy or connect this server to any firewall**.
 
-**147 MCP tools:** including single-site Kea, radvd, Unbound, WireGuard and Firewall 26.7 resource operations; see the [tool reference](#available-tools-147).
+**149 MCP tools:** including single-site Kea, radvd, Unbound, WireGuard and Firewall 26.7 resource operations; see the [tool reference](#available-tools-149).
+
+## Native firmware audit semantics (0.8.3)
+
+- `opn_firmware_cve_audit` queries the native OPNsense/FreeBSD VuXML
+  package vulnerability database. Matches apply to installed package names
+  and versions, **not necessarily a reachable exploit**. Distinguish
+  mysql-client from a running MySQL server, plugin use, activated services,
+  code paths, and firewall exposure; client code can be vulnerable too.
+- `opn_firmware_health_audit` runs OPNsense's native *file integrity and
+  dependency* health check, not the configuration-heuristic
+  `opn_security_audit`, and not a CVE scan. The backend runs checks using
+  `pkg check -dan/-sa`; outputs may include changed files that are
+  intentional administrator modifications.
+- Both native audits use one global firmware operation log. MCP requires
+  a fresh, operation-specific marker and completion evidence before returning
+  a completed result; stale or overlapping checks are not accepted.
+- Neither tool automatically repairs files, installs packages, changes
+  configuration or establishes that the firewall is secure. Review anomalies
+  against the actual workload and configuration.
 
 ## Architecture and configuration ownership
 
@@ -125,7 +144,7 @@ opnsense-mcp
 
 Do **not** use the original author's `uhlenheide` Docker Hub image for this fork.
 
-## Available Tools (147)
+## Available Tools (149)
 
 ### Target selection (1 tool)
 
@@ -161,6 +180,8 @@ Do **not** use the original author's `uhlenheide` Docker Hub image for this fork
 | --- | --- |
 | `opn_firmware_cve_audit` | **Original OPNsense VuXML security audit**: starts a package vulnerability scan and polls briefly, returning known affected packages/CVEs or a job ID to continue. Allowed even for read-only sites; never installs updates. |
 | `opn_firmware_cve_audit_result` | Collect a running CVE audit by job ID. Reject stale logs; only mark clean if the new scan explicitly reports zero package problems. |
+| `opn_firmware_health_audit` | **Native OPNsense firmware health audit**: checks kernel/base versions, file integrity and package dependencies. Uses a bounded diagnostic operation, not configuration heuristics or VuXML CVE checks. Results do not prove full system health. |
+| `opn_firmware_health_audit_result` | Collect native health audit result by job ID; rejects stale or unrelated firmware logs. Never upgrades, repairs or reboots. |
 | `opn_firmware_update_running` | Read firmware backend running indicator (low-level). |
 | `opn_firmware_update_progress` | Read the raw upgrade status/log (low-level). |
 | `opn_monitor_firmware_update` | **Recommended monitor:** poll in a bounded call (1–3 checks), tolerate temporary network outages, report backend completion/reboot requirement, and attempt to verify the installed version. Repeat the monitor call for longer updates; it never starts updates or reboots. |
