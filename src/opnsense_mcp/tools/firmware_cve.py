@@ -104,14 +104,14 @@ def _parse_audit_log(log: str) -> dict[str, Any]:
         "cves_truncated": len(cves_all) > 100,
         "report_excerpt": log[-650:],
         "note": (
-        "Native OPNsense/FreeBSD VuXML checks installed package/version matches against "
-        "known advisories. A match is not proof that the vulnerable component, code "
-        "path or configuration is used or remotely reachable; e.g. a MySQL client "
-        "package does not imply a running MySQL server. Conversely, client libraries "
-        "can be exploitable even without a local server. Check the exact CVE, "
-        "installed component, service/feature use and exposure separately. "
-        "No findings cannot exclude unknown vulnerabilities."
-    ),
+            "Native OPNsense/FreeBSD VuXML checks installed package/version matches against "
+            "known advisories. A match is not proof that the vulnerable component, code "
+            "path or configuration is used or remotely reachable; e.g. a MySQL client "
+            "package does not imply a running MySQL server. Conversely, client libraries "
+            "can be exploitable even without a local server. Check the exact CVE, "
+            "installed component, service/feature use and exposure separately. "
+            "No findings cannot exclude unknown vulnerabilities."
+        ),
     }
 
 
@@ -137,8 +137,10 @@ def _parse_health_log(log: str) -> dict[str, Any]:
     else:
         assessment = "inconclusive"
     return {
-        "assessment": assessment, "checks": sections[:30],
-        "findings": findings[:40], "findings_truncated": len(findings) > 40,
+        "assessment": assessment,
+        "checks": sections[:30],
+        "findings": findings[:40],
+        "findings_truncated": len(findings) > 40,
         "note": (
             "Native OPNsense firmware health checks compare local files, versions and "
             "package dependencies. No reported anomaly is NOT proof of a fully healthy "
@@ -307,7 +309,8 @@ async def opn_firmware_health_audit(
         existing = _SESSIONS.get(api)
         if existing is not None and existing.active:
             return {
-                "state": "already_running", "audit_kind": existing.audit_kind,
+                "state": "already_running",
+                "audit_kind": existing.audit_kind,
                 "job_id": existing.job_id,
                 "note": "Do not overlap firmware audits; collect the existing result first",
             }
@@ -328,8 +331,7 @@ async def opn_firmware_health_audit(
 
 @mcp.tool()
 async def opn_firmware_health_audit_result(
-    ctx: Context, job_id: str, site: SiteName = "",
-    max_checks: int = 2, poll_interval_seconds: int = 2
+    ctx: Context, job_id: str, site: SiteName = "", max_checks: int = 2, poll_interval_seconds: int = 2
 ) -> dict[str, Any]:
     """Collect a running native OPNsense firmware health audit by its MCP job ID.
 
