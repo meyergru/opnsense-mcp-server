@@ -1,4 +1,5 @@
 """Native OPNsense firmware integrity/dependency health-audit tests (offline)."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock
@@ -25,8 +26,7 @@ _CLEAN_HEALTH = (
 )
 _ISSUE_HEALTH = _CLEAN_HEALTH.replace(
     "Checking all packages: .... done",
-    "my-pkg-1: checksum mismatch for /usr/local/etc/affected.conf\n"
-    "Package not installed: dependency-pkg",
+    "my-pkg-1: checksum mismatch for /usr/local/etc/affected.conf\nPackage not installed: dependency-pkg",
 )
 
 
@@ -45,12 +45,14 @@ def test_native_health_parser_is_conservative():
 async def test_health_allowed_on_read_only_and_requires_new_log(mock_api, mock_ctx):
     assert operation_effect("POST", "firmware.health") is OperationEffect.DIAGNOSTIC
     previous = {"status": "done", "log": _CLEAN_HEALTH}
-    mock_api.get = AsyncMock(side_effect=[
-        {"status": "idle"},
-        previous,
-        {"status": "done", "log": previous["log"]},
-        {"status": "done", "log": _ISSUE_HEALTH},
-    ])
+    mock_api.get = AsyncMock(
+        side_effect=[
+            {"status": "idle"},
+            previous,
+            {"status": "done", "log": previous["log"]},
+            {"status": "done", "log": _ISSUE_HEALTH},
+        ]
+    )
     mock_api.post = AsyncMock(return_value={"status": "ok", "msg_uuid": "health-job"})
     first = await opn_firmware_health_audit(mock_ctx, max_checks=1)
     assert first["state"] == "running"
@@ -65,10 +67,11 @@ async def test_health_allowed_on_read_only_and_requires_new_log(mock_api, mock_c
 
 
 async def test_stale_health_log_cannot_be_reported_clean(mock_api, mock_ctx):
-    mock_api.get = AsyncMock(side_effect=lambda endpoint: (
-        {"status": "idle"} if endpoint == "firmware.running" else
-        {"status": "done", "log": _CLEAN_HEALTH}
-    ))
+    mock_api.get = AsyncMock(
+        side_effect=lambda endpoint: (
+            {"status": "idle"} if endpoint == "firmware.running" else {"status": "done", "log": _CLEAN_HEALTH}
+        )
+    )
     mock_api.post = AsyncMock(return_value={"status": "ok", "msg_uuid": "stale-health"})
     result = await opn_firmware_health_audit(mock_ctx, max_checks=1)
     assert result["state"] == "running"
