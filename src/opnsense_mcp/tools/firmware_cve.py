@@ -23,6 +23,16 @@ from opnsense_mcp.server import get_api, mcp
 from opnsense_mcp.tool_types import SiteName
 
 _AUDIT_MARKER = "***GOT REQUEST TO AUDIT SECURITY***"
+_HEALTH_MARKER = "***GOT REQUEST TO AUDIT HEALTH***"
+_HEALTH_ISSUE = re.compile(
+    r"(?i)(?:checksum mismatch|version mismatch|repository mismatch|"
+    r"invalid .*\\.sig|missing files:\\s*[1-9]|"
+    r"package not installed:|failed to|error [1-9]|"
+    r"could not determine|cannot verify|incorrect, expected:|"
+    r"no package manager|not known to package database|"
+    r"has no upstream equivalent|unverified consistency check|"
+    r"\\bis (?:not set|set) to (?:automatic|vital))"
+)
 _DONE_MARKER = "***DONE***"
 _CVE_PATTERN = re.compile(r"\bCVE-\d{4}-\d{4,}\b", re.IGNORECASE)
 _VULN_PATTERN = re.compile(r"(?m)^\s*([^\s:]{2,120})\s+is vulnerable:\s*$")
@@ -41,6 +51,7 @@ class _AuditSession:
     job_id: str
     baseline_hash: str
     active: bool = True
+    audit_kind: str = "security"
 
 
 def _hash_log(log: str) -> str:
@@ -104,6 +115,39 @@ def _parse_audit_log(log: str) -> dict[str, Any]:
     }
 
 
+def _parse_health_log(log: str) -> dict[str, Any]:
+    """Report observed integrity/dependency anomalies; never claim overall health."""
+    if _HEALTH_MARKER not in log or _DONE_MARKER not in log:
+        return {"assessment": "inconclusive", "note": "No complete native health audit log"}
+    findings = []
+    for line in log.splitlines():
+        line = line.strip()
+        if not line or line.startswith((">>>", "***")) or line == "No problems detected.":
+            continue
+        if _HEALTH_ISSUE.search(line):
+            findings.append(line[:300])
+    sections = [line.strip()[4:][:140] for line in log.splitlines() if line.strip().startswith(">>> ")]
+    has_integrity_checks = any("installed kernel version" in x for x in sections) and any(
+        "missing or altered package files" in x for x in sections
+    )
+    if findings:
+        assessment = "integrity_findings_reported"
+    elif has_integrity_checks:
+        assessment = "no_anomalies_detected_in_report"
+    else:
+        assessment = "inconclusive"
+    return {
+        "assessment": assessment, "checks": sections[:30],
+        "findings": findings[:40], "findings_truncated": len(findings) > 40,
+        "note": (
+            "Native OPNsense firmware health checks compare local files, versions and "
+            "package dependencies. No reported anomaly is NOT proof of a fully healthy "
+            "system or absence of CVEs. Output is not an independently verified test "
+            "of runtime network services, backups, or exploitability."
+        ),
+    }
+
+
 async def _poll(api: OPNsenseAPI, state: _AuditSession, max_checks: int, poll_interval_seconds: int) -> dict[str, Any]:
     """Bounded sampling; errors do not silently become an empty CVE report."""
     last_state = "running"
@@ -124,14 +168,15 @@ async def _poll(api: OPNsenseAPI, state: _AuditSession, max_checks: int, poll_in
         # Progress log is global and NOT keyed by msg_uuid. Require new log
         # content, the security-audit marker, and a completion marker.
         is_new = _hash_log(raw) != state.baseline_hash
-        is_audit = _AUDIT_MARKER in raw
+        expected_marker = _AUDIT_MARKER if state.audit_kind == "security" else _HEALTH_MARKER
+        is_audit = expected_marker in raw
         if is_new and is_audit and _DONE_MARKER in raw and last_state == "done":
             state.active = False
             return {
                 "state": "complete",
                 "job_id": state.job_id,
                 "correlation": "changed global log with security-audit marker (no backend job-ID correlation)",
-                **_parse_audit_log(raw),
+                **(_parse_audit_log(raw) if state.audit_kind == "security" else _parse_health_log(raw)),
             }
         if last_state == "reboot":
             return {
@@ -228,6 +273,75 @@ async def opn_firmware_cve_audit_result(
         raise ValueError("max_checks and poll_interval_seconds must each be 1..3")
     api = get_api(ctx, site)
     state = _SESSIONS.get(api)
-    if state is None or state.job_id != job_id:
+    if state is None or state.job_id != job_id or state.audit_kind != "security":
         return {"state": "no_matching_session", "note": "Cannot verify old logs after an MCP restart or wrong job ID"}
+    return await _poll(api, state, max_checks, poll_interval_seconds)
+
+
+@mcp.tool()
+async def opn_firmware_health_audit(
+    ctx: Context, site: SiteName = "", max_checks: int = 2, poll_interval_seconds: int = 2
+) -> dict[str, Any]:
+    """Run OPNsense's NATIVE firmware integrity/dependency health audit.
+
+    This is NOT the heuristic configuration check opn_security_audit and NOT
+    the VuXML CVE scan opn_firmware_cve_audit. The OPNsense firmware backend
+    checks kernel/base versions and file integrity, repositories, plugins,
+    installed package files and missing dependencies. Its 'no findings'
+    result is NOT proof that services work, no CVEs exist or a system is safe.
+    Backend verified against OPNsense health.sh: uses pkg check -dan/-sa,
+    performs diagnostic checks and creates logs, but no upgrades/reboots.
+    The native script may touch temporary verification files.
+
+    Uses POST /api/core/firmware/health (reviewed diagnostic allowlist).
+    Firmware backend progress log is GLOBAL and not keyed to the returned
+    UUID. We compare against the prior log and require an explicit health
+    marker and completion before parsing. If still running, use the job_id
+    with opn_firmware_health_audit_result. Never initiate overlapping firmware
+    operations. Anomalies require administrator review, not automatic repairs.
+    """
+    if not 1 <= max_checks <= 3 or not 1 <= poll_interval_seconds <= 3:
+        raise ValueError("max_checks and poll_interval_seconds must each be 1..3")
+    api = get_api(ctx, site)
+    async with _lock_for(api):
+        existing = _SESSIONS.get(api)
+        if existing is not None and existing.active:
+            return {
+                "state": "already_running", "audit_kind": existing.audit_kind,
+                "job_id": existing.job_id,
+                "note": "Do not overlap firmware audits; collect the existing result first",
+            }
+        running = await api.get("firmware.running")
+        if running.get("status") == "busy":
+            return {"state": "backend_busy", "note": "Another firmware operation is running; health audit not started"}
+        before = await api.get("firmware.upgradestatus")
+        old_log = before.get("log")
+        baseline = _hash_log(old_log if isinstance(old_log, str) else "")
+        started = await api.post("firmware.health")
+        job_id = started.get("msg_uuid")
+        if started.get("status") != "ok" or not isinstance(job_id, str) or not job_id:
+            return {"state": "start_failed", "backend_status": started.get("status")}
+        state = _AuditSession(job_id=job_id, baseline_hash=baseline, audit_kind="health")
+        _SESSIONS[api] = state
+    return await _poll(api, state, max_checks, poll_interval_seconds)
+
+
+@mcp.tool()
+async def opn_firmware_health_audit_result(
+    ctx: Context, job_id: str, site: SiteName = "",
+    max_checks: int = 2, poll_interval_seconds: int = 2
+) -> dict[str, Any]:
+    """Collect a running native OPNsense firmware health audit by its MCP job ID.
+
+    Polls the fixed global firmware log, requiring fresh content plus the
+    HEALTH marker and completion marker. It refuses to reuse an old or
+    unrelated audit log; sessions cannot survive MCP restarts. A completed
+    integrity check is NOT a security, CVE or full operational health verdict.
+    """
+    if not 1 <= max_checks <= 3 or not 1 <= poll_interval_seconds <= 3:
+        raise ValueError("max_checks and poll_interval_seconds must each be 1..3")
+    api = get_api(ctx, site)
+    state = _SESSIONS.get(api)
+    if state is None or state.job_id != job_id or state.audit_kind != "health":
+        return {"state": "no_matching_session", "note": "Cannot safely correlate old or unrelated firmware logs"}
     return await _poll(api, state, max_checks, poll_interval_seconds)
