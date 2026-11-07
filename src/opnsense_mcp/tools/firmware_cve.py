@@ -26,12 +26,12 @@ _AUDIT_MARKER = "***GOT REQUEST TO AUDIT SECURITY***"
 _HEALTH_MARKER = "***GOT REQUEST TO AUDIT HEALTH***"
 _HEALTH_ISSUE = re.compile(
     r"(?i)(?:checksum mismatch|version mismatch|repository mismatch|"
-    r"invalid .*\\.sig|missing files:\\s*[1-9]|"
+    r"invalid .*\.sig|missing files:\s*[1-9]|"
     r"package not installed:|failed to|error [1-9]|"
     r"could not determine|cannot verify|incorrect, expected:|"
     r"no package manager|not known to package database|"
     r"has no upstream equivalent|unverified consistency check|"
-    r"\\bis (?:not set|set) to (?:automatic|vital))"
+    r"\bis (?:not set|set) to (?:automatic|vital))"
 )
 _DONE_MARKER = "***DONE***"
 _CVE_PATTERN = re.compile(r"\bCVE-\d{4}-\d{4,}\b", re.IGNORECASE)
