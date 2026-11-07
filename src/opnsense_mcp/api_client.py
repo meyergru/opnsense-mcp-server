@@ -88,6 +88,7 @@ DIAGNOSTIC_OPERATIONS: frozenset[tuple[str, str]] = frozenset(
     {
         ("POST", "firmware.status"),  # synchronous firmware probe, not upgrade
         ("POST", "firmware.audit"),  # VuXML package-CVE scan; writes only audit logs
+        ("POST", "firmware.health"),  # Native integrity/dependency checks; audit logs/tmp files only
         ("POST", "diagnostics.ping.set"),
         ("POST", "diagnostics.ping.start"),
         ("POST", "diagnostics.ping.remove"),
