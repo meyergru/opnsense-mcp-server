@@ -7,9 +7,12 @@ import pytest
 
 from opnsense_mcp.api_client import OperationEffect, operation_effect
 from opnsense_mcp.tools.firmware_cve import (
-    _HEALTH_MARKER, _DONE_MARKER, _parse_health_log,
-    opn_firmware_health_audit, opn_firmware_health_audit_result,
+    _DONE_MARKER,
+    _HEALTH_MARKER,
+    _parse_health_log,
     opn_firmware_cve_audit_result,
+    opn_firmware_health_audit,
+    opn_firmware_health_audit_result,
 )
 
 _CLEAN_HEALTH = (
