@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.8.3] - 2026-11-07
+
+### Added
+
+- Native firmware integrity/dependency audit tools
+  `opn_firmware_health_audit` and `opn_firmware_health_audit_result`,
+  using the upstream /api/core/firmware/health endpoint.
+- Bounded, per-site, correlation-checked progress reads. Fresh health
+  marker and completion are required to avoid treating stale global logs
+  as results. Firmware audits cannot overlap through the MCP client.
+
+### Clarified
+
+- VuXML CVE findings identify *installed package/version* advisory matches;
+  they are not evidence of enabled, used or reachable vulnerable code.
+  Distinguish e.g. a MySQL client library from a running MySQL server, while
+  noting that client components can have vulnerabilities themselves.
+- Firmware health audit examines file integrity and dependencies, NOT CVEs
+  or complete operational health. No automated repairs or upgrades.
+- The health POST is explicitly classified as a bounded diagnostic,
+  based on the upstream health.sh script using `pkg check -dan/-sa`.
+
+### Release safety
+
+- Existing read-only protections remain in force; API secrets are unchanged.
+- Release is a new pinned GHCR tag, not an automatic Portainer rollout.
+
 ## [0.8.2] - 2026-11-05
 
 ### Fixed
