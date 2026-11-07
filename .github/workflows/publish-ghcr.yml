@@ -1,10 +1,14 @@
 name: Publish reviewed MCP image to GHCR
 
-# Deliberately manual: neither pushing code nor tagging starts publication.
-# Run this once per reviewed version on the main branch. The workflow publishes
-# a versioned image and creates a GitHub pre-release for the same commit.
+# One-time explicitly requested release: only push of exact 0.8.3
+# marker on main triggers publication; no arbitrary push, PR or tag trigger.
+# Restore manual-only after successful versioned publication.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.release-trigger/0.8.3'
 
 permissions:
   contents: write

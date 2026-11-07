@@ -25,13 +25,13 @@ def test_documented_api_catalog_counts_match_runtime():
     assert f"{len(MVC_ENDPOINTS)} generated reviewed MVC mappings" in policy
     assert f"{len(FIREWALL_ENDPOINTS)} generated reviewed Firewall 26.7 mappings" in policy
     assert f"{len(FIREWALL_ENDPOINTS)} additional reviewed logical endpoints" in coverage
-    assert "**147 MCP tools:**" in readme
-    assert "**147 MCP tools**" in policy
+    assert "**149 MCP tools:**" in readme
+    assert "**149 MCP tools**" in policy
 
 
 async def test_documented_tool_count_matches_actual_runtime():
     from opnsense_mcp.server import mcp
 
     count = len(await mcp.list_tools())
-    assert count == 147
+    assert count == 149
     assert f"**{count} MCP tools:**" in (_ROOT / "README.md").read_text(encoding="utf-8")
