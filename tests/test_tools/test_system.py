@@ -19,7 +19,7 @@ from opnsense_mcp.tools.system import (
 
 
 def _allow_sensitive(api):
-    """Simulate OPNSENSE_ALLOW_SENSITIVE=true on the mocked API client."""
+    """Simulate OPNSENSE_MCP_ALLOW_SENSITIVE=true on the mocked API client."""
     api._config = dataclasses.replace(api._config, allow_sensitive=True)
 
 
