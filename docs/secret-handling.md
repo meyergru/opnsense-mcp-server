@@ -30,6 +30,29 @@ made impossible while retaining every legitimate provisioning workflow.
    refused rather than returned unredacted. These are heuristic protections,
    not a proof of redaction.
 
+## Backup anonymization versus MCP credential redaction
+
+The separate historical `sanitize_opnsense_backup_consistent.py` script was
+designed for **sharing/analyzing anonymized config.xml files**, consistently
+replacing names, hostnames, FQDNs, e-mail addresses, IPv4/IPv6 addresses and
+MACs while preserving XML structure. It also identified less obvious OPNsense
+credential fields (e.g. `HeaderValue`, `p12file`, `cert_private` and
+`tls_key`). That script is not part of this MCP server.
+
+The MCP server uses **credential redaction only**. It now accounts for these
+non-obvious secret fields, namespace-qualified names, credential-bearing XML
+attributes and common Authorization/Cookie header name/value encodings.
+Operational identifiers such as `hostname`, `ipaddr`, `macaddr`,
+`TlsEmail`, `ToDomain`, `FromDomain` and `remoteid` are **not**
+automatically anonymized. Their exposure is a separate privacy decision,
+not proof that secrets were removed. A redacted config must never be treated
+as safe for public sharing without a standalone review/anonymization step.
+
+Both raw XML export and structured config sections remain disabled via
+HTTP MCP. Redaction applies to legacy stdio config access; even there,
+heuristics are not a guarantee of complete secret removal. Explicit
+`OPNSENSE_ALLOW_SENSITIVE=true` still gates unredacted access.
+
 ## What the implementation currently does
 
 - `opn_add_ddns_account` and `opn_update_ddns_account` accept a
