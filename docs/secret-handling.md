@@ -23,9 +23,12 @@ made impossible while retaining every legitimate provisioning workflow.
    key on the device that retains it and exchange only the public key.
 3. **Incidental secret disclosure** (not intended). Ordinary inventory,
    configuration, lease, audit and status responses should not include
-   stored credentials. HTTP raw `config.xml` export/section reads are blocked,
-   known sensitive result keys are suppressed, and MVC results remove known
-   secret fields. These are heuristic protections, not a proof of redaction.
+   stored credentials. Configuration exports and section reads redact likely
+   secrets by default; unredacted output requires the operator to set
+   `OPNSENSE_ALLOW_SENSITIVE=true` and request `include_sensitive=true`.
+   HTTP raw `config.xml` export/section reads remain blocked. Malformed XML is
+   refused rather than returned unredacted. These are heuristic protections,
+   not a proof of redaction.
 
 ## What the implementation currently does
 
@@ -39,11 +42,12 @@ made impossible while retaining every legitimate provisioning workflow.
   that reference on the server. It does not allow exporting the PSK for manual
   entry into a non-MCP device; such an exchange requires a distinct, deliberate
   workflow rather than silently weakening the output guard.
-- There is presently **no generic tool** for generating an OPNsense API token,
-  retrieving stored passwords, exporting a WireGuard private key or revealing
-  arbitrary secret fields. The broad output guard still rejects common
-  credential-shaped fields. A user request does not magically change those
-  capabilities.
+- There is no dedicated tool for generating an OPNsense API token, exporting a
+  WireGuard private key or revealing an individual stored password. In legacy
+  stdio mode, however, the configuration tools can expose unredacted config
+  data when the operator explicitly enables `OPNSENSE_ALLOW_SENSITIVE=true`
+  and the caller requests `include_sensitive=true`. A user request alone does
+  not enable that capability.
 - The configured HTTP transport can be plain HTTP on a private management
   network. A manually entered secret may be exposed in prompts, provider
   logs, transcripts, network transport and client history. Prefer TLS or

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock
 
-from opnsense_mcp.config_cache import ConfigCache, _strip_sensitive, _xml_to_dict
+from opnsense_mcp.config_cache import ConfigCache, _strip_sensitive, _xml_to_dict, is_sensitive_tag
 
 
 class TestXmlToDict:
@@ -84,8 +84,31 @@ class TestStripSensitive:
     def test_case_insensitive_tags(self):
         data = {"Password": "test", "KEY": "test2"}
         result = _strip_sensitive(data)
-        # SENSITIVE_TAGS are lowercase, matching is by .lower()
         assert result["Password"] == "[REDACTED]"
+        assert result["KEY"] == "[REDACTED]"
+
+    def test_redacts_plugin_secret_names(self):
+        data = {
+            "dns_cf_token": "token",
+            "radius_secret2": "secret",
+            "wg_privkey": "private",
+            "prv": "certificate private key",
+            "auth_pass": "password",
+            "ldap_bindpw": "password",
+            "simpin": "1234",
+        }
+        result = _strip_sensitive(data)
+        assert all(value == "[REDACTED]" for value in result.values())
+
+    def test_preserves_public_keys_and_authentication_flags(self):
+        data = {"pubkey": "public", "publickey": "public", "passwordauth": "1", "nopasswd": "0"}
+        assert _strip_sensitive(data) == data
+
+    def test_sensitive_tag_classification(self):
+        assert is_sensitive_tag("dns_cf_token")
+        assert is_sensitive_tag("authorizedkeys")
+        assert not is_sensitive_tag("passwordauth")
+        assert not is_sensitive_tag("publickey")
 
 
 class TestConfigCache:

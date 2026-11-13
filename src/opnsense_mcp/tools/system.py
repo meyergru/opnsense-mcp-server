@@ -9,9 +9,17 @@ from typing import Any
 from fastmcp import Context
 
 from opnsense_mcp import __version__
-from opnsense_mcp.config_cache import SENSITIVE_TAGS
+from opnsense_mcp.config_cache import is_sensitive_tag
 from opnsense_mcp.server import get_api, get_config_cache, get_savepoint_manager, mcp
 from opnsense_mcp.tool_types import SiteName
+
+_SENSITIVE_GATE_ERROR = {
+    "error": (
+        "include_sensitive=true requires OPNSENSE_ALLOW_SENSITIVE=true in the "
+        "server environment. Without it, sensitive values remain redacted."
+    ),
+    "error_type": "sensitive_disabled",
+}
 
 
 def _raw_config_export_blocked() -> bool:
@@ -19,16 +27,17 @@ def _raw_config_export_blocked() -> bool:
     return os.environ.get("OPNSENSE_MCP_TRANSPORT", "stdio").strip().lower() == "http"
 
 
-def _strip_sensitive_data(xml_text: str) -> str:
-    """Replace sensitive element text with [REDACTED] in config XML."""
+def _strip_sensitive_data(xml_text: str) -> str | None:
+    """Redact sensitive XML elements, or return None if XML cannot be parsed."""
     try:
         # Source is trusted (OPNsense API response), not user input
         root = ET.fromstring(xml_text)  # noqa: S314
     except ET.ParseError:
-        return xml_text
+        return None
 
-    for elem in root.iter():
-        if elem.tag.lower() in SENSITIVE_TAGS and elem.text:
+    for elem in [element for element in root.iter() if is_sensitive_tag(element.tag)]:
+        if elem.text or len(elem) or elem.attrib:
+            elem.clear()
             elem.text = "[REDACTED]"
 
     return ET.tostring(root, encoding="unicode", xml_declaration=True)
@@ -115,15 +124,25 @@ async def opn_download_config(
     cached inventory, then opn_get_config_section to query individual sections.
 
     By default, sensitive data (passwords, keys, secrets) is redacted.
+    include_sensitive=true requires OPNSENSE_ALLOW_SENSITIVE=true.
     Returns: dict with 'config_xml' (str), 'stripped' (bool), 'size_bytes' (int).
     """
     if _raw_config_export_blocked():
         return {"error": "Raw configuration export is disabled for remote MCP clients"}
     api = get_api(ctx, site)
+    if include_sensitive and not api._config.allow_sensitive:
+        return dict(_SENSITIVE_GATE_ERROR)
+
     xml_text = await api.get_text("core.backup.download")
 
     if not include_sensitive:
-        xml_text = _strip_sensitive_data(xml_text)
+        stripped = _strip_sensitive_data(xml_text)
+        if stripped is None:
+            return {
+                "error": "config.xml could not be parsed, so it cannot be redacted; refusing to return it.",
+                "error_type": "unparseable_config",
+            }
+        xml_text = stripped
 
     return {
         "config_xml": xml_text,
@@ -181,11 +200,16 @@ async def opn_get_config_section(
     The 'filter' section is particularly useful — it contains legacy GUI
     firewall rules that are NOT visible via opn_list_firewall_rules.
 
+    Sensitive values are redacted by default; include_sensitive=true requires
+    OPNSENSE_ALLOW_SENSITIVE=true in the server environment.
     Returns: dict with 'section' name and 'data' (structured config data).
     """
     if _raw_config_export_blocked():
         return {"error": "Raw configuration sections are disabled for remote MCP clients"}
     api = get_api(ctx, site)
+    if include_sensitive and not api._config.allow_sensitive:
+        return dict(_SENSITIVE_GATE_ERROR)
+
     cache = get_config_cache(ctx, site)
 
     if not cache.is_loaded or cache.is_stale:

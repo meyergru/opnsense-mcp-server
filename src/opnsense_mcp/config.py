@@ -6,6 +6,8 @@ Environment variables:
     OPNSENSE_API_SECRET: API secret (required)
     OPNSENSE_VERIFY_SSL: Verify SSL certificate (default: true)
     OPNSENSE_ALLOW_WRITES: Enable legacy write operations (default: false)
+    OPNSENSE_ALLOW_SENSITIVE: Permit include_sensitive=true on config tools
+        (default: false)
     OPNSENSE_MCP_READ_ONLY: Default read-only policy for named targets (default: true)
     OPNSENSE_<SITE>_READ_ONLY: Optional site override of global read-only policy
 """
@@ -35,6 +37,7 @@ class OPNsenseConfig:
     verify_ssl: bool
     allow_writes: bool
     additional_ca_file: str = ""
+    allow_sensitive: bool = False
 
     def __repr__(self) -> str:
         return f"OPNsenseConfig(url={self.url!r}, verify_ssl={self.verify_ssl}, allow_writes={self.allow_writes})"
@@ -71,6 +74,12 @@ def mcp_read_only_enabled(site: str = "") -> bool:
         if raw is not None:
             return _parse_bool(raw.strip(), name)
     return global_read_only
+
+
+def allow_sensitive_enabled() -> bool:
+    """Return whether the operator explicitly permits unredacted config output."""
+    name = "OPNSENSE_ALLOW_SENSITIVE"
+    return _parse_bool(os.environ.get(name, "false").strip(), name)
 
 
 def load_config() -> OPNsenseConfig:
@@ -116,4 +125,5 @@ def load_config() -> OPNsenseConfig:
         verify_ssl=verify_ssl,
         allow_writes=allow_writes,
         additional_ca_file=ca_file,
+        allow_sensitive=allow_sensitive_enabled(),
     )

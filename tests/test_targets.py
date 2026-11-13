@@ -50,6 +50,19 @@ async def test_independent_clients_and_caches():
 
 
 @pytest.mark.asyncio
+async def test_sensitive_output_opt_in_applies_to_named_targets():
+    env = _env()
+    env["OPNSENSE_ALLOW_SENSITIVE"] = "true"
+    with patch.dict("os.environ", env, clear=True):
+        registry = TargetRegistry.from_environment()
+    try:
+        assert registry.resolve("alpha").api._config.allow_sensitive is True
+        assert registry.resolve("beta").api._config.allow_sensitive is True
+    finally:
+        await registry.close()
+
+
+@pytest.mark.asyncio
 async def test_legacy_single_target(env_vars):
     with patch.dict("os.environ", {"OPNSENSE_SITES": ""}):
         registry = TargetRegistry.from_environment()

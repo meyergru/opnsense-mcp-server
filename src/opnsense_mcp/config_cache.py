@@ -9,7 +9,7 @@ from typing import Any
 
 from opnsense_mcp.api_client import OPNsenseAPI, OPNsenseAPIError
 
-# Sensitive XML elements redacted by default
+# Sensitive XML elements redacted by default (exact tag names).
 SENSITIVE_TAGS: frozenset[str] = frozenset(
     {
         "password",
@@ -19,10 +19,51 @@ SENSITIVE_TAGS: frozenset[str] = frozenset(
         "pre-shared-key",
         "crypto_password",
         "privatekey",
+        "prv",
         "certdata",
         "shared_secret",
+        "authorizedkeys",
+        "otp_seed",
+        "tls",
+        "keys",
+        "keydata",
+        "community",
+        "eab_hmac",
+        "basicauthpass",
+        "dns_kas_authdata",
+        "simpin",
     }
 )
+
+_SENSITIVE_SUBSTRINGS: tuple[str, ...] = (
+    "password",
+    "passwd",
+    "secret",
+    "credential",
+    "token",
+    "apikey",
+    "api_key",
+    "authkey",
+    "presharedkey",
+    "pre-shared",
+    "psk",
+    "passphrase",
+)
+_SENSITIVE_SUFFIXES: tuple[str, ...] = ("_pass", "pw")
+_SENSITIVE_ALLOWLIST: frozenset[str] = frozenset({"passwordauth", "nopasswd"})
+
+
+def is_sensitive_tag(tag: str) -> bool:
+    """Return whether a configuration element name should be redacted."""
+    lower = tag.lower()
+    if lower in _SENSITIVE_ALLOWLIST:
+        return False
+    if lower in SENSITIVE_TAGS or any(value in lower for value in _SENSITIVE_SUBSTRINGS):
+        return True
+    if lower.endswith(_SENSITIVE_SUFFIXES):
+        return True
+    return lower.endswith("key") and lower not in {"pubkey", "publickey"}
+
 
 _ZENARMOR_PREFIXES = ("os-sensei", "os-sunnyvalley")
 
@@ -62,7 +103,7 @@ def _xml_to_dict(elem: ET.Element) -> dict[str, Any] | str:
 def _strip_sensitive(data: dict[str, Any] | list[Any] | str) -> dict[str, Any] | list[Any] | str:
     """Recursively redact sensitive values in a parsed config dict."""
     if isinstance(data, dict):
-        return {k: "[REDACTED]" if k.lower() in SENSITIVE_TAGS else _strip_sensitive(v) for k, v in data.items()}
+        return {k: "[REDACTED]" if is_sensitive_tag(k) else _strip_sensitive(v) for k, v in data.items()}
     if isinstance(data, list):
         return [_strip_sensitive(item) for item in data]
     return data

@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.8.4] - 2026-11-13
+
+### Security
+
+- Refuse to return configuration XML if it cannot be parsed and redacted.
+- Expand sensitive configuration redaction across XML exports and structured
+  sections, including nested secret containers.
+- Require the explicit `OPNSENSE_ALLOW_SENSITIVE=true` setting before either
+  configuration tool returns unredacted data.
+
+### Fixed
+
+- Reject tab characters in diagnostic hostnames.
+
+### Release safety
+
+- GHCR publication remains a manual action; deploying the published tag is
+  still an explicit operator decision.
+
 ## [0.8.3] - 2026-11-07
 
 ### Added

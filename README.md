@@ -74,7 +74,7 @@ CI runs pytest, Ruff, mypy, security/dependency checks and a real Docker HTTP sm
 2. Review [compose.yaml](compose.yaml), then paste it into a **Portainer Web editor Stack** (not a Git-backed Stack) on your dedicated `mcp` VM.
 3. Configure `OPNSENSE_SITES` and the matching `OPNSENSE_<SITE>_URL`, `_API_KEY`, `_API_SECRET`, `_VERIFY_SSL` variables in the Stack. No separate TOML or secrets files are required.
 4. Generate a random 64-character hexadecimal MCP token with `openssl rand -hex 32`; enter it as `OPNSENSE_MCP_AUTH_TOKEN`.
-5. After CI succeeds, start the [manual GHCR release workflow](.github/workflows/publish-ghcr.yml) on **`main`** (Actions → Publish reviewed MCP image to GHCR → Run workflow). It publishes `ghcr.io/meyergru/opnsense-mcp-server:0.8.0`, the commit-specific `sha-<commit>` image, and the compatibility tag `:dev`, then creates GitHub pre-release `v0.8.0` with changelog notes. Pushing/merging alone publishes nothing; each version can be released only once. Prefer a commit-specific tag or digest for deployments.
+5. After CI succeeds, start the [manual GHCR release workflow](.github/workflows/publish-ghcr.yml) on **`main`** (Actions → Publish reviewed MCP image to GHCR → Run workflow). For this release it publishes `ghcr.io/meyergru/opnsense-mcp-server:0.8.4`, the commit-specific `sha-<commit>` image, and the compatibility tag `:dev`, then creates GitHub pre-release `v0.8.4` with changelog notes. Pushing/merging alone publishes nothing; each version can be released only once. Prefer a commit-specific tag or digest for deployments.
 6. Before starting against live firewalls, enforce VM-level inbound and outbound restrictions and the OPNsense API privileges.
 7. In OpenWebUI, configure a **Streamable HTTP MCP** connection to `http://<mcp-host>:8000/mcp` with header `Authorization: Bearer <MCP_TOKEN>`. Internal DNS must resolve `mcp` if you use that hostname.
 8. Use `opn_list_targets()`, then a harmless check such as `opn_system_status(site="local")`.
@@ -116,6 +116,7 @@ environment:
 | `OPNSENSE_MCP_MAX_RESULT_BYTES` | `16384` | Tool response limit, 1,024–131,072 bytes. |
 | `OPNSENSE_MCP_READ_ONLY` | `true` | Global read-only policy for all named targets. |
 | `OPNSENSE_<SITE>_READ_ONLY` | *inherits global* | Optional per-site override (`true` / `false`). |
+| `OPNSENSE_ALLOW_SENSITIVE` | `false` | Allow `include_sensitive=true` in config tools; applies to all targets. |
 | `OPNSENSE_SITES` | *unset* | Comma-separated names, e.g. `local,remote`. |
 | `OPNSENSE_<SITE>_URL` | *required* | HTTPS URL ending in `/api`, optional nonstandard port. |
 | `OPNSENSE_<SITE>_API_KEY` | *required* | API key of this target. |
@@ -126,6 +127,11 @@ environment:
 | `OPNSENSE_MCP_LOG_TOOL_CALLS` | `errors` | Audit policy: `none`, `errors`, `all`; never logs tool input/output or secrets. |
 
 Site aliases start with a lower-case letter and may contain lower-case letters, digits, underscores and interior dots. Environment prefixes are upper-case with dots normalized to underscores: `opnsense.mgsoft` → `OPNSENSE_OPNSENSE_MGSOFT_URL` (and `_API_KEY`, `_API_SECRET`, `_VERIFY_SSL`, `_READ_ONLY`). Aliases that would normalize to the same prefix (such as `opnsense.mgsoft` and `opnsense_mgsoft`) are rejected. Named targets inherit `OPNSENSE_MCP_READ_ONLY=true` by default, with optional per-site overrides. `OPNSENSE_ALLOW_WRITES` is legacy-only and does not control named targets.
+
+Configuration tools redact sensitive values by default. Setting
+`OPNSENSE_ALLOW_SENSITIVE=true` explicitly permits `include_sensitive=true`
+for all targets; enable it only when unredacted configuration data is needed.
+Malformed XML is refused rather than returned without redaction.
 
 ### Local stdio mode (optional)
 
