@@ -25,7 +25,7 @@ services:
       OPNSENSE_MCP_READ_ONLY: "true"
       # Global opt-in for unredacted config.xml in legacy stdio mode only.
       # Keep disabled; HTTP MCP blocks raw config exports regardless.
-      OPNSENSE_ALLOW_SENSITIVE: "false"
+      OPNSENSE_MCP_ALLOW_SENSITIVE: "false"
       OPNSENSE_MCP_LOG_LEVEL: "INFO"
       OPNSENSE_MCP_LOG_TOOL_CALLS: "errors" # none | errors | all
       # Optional: additional internal PEM CA, in addition to system CAs.
