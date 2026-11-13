@@ -15,6 +15,12 @@ This project follows [Semantic Versioning](https://semver.org/).
 - Redact common Authorization/Cookie HTTP header name/value encodings while
   retaining unrelated operational headers.
 
+### Configuration
+- Use the consistent global setting `OPNSENSE_MCP_ALLOW_SENSITIVE`
+  (default `false`) for legacy stdio unredacted configuration access.
+- Document the disabled-by-default setting in the Portainer Compose and
+  README examples.
+
 ### Tests and scope
 - Add regression tests for credential fields, XML namespaces, attributes,
   and HTTP header encodings.
