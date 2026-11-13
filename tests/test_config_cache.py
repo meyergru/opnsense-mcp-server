@@ -114,16 +114,33 @@ class TestStripSensitive:
         # Sourced from the separate sanitize_opnsense_backup_consistent.py
         # work, but only credential fields belong in this MCP redaction.
         for tag in (
-            "HeaderValue", "p12password", "p12file", "cert_private",
-            "userkey", "tls_key", "api_token", "api_secret",
-            "ipsec_psk", "salt", "{urn:opnsense}HeaderValue",
-            "{urn:opnsense}password", "x:api_secret",
+            "HeaderValue",
+            "p12password",
+            "p12file",
+            "cert_private",
+            "userkey",
+            "tls_key",
+            "api_token",
+            "api_secret",
+            "ipsec_psk",
+            "salt",
+            "{urn:opnsense}HeaderValue",
+            "{urn:opnsense}password",
+            "x:api_secret",
         ):
             assert is_sensitive_tag(tag), tag
         for non_secret in (
-            "TlsEmail", "ToDomain", "FromDomain", "HttpTlsServerName",
-            "hostname", "ipaddr", "macaddr", "remoteid", "auth_method",
-            "publickey", "{urn:opnsense}publickey",
+            "TlsEmail",
+            "ToDomain",
+            "FromDomain",
+            "HttpTlsServerName",
+            "hostname",
+            "ipaddr",
+            "macaddr",
+            "remoteid",
+            "auth_method",
+            "publickey",
+            "{urn:opnsense}publickey",
         ):
             assert not is_sensitive_tag(non_secret), non_secret
 
