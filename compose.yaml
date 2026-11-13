@@ -5,7 +5,7 @@ name: opnsense-mcp
 
 services:
   opnsense-mcp:
-    image: ghcr.io/meyergru/opnsense-mcp-server:0.8.4
+    image: ghcr.io/meyergru/opnsense-mcp-server:0.8.5
     restart: unless-stopped
     init: true
 
