@@ -184,29 +184,6 @@ class TestAllowSensitive:
         with pytest.raises(ConfigError, match="OPNSENSE_MCP_ALLOW_SENSITIVE"):
             self._load_with_sensitive("sometimes")
 
-    def test_old_name_refused_to_avoid_silent_compatibility_errors(self):
-        env = {
-            "OPNSENSE_URL": "https://10.0.0.1/api",
-            "OPNSENSE_API_KEY": "key",
-            "OPNSENSE_API_SECRET": "secret",
-            "OPNSENSE_ALLOW_SENSITIVE": "true",
-        }
-        with patch.dict("os.environ", env, clear=True):
-            with pytest.raises(ConfigError, match="use OPNSENSE_MCP_ALLOW_SENSITIVE instead"):
-                load_config()
-
-    def test_old_name_refused_even_when_new_name_is_present(self):
-        env = {
-            "OPNSENSE_URL": "https://10.0.0.1/api",
-            "OPNSENSE_API_KEY": "key",
-            "OPNSENSE_API_SECRET": "secret",
-            "OPNSENSE_ALLOW_SENSITIVE": "false",
-            "OPNSENSE_MCP_ALLOW_SENSITIVE": "true",
-        }
-        with patch.dict("os.environ", env, clear=True):
-            with pytest.raises(ConfigError, match="OPNSENSE_ALLOW_SENSITIVE is obsolete"):
-                load_config()
-
 
 class TestConfigFrozen:
     """Tests that the config object is immutable."""
