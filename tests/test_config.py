@@ -161,7 +161,7 @@ class TestAllowWrites:
 
 
 class TestAllowSensitive:
-    """Tests for OPNSENSE_ALLOW_SENSITIVE parsing."""
+    """Tests for OPNSENSE_MCP_ALLOW_SENSITIVE parsing."""
 
     def _load_with_sensitive(self, value: str | None):
         env = {
@@ -170,7 +170,7 @@ class TestAllowSensitive:
             "OPNSENSE_API_SECRET": "secret",
         }
         if value is not None:
-            env["OPNSENSE_ALLOW_SENSITIVE"] = value
+            env["OPNSENSE_MCP_ALLOW_SENSITIVE"] = value
         with patch.dict("os.environ", env, clear=True):
             return load_config()
 
@@ -181,8 +181,31 @@ class TestAllowSensitive:
         assert self._load_with_sensitive("true").allow_sensitive is True
 
     def test_invalid_raises_error(self):
-        with pytest.raises(ConfigError, match="OPNSENSE_ALLOW_SENSITIVE"):
+        with pytest.raises(ConfigError, match="OPNSENSE_MCP_ALLOW_SENSITIVE"):
             self._load_with_sensitive("sometimes")
+
+    def test_old_name_refused_to_avoid_silent_compatibility_errors(self):
+        env = {
+            "OPNSENSE_URL": "https://10.0.0.1/api",
+            "OPNSENSE_API_KEY": "key",
+            "OPNSENSE_API_SECRET": "secret",
+            "OPNSENSE_ALLOW_SENSITIVE": "true",
+        }
+        with patch.dict("os.environ", env, clear=True):
+            with pytest.raises(ConfigError, match="use OPNSENSE_MCP_ALLOW_SENSITIVE instead"):
+                load_config()
+
+    def test_old_name_refused_even_when_new_name_is_present(self):
+        env = {
+            "OPNSENSE_URL": "https://10.0.0.1/api",
+            "OPNSENSE_API_KEY": "key",
+            "OPNSENSE_API_SECRET": "secret",
+            "OPNSENSE_ALLOW_SENSITIVE": "false",
+            "OPNSENSE_MCP_ALLOW_SENSITIVE": "true",
+        }
+        with patch.dict("os.environ", env, clear=True):
+            with pytest.raises(ConfigError, match="OPNSENSE_ALLOW_SENSITIVE is obsolete"):
+                load_config()
 
 
 class TestConfigFrozen:
