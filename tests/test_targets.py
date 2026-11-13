@@ -52,7 +52,7 @@ async def test_independent_clients_and_caches():
 @pytest.mark.asyncio
 async def test_sensitive_output_opt_in_applies_to_named_targets():
     env = _env()
-    env["OPNSENSE_ALLOW_SENSITIVE"] = "true"
+    env["OPNSENSE_MCP_ALLOW_SENSITIVE"] = "true"
     with patch.dict("os.environ", env, clear=True):
         registry = TargetRegistry.from_environment()
     try:
