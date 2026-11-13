@@ -77,11 +77,8 @@ def mcp_read_only_enabled(site: str = "") -> bool:
 
 
 def allow_sensitive_enabled() -> bool:
-    """Require explicit, consistently named opt-in for unredacted config output."""
-    old_name = "OPNSENSE_ALLOW_SENSITIVE"
+    """Return whether the operator permits unredacted config output."""
     name = "OPNSENSE_MCP_ALLOW_SENSITIVE"
-    if old_name in os.environ:
-        raise ConfigError(f"{old_name} is obsolete; use {name} instead")
     return _parse_bool(os.environ.get(name, "false").strip(), name)
 
 
