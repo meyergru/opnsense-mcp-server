@@ -6,7 +6,7 @@ Environment variables:
     OPNSENSE_API_SECRET: API secret (required)
     OPNSENSE_VERIFY_SSL: Verify SSL certificate (default: true)
     OPNSENSE_ALLOW_WRITES: Enable legacy write operations (default: false)
-    OPNSENSE_ALLOW_SENSITIVE: Permit include_sensitive=true on config tools
+    OPNSENSE_MCP_ALLOW_SENSITIVE: Permit include_sensitive=true on config tools
         (default: false)
     OPNSENSE_MCP_READ_ONLY: Default read-only policy for named targets (default: true)
     OPNSENSE_<SITE>_READ_ONLY: Optional site override of global read-only policy
@@ -77,8 +77,11 @@ def mcp_read_only_enabled(site: str = "") -> bool:
 
 
 def allow_sensitive_enabled() -> bool:
-    """Return whether the operator explicitly permits unredacted config output."""
-    name = "OPNSENSE_ALLOW_SENSITIVE"
+    """Require explicit, consistently named opt-in for unredacted config output."""
+    old_name = "OPNSENSE_ALLOW_SENSITIVE"
+    name = "OPNSENSE_MCP_ALLOW_SENSITIVE"
+    if old_name in os.environ:
+        raise ConfigError(f"{old_name} is obsolete; use {name} instead")
     return _parse_bool(os.environ.get(name, "false").strip(), name)
 
 
