@@ -161,7 +161,7 @@ class TestAllowWrites:
 
 
 class TestAllowSensitive:
-    """Tests for OPNSENSE_ALLOW_SENSITIVE parsing."""
+    """Tests for OPNSENSE_MCP_ALLOW_SENSITIVE parsing."""
 
     def _load_with_sensitive(self, value: str | None):
         env = {
@@ -170,7 +170,7 @@ class TestAllowSensitive:
             "OPNSENSE_API_SECRET": "secret",
         }
         if value is not None:
-            env["OPNSENSE_ALLOW_SENSITIVE"] = value
+            env["OPNSENSE_MCP_ALLOW_SENSITIVE"] = value
         with patch.dict("os.environ", env, clear=True):
             return load_config()
 
@@ -181,7 +181,7 @@ class TestAllowSensitive:
         assert self._load_with_sensitive("true").allow_sensitive is True
 
     def test_invalid_raises_error(self):
-        with pytest.raises(ConfigError, match="OPNSENSE_ALLOW_SENSITIVE"):
+        with pytest.raises(ConfigError, match="OPNSENSE_MCP_ALLOW_SENSITIVE"):
             self._load_with_sensitive("sometimes")
 
 

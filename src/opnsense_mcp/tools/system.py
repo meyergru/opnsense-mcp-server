@@ -15,7 +15,7 @@ from opnsense_mcp.tool_types import SiteName
 
 _SENSITIVE_GATE_ERROR = {
     "error": (
-        "include_sensitive=true requires OPNSENSE_ALLOW_SENSITIVE=true in the "
+        "include_sensitive=true requires OPNSENSE_MCP_ALLOW_SENSITIVE=true in the "
         "server environment. Without it, sensitive values remain redacted."
     ),
     "error_type": "sensitive_disabled",
@@ -171,7 +171,7 @@ async def opn_download_config(
     cached inventory, then opn_get_config_section to query individual sections.
 
     By default, sensitive data (passwords, keys, secrets) is redacted.
-    include_sensitive=true requires OPNSENSE_ALLOW_SENSITIVE=true.
+    include_sensitive=true requires OPNSENSE_MCP_ALLOW_SENSITIVE=true.
     Returns: dict with 'config_xml' (str), 'stripped' (bool), 'size_bytes' (int).
     """
     if _raw_config_export_blocked():
@@ -248,7 +248,7 @@ async def opn_get_config_section(
     firewall rules that are NOT visible via opn_list_firewall_rules.
 
     Sensitive values are redacted by default; include_sensitive=true requires
-    OPNSENSE_ALLOW_SENSITIVE=true in the server environment.
+    OPNSENSE_MCP_ALLOW_SENSITIVE=true in the server environment.
     Returns: dict with 'section' name and 'data' (structured config data).
     """
     if _raw_config_export_blocked():
