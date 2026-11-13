@@ -1,8 +1,12 @@
 name: Publish reviewed MCP image to GHCR
 
-# Manual-only GHCR publication: pushes, pull requests and tags do not publish.
+# One-time explicitly requested v0.8.5 publication; restore manual-only afterward.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.release-trigger/0.8.5'
 
 permissions:
   contents: write
