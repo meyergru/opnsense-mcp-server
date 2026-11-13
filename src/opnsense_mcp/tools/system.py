@@ -9,7 +9,7 @@ from typing import Any
 from fastmcp import Context
 
 from opnsense_mcp import __version__
-from opnsense_mcp.config_cache import is_sensitive_tag
+from opnsense_mcp.config_cache import is_sensitive_tag, xml_local_name
 from opnsense_mcp.server import get_api, get_config_cache, get_savepoint_manager, mcp
 from opnsense_mcp.tool_types import SiteName
 
@@ -27,18 +27,65 @@ def _raw_config_export_blocked() -> bool:
     return os.environ.get("OPNSENSE_MCP_TRANSPORT", "stdio").strip().lower() == "http"
 
 
+_SECRET_HEADER_NAMES = frozenset(
+    {
+        "authorization",
+        "proxy-authorization",
+        "cookie",
+        "set-cookie",
+        "x-api-key",
+        "x-auth-token",
+        "x-access-token",
+    }
+)
+
+
+def _mask_header_value(elem: ET.Element) -> None:
+    """Cover name/value HTTP-header forms without blanking benign headers."""
+    if "header" not in xml_local_name(elem.tag):
+        return
+    attrs = {xml_local_name(key): value for key, value in elem.attrib.items()}
+    name = attrs.get("name") or attrs.get("headername")
+    if not name:
+        for child in elem:
+            if xml_local_name(child.tag) in {"name", "headername"}:
+                name = child.text
+                break
+    if not name or name.strip().lower() not in _SECRET_HEADER_NAMES:
+        return
+    for key in elem.attrib:
+        if xml_local_name(key) == "value":
+            elem.attrib[key] = "[REDACTED]"
+    for child in elem:
+        if xml_local_name(child.tag) in {"value", "headervalue"}:
+            child.clear()
+            child.text = "[REDACTED]"
+    if not len(elem) and elem.text and elem.text.strip():
+        elem.text = "[REDACTED]"
+
+
 def _strip_sensitive_data(xml_text: str) -> str | None:
-    """Redact sensitive XML elements, or return None if XML cannot be parsed."""
+    """Redact XML credential values, including attributes and namespaces.
+
+    Keep non-secret configuration details usable. This is credential
+    redaction, not complete anonymization of IPs, names and identifiers.
+    """
     try:
         # Source is trusted (OPNsense API response), not user input
         root = ET.fromstring(xml_text)  # noqa: S314
     except ET.ParseError:
         return None
 
-    for elem in [element for element in root.iter() if is_sensitive_tag(element.tag)]:
-        if elem.text or len(elem) or elem.attrib:
+    for elem in root.iter():
+        if is_sensitive_tag(elem.tag):
+            # Never leave children or attributes of secret-bearing containers.
             elem.clear()
             elem.text = "[REDACTED]"
+            continue
+        _mask_header_value(elem)
+        for key in elem.attrib:
+            if is_sensitive_tag(key):
+                elem.attrib[key] = "[REDACTED]"
 
     return ET.tostring(root, encoding="unicode", xml_declaration=True)
 

@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.8.5] - 2026-11-13
+
+### Security
+- Harden optional legacy stdio configuration XML export redaction:
+  sensitive XML attributes and namespaced elements are now identified.
+- Include less obvious OPNsense credential fields identified in earlier
+  standalone config.xml anonymization work, including `HeaderValue`,
+  `p12file`, `cert_private`, `userkey`, and `tls_key`.
+- Redact common Authorization/Cookie HTTP header name/value encodings while
+  retaining unrelated operational headers.
+
+### Tests and scope
+- Add regression tests for credential fields, XML namespaces, attributes,
+  and HTTP header encodings.
+- Keep the HTTP-MCP prohibition on raw XML/section exports and the
+  existing read-only policy unchanged.
+- Preserve operational hostnames, IPs, MACs and other topology metadata:
+  MCP credential redaction is not standalone backup anonymization.
+
 ## [0.8.4] - 2026-11-13
 
 ### Security
