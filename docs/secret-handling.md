@@ -25,7 +25,7 @@ made impossible while retaining every legitimate provisioning workflow.
    configuration, lease, audit and status responses should not include
    stored credentials. Configuration exports and section reads redact likely
    secrets by default; unredacted output requires the operator to set
-   `OPNSENSE_ALLOW_SENSITIVE=true` and request `include_sensitive=true`.
+   `OPNSENSE_MCP_ALLOW_SENSITIVE=true` and request `include_sensitive=true`.
    HTTP raw `config.xml` export/section reads remain blocked. Malformed XML is
    refused rather than returned unredacted. These are heuristic protections,
    not a proof of redaction.
@@ -51,7 +51,7 @@ as safe for public sharing without a standalone review/anonymization step.
 Both raw XML export and structured config sections remain disabled via
 HTTP MCP. Redaction applies to legacy stdio config access; even there,
 heuristics are not a guarantee of complete secret removal. Explicit
-`OPNSENSE_ALLOW_SENSITIVE=true` still gates unredacted access.
+`OPNSENSE_MCP_ALLOW_SENSITIVE=true` still gates unredacted access.
 
 ## What the implementation currently does
 
@@ -68,7 +68,7 @@ heuristics are not a guarantee of complete secret removal. Explicit
 - There is no dedicated tool for generating an OPNsense API token, exporting a
   WireGuard private key or revealing an individual stored password. In legacy
   stdio mode, however, the configuration tools can expose unredacted config
-  data when the operator explicitly enables `OPNSENSE_ALLOW_SENSITIVE=true`
+  data when the operator explicitly enables `OPNSENSE_MCP_ALLOW_SENSITIVE=true`
   and the caller requests `include_sensitive=true`. A user request alone does
   not enable that capability.
 - The configured HTTP transport can be plain HTTP on a private management
