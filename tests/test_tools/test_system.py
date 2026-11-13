@@ -156,22 +156,28 @@ class TestOpnDownloadConfig:
                 '<opnsense xmlns:x="urn:opnsense">'
                 '<service password="attr-password" x:api_token="attr-token" '
                 'publickey="public-material" name="service-name"/>'
-                '<x:HeaderValue>Bearer header-token</x:HeaderValue>'
-                '<x:p12file>private-pkcs12-blob</x:p12file>'
-                '<x:cert_private>private-certificate</x:cert_private>'
-                '<x:tls_key>tls-private-key</x:tls_key>'
-                '<x:userkey>key-material</x:userkey>'
-                '<x:salt>password-salt</x:salt>'
-                '<network><hostname>router1</hostname><ipaddr>192.0.2.20</ipaddr>'
-                '<publickey>public-key</publickey></network>'
-                '</opnsense>'
+                "<x:HeaderValue>Bearer header-token</x:HeaderValue>"
+                "<x:p12file>private-pkcs12-blob</x:p12file>"
+                "<x:cert_private>private-certificate</x:cert_private>"
+                "<x:tls_key>tls-private-key</x:tls_key>"
+                "<x:userkey>key-material</x:userkey>"
+                "<x:salt>password-salt</x:salt>"
+                "<network><hostname>router1</hostname><ipaddr>192.0.2.20</ipaddr>"
+                "<publickey>public-key</publickey></network>"
+                "</opnsense>"
             )
         )
         result = await opn_download_config(mock_ctx)
         xml = result["config_xml"]
         for secret in (
-            "attr-password", "attr-token", "header-token", "private-pkcs12-blob",
-            "private-certificate", "tls-private-key", "key-material", "password-salt",
+            "attr-password",
+            "attr-token",
+            "header-token",
+            "private-pkcs12-blob",
+            "private-certificate",
+            "tls-private-key",
+            "key-material",
+            "password-salt",
         ):
             assert secret not in xml
         assert "router1" in xml
@@ -182,12 +188,12 @@ class TestOpnDownloadConfig:
     async def test_redacts_authorization_header_value_but_keeps_safe_headers(self, mock_api, mock_ctx):
         mock_api.get_text = AsyncMock(
             return_value=(
-                '<opnsense>'
+                "<opnsense>"
                 '<httpHeader name="Authorization" value="Bearer 12345"/>'
-                '<httpHeader><name>Cookie</name><value>session=secret-cookie</value></httpHeader>'
+                "<httpHeader><name>Cookie</name><value>session=secret-cookie</value></httpHeader>"
                 '<httpHeader name="X-Request-ID" value="trace-123"/>'
-                '<HeaderName>Other</HeaderName><HeaderValue>unclassified-secret</HeaderValue>'
-                '</opnsense>'
+                "<HeaderName>Other</HeaderName><HeaderValue>unclassified-secret</HeaderValue>"
+                "</opnsense>"
             )
         )
         result = await opn_download_config(mock_ctx)
