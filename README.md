@@ -88,6 +88,7 @@ environment:
   OPNSENSE_MCP_PORT: "8000"
   OPNSENSE_MCP_MAX_RESULT_BYTES: "16384"
   OPNSENSE_MCP_READ_ONLY: "true"
+  OPNSENSE_ALLOW_SENSITIVE: "false"  # global; no raw XML export over HTTP
   OPNSENSE_MCP_AUTH_TOKEN: "replace-with-64-random-hex-characters"
 
   OPNSENSE_SITES: "local,remote"
