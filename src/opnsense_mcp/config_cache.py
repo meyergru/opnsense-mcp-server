@@ -32,6 +32,19 @@ SENSITIVE_TAGS: frozenset[str] = frozenset(
         "basicauthpass",
         "dns_kas_authdata",
         "simpin",
+        # Legacy standalone config.xml sanitizer covered these less obvious
+        # OPNsense/plug-in fields. Treat them as secrets, not network identity.
+        "headervalue",
+        "p12password",
+        "p12file",
+        "cert_private",
+        "certprivate",
+        "userkey",
+        "tls_key",
+        "api_token",
+        "api_secret",
+        "ipsec_psk",
+        "salt",
     }
 )
 
@@ -53,9 +66,18 @@ _SENSITIVE_SUFFIXES: tuple[str, ...] = ("_pass", "pw")
 _SENSITIVE_ALLOWLIST: frozenset[str] = frozenset({"passwordauth", "nopasswd"})
 
 
+def xml_local_name(name: str) -> str:
+    """Normalize XML Clark-notation and prefixed names for secret checks.
+
+    ElementTree represents <ns:password> as '{namespace}password'.  Never
+    trust a namespace to change the security meaning of a local field name.
+    """
+    return name.rsplit("}", 1)[-1].rsplit(":", 1)[-1].lower()
+
+
 def is_sensitive_tag(tag: str) -> bool:
-    """Return whether a configuration element name should be redacted."""
-    lower = tag.lower()
+    """Match known credential fields, including namespaced XML attributes."""
+    lower = xml_local_name(tag)
     if lower in _SENSITIVE_ALLOWLIST:
         return False
     if lower in SENSITIVE_TAGS or any(value in lower for value in _SENSITIVE_SUBSTRINGS):
