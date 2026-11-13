@@ -88,7 +88,7 @@ environment:
   OPNSENSE_MCP_PORT: "8000"
   OPNSENSE_MCP_MAX_RESULT_BYTES: "16384"
   OPNSENSE_MCP_READ_ONLY: "true"
-  OPNSENSE_ALLOW_SENSITIVE: "false"  # global; no raw XML export over HTTP
+  OPNSENSE_MCP_ALLOW_SENSITIVE: "false"  # global; no raw XML export over HTTP
   OPNSENSE_MCP_AUTH_TOKEN: "replace-with-64-random-hex-characters"
 
   OPNSENSE_SITES: "local,remote"
@@ -117,7 +117,7 @@ environment:
 | `OPNSENSE_MCP_MAX_RESULT_BYTES` | `16384` | Tool response limit, 1,024–131,072 bytes. |
 | `OPNSENSE_MCP_READ_ONLY` | `true` | Global read-only policy for all named targets. |
 | `OPNSENSE_<SITE>_READ_ONLY` | *inherits global* | Optional per-site override (`true` / `false`). |
-| `OPNSENSE_ALLOW_SENSITIVE` | `false` | Allow `include_sensitive=true` in config tools; applies to all targets. |
+| `OPNSENSE_MCP_ALLOW_SENSITIVE` | `false` | Allow `include_sensitive=true` in config tools; applies to all targets. |
 | `OPNSENSE_SITES` | *unset* | Comma-separated names, e.g. `local,remote`. |
 | `OPNSENSE_<SITE>_URL` | *required* | HTTPS URL ending in `/api`, optional nonstandard port. |
 | `OPNSENSE_<SITE>_API_KEY` | *required* | API key of this target. |
@@ -130,7 +130,7 @@ environment:
 Site aliases start with a lower-case letter and may contain lower-case letters, digits, underscores and interior dots. Environment prefixes are upper-case with dots normalized to underscores: `opnsense.mgsoft` → `OPNSENSE_OPNSENSE_MGSOFT_URL` (and `_API_KEY`, `_API_SECRET`, `_VERIFY_SSL`, `_READ_ONLY`). Aliases that would normalize to the same prefix (such as `opnsense.mgsoft` and `opnsense_mgsoft`) are rejected. Named targets inherit `OPNSENSE_MCP_READ_ONLY=true` by default, with optional per-site overrides. `OPNSENSE_ALLOW_WRITES` is legacy-only and does not control named targets.
 
 Configuration tools redact sensitive values by default. Setting
-`OPNSENSE_ALLOW_SENSITIVE=true` explicitly permits `include_sensitive=true`
+`OPNSENSE_MCP_ALLOW_SENSITIVE=true` explicitly permits `include_sensitive=true`
 for all targets; enable it only when unredacted configuration data is needed.
 Malformed XML is refused rather than returned without redaction.
 
