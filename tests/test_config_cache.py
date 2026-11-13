@@ -110,6 +110,34 @@ class TestStripSensitive:
         assert not is_sensitive_tag("passwordauth")
         assert not is_sensitive_tag("publickey")
 
+    def test_legacy_export_tags_and_namespaces(self):
+        # Sourced from the separate sanitize_opnsense_backup_consistent.py
+        # work, but only credential fields belong in this MCP redaction.
+        for tag in (
+            "HeaderValue", "p12password", "p12file", "cert_private",
+            "userkey", "tls_key", "api_token", "api_secret",
+            "ipsec_psk", "salt", "{urn:opnsense}HeaderValue",
+            "{urn:opnsense}password", "x:api_secret",
+        ):
+            assert is_sensitive_tag(tag), tag
+        for non_secret in (
+            "TlsEmail", "ToDomain", "FromDomain", "HttpTlsServerName",
+            "hostname", "ipaddr", "macaddr", "remoteid", "auth_method",
+            "publickey", "{urn:opnsense}publickey",
+        ):
+            assert not is_sensitive_tag(non_secret), non_secret
+
+    def test_namespaced_structured_section_secrets(self):
+        data = {
+            "{urn:opnsense}HeaderValue": "credential",
+            "{urn:opnsense}p12file": "base64-private",
+            "address": "192.0.2.1",
+        }
+        result = _strip_sensitive(data)
+        assert result["{urn:opnsense}HeaderValue"] == "[REDACTED]"
+        assert result["{urn:opnsense}p12file"] == "[REDACTED]"
+        assert result["address"] == "192.0.2.1"
+
 
 class TestConfigCache:
     """Tests for ConfigCache lifecycle."""
