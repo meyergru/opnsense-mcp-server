@@ -21,6 +21,22 @@ A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible 
 
 **151 MCP tools:** including single-site Kea, radvd, Unbound, WireGuard and Firewall 26.7 resource operations; see the [tool reference](#available-tools-151).
 
+## MCP tool parameter contract (0.8.7)
+
+All 150 site-bound tools now expose explicit parameter descriptions through
+their generated MCP input schemas, not just prose in this README. A regression
+test checks all 151 registered tools, including the non-site-bound
+`opn_list_targets`, verifying for **every parameter** the presence of
+machine-readable help and the correct JSON Schema `required` setting.
+Firmware status-polling tools additionally expose exact integer bounds:
+`max_checks` and `poll_interval_seconds` must each be 1..3.
+
+Most tools keep `site` optional *only* for a deployment configured with
+exactly one target. If two or more OPNsense sites are configured, call
+`opn_list_targets` and pass the exact `site` on every site-bound call.
+`opn_mcp_info` is stricter: its site is always required, even for
+a single-target installation.
+
 ## MCP runtime information (`opn_mcp_info`)
 
 Call `opn_list_targets` and then `opn_mcp_info(site="opnsense.mgsoft")`
