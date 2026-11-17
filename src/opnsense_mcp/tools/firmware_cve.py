@@ -204,7 +204,10 @@ async def _poll(api: OPNsenseAPI, state: _AuditSession, max_checks: int, poll_in
 
 @mcp.tool()
 async def opn_firmware_cve_audit(
-    ctx: Context, site: SiteName = "", max_checks: BoundedFirmwareChecks = 2, poll_interval_seconds: BoundedFirmwarePollInterval = 2
+    ctx: Context,
+    site: SiteName = "",
+    max_checks: BoundedFirmwareChecks = 2,
+    poll_interval_seconds: BoundedFirmwarePollInterval = 2,
 ) -> dict[str, Any]:
     """Run the NATIVE OPNsense firmware package/CVE audit (FreeBSD VuXML).
 
@@ -262,7 +265,11 @@ async def opn_firmware_cve_audit(
 
 @mcp.tool()
 async def opn_firmware_cve_audit_result(
-    ctx: Context, job_id: str, site: SiteName = "", max_checks: BoundedFirmwareChecks = 2, poll_interval_seconds: BoundedFirmwarePollInterval = 2
+    ctx: Context,
+    job_id: str,
+    site: SiteName = "",
+    max_checks: BoundedFirmwareChecks = 2,
+    poll_interval_seconds: BoundedFirmwarePollInterval = 2,
 ) -> dict[str, Any]:
     """Collect a started native OPNsense VuXML package/CVE audit.
 
@@ -295,7 +302,10 @@ async def opn_firmware_cve_audit_result(
 
 @mcp.tool()
 async def opn_firmware_health_audit(
-    ctx: Context, site: SiteName = "", max_checks: BoundedFirmwareChecks = 2, poll_interval_seconds: BoundedFirmwarePollInterval = 2
+    ctx: Context,
+    site: SiteName = "",
+    max_checks: BoundedFirmwareChecks = 2,
+    poll_interval_seconds: BoundedFirmwarePollInterval = 2,
 ) -> dict[str, Any]:
     """Run OPNsense's NATIVE firmware integrity/dependency health audit.
 
@@ -350,7 +360,11 @@ async def opn_firmware_health_audit(
 
 @mcp.tool()
 async def opn_firmware_health_audit_result(
-    ctx: Context, job_id: str, site: SiteName = "", max_checks: BoundedFirmwareChecks = 2, poll_interval_seconds: BoundedFirmwarePollInterval = 2
+    ctx: Context,
+    job_id: str,
+    site: SiteName = "",
+    max_checks: BoundedFirmwareChecks = 2,
+    poll_interval_seconds: BoundedFirmwarePollInterval = 2,
 ) -> dict[str, Any]:
     """Collect a running native OPNsense firmware health audit by its MCP job ID.
 
