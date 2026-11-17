@@ -35,6 +35,14 @@ async def opn_list_ddns_accounts(
 
     Note: Requires the Dynamic DNS plugin (os-ddclient).
     Returns: dict with 'rows' (list of accounts) and 'rowCount' (total).
+
+    Args:
+        search: Optional search/filter phrase; empty returns results without additional filtering. Optional
+            (default: "").
+        limit:  Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     result = await api.post(
@@ -157,6 +165,22 @@ async def opn_update_ddns_account(
     - enabled: enable/disable the account
 
     Returns: dict with 'result' (str), 'uuid' (str), and 'reconfigure_status'.
+
+    Args:
+        uuid: UUID of the existing object on this site; obtain it from the matching list/search tool. Required.
+        service: Configured service or provider name accepted by this operation. Optional (default: None).
+        hostname: Hostname or FQDN identifying the relevant record, according to tool documentation. Optional
+            (default: None).
+        username: Username or provider credential identifier. Optional (default: None).
+        password: Secret associated with the provider account; do not disclose in tool output. Optional
+            (default: None).
+        checkip: Configured DDNS IP discovery method; see the provider-specific choices above. Optional
+            (default: None).
+        interface: OPNsense interface name (e.g. wan, lan, opt1) on this site. Optional (default: None).
+        description: Optional user-visible description attached to the object. Optional (default: None).
+        enabled: Desired enabled state (true/false); not a toggle command. Optional (default: None).
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     api.require_writes()
@@ -201,6 +225,11 @@ async def opn_delete_ddns_account(
     The deletion is applied immediately (ddclient is reconfigured automatically).
     Use opn_list_ddns_accounts first to find the UUID.
     Returns: dict with 'result' (str), 'uuid' (str), and 'reconfigure_status'.
+
+    Args:
+        uuid: UUID of the existing object on this site; obtain it from the matching list/search tool. Required.
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     api.require_writes()
@@ -227,6 +256,10 @@ async def opn_reconfigure_ddclient(ctx: Context, site: SiteName = "") -> dict[st
 
     Note: Requires the Dynamic DNS plugin (os-ddclient).
     Returns: dict with 'status' indicating success or failure.
+
+    Args:
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     api.require_writes()
@@ -248,6 +281,14 @@ async def opn_list_acme_certs(
     or which domains have ACME certificates configured.
     Note: Requires the ACME client plugin (os-acme-client).
     Returns: dict with 'rows' (list of certificates) and 'rowCount' (total).
+
+    Args:
+        search: Optional search/filter phrase; empty returns results without additional filtering. Optional
+            (default: "").
+        limit:  Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.post(
@@ -268,6 +309,14 @@ async def opn_list_cron_jobs(
     Use this when you need to check what scheduled tasks are configured,
     their frequency, or which commands they run.
     Returns: dict with 'rows' (list of cron jobs) and 'rowCount' (total).
+
+    Args:
+        search: Optional search/filter phrase; empty returns results without additional filtering. Optional
+            (default: "").
+        limit:  Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.post(
@@ -285,6 +334,10 @@ async def opn_crowdsec_status(ctx: Context, site: SiteName = "") -> dict[str, An
     quick overview of the threat protection state.
     Note: Requires the CrowdSec plugin (os-crowdsec).
     Returns: dict with 'service_status', 'decisions_count', and 'alerts_count'.
+
+    Args:
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     _search = {"current": 1, "rowCount": 500, "searchPhrase": ""}
@@ -317,6 +370,14 @@ async def opn_crowdsec_alerts(
     including brute-force attempts, port scans, and other threats.
     Note: Requires the CrowdSec plugin (os-crowdsec).
     Returns: dict with 'rows' (list of alerts) and 'rowCount' (total).
+
+    Args:
+        search: Optional search/filter phrase; empty returns results without additional filtering. Optional
+            (default: "").
+        limit:  Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.post(
@@ -341,6 +402,10 @@ async def opn_mdns_repeater_status(ctx: Context, site: SiteName = "") -> dict[st
 
     Note: Requires the mDNS Repeater plugin (os-mdns-repeater).
     Returns: dict with 'service_running', 'enabled', 'interfaces', 'blocklist'.
+
+    Args:
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     settings = await api.get("mdnsrepeater.settings.get")

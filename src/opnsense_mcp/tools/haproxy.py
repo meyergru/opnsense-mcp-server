@@ -72,6 +72,10 @@ async def opn_haproxy_status(ctx: Context, site: SiteName = "") -> dict[str, Any
     or connection statistics.
     Note: Requires the HAProxy plugin (os-haproxy).
     Returns: dict with HAProxy status including servers and backends.
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.get("haproxy.service.status")
@@ -97,6 +101,10 @@ async def opn_reconfigure_haproxy(ctx: Context, site: SiteName = "") -> dict[str
     IMPORTANT: Always call opn_haproxy_configtest before reconfiguring to
     validate the configuration syntax.
     Returns: dict with 'status' indicating success or failure.
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     api = get_api(ctx, site)
     api.require_writes()
@@ -137,6 +145,14 @@ async def opn_haproxy_search(
     - mailers: name, mailserver, port
 
     Returns: dict with 'rows' (list of resources) and 'rowCount' (total).
+
+    Args:
+        resource_type: Exact HAProxy resource type selector; use one of the declared values. Required.
+        search: Optional search string or filter; empty means no additional filtering. Optional (default: "").
+        limit:  Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     singular = _validate_resource_type(resource_type)
     if singular is None:
@@ -179,6 +195,13 @@ async def opn_haproxy_get(
     errorfiles, resolvers, mailers.
 
     Returns: dict with the resource type as key containing all field values.
+
+    Args:
+        resource_type: Exact HAProxy resource type selector; use one of the declared values. Required.
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     singular = _validate_resource_type(resource_type)
     if singular is None:
@@ -240,6 +263,12 @@ async def opn_haproxy_add(
     Call opn_haproxy_configtest first to validate the configuration.
 
     Returns: dict with 'result' (str) and 'uuid' (str) of the new resource.
+
+    Args:
+        resource_type: Exact HAProxy resource type selector; use one of the declared values. Required.
+        config: Structured configuration values accepted by the selected resource. Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     singular = _validate_resource_type(resource_type)
     if singular is None:
@@ -291,6 +320,14 @@ async def opn_haproxy_update(
     Call opn_haproxy_configtest first to validate the configuration.
 
     Returns: dict with 'result' indicating success.
+
+    Args:
+        resource_type: Exact HAProxy resource type selector; use one of the declared values. Required.
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        config: Structured configuration values accepted by the selected resource. Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     singular = _validate_resource_type(resource_type)
     if singular is None:
@@ -338,6 +375,13 @@ async def opn_haproxy_delete(
     NOTE: Changes are NOT applied until you call opn_reconfigure_haproxy.
 
     Returns: dict with 'result' indicating success.
+
+    Args:
+        resource_type: Exact HAProxy resource type selector; use one of the declared values. Required.
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     singular = _validate_resource_type(resource_type)
     if singular is None:
@@ -367,6 +411,10 @@ async def opn_haproxy_configtest(ctx: Context, site: SiteName = "") -> dict[str,
     is valid. This runs 'haproxy -c' internally and reports any syntax errors.
 
     Returns: dict with validation result (typically 'status' key).
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.get("haproxy.service.configtest")

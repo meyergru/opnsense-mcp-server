@@ -20,7 +20,7 @@ from fastmcp import Context
 
 from opnsense_mcp.api_client import OPNsenseAPI, OPNsenseAPIError
 from opnsense_mcp.server import get_api, mcp
-from opnsense_mcp.tool_types import SiteName
+from opnsense_mcp.tool_types import BoundedFirmwareChecks, BoundedFirmwarePollInterval, SiteName
 
 _AUDIT_MARKER = "***GOT REQUEST TO AUDIT SECURITY***"
 _HEALTH_MARKER = "***GOT REQUEST TO AUDIT HEALTH***"
@@ -204,7 +204,10 @@ async def _poll(api: OPNsenseAPI, state: _AuditSession, max_checks: int, poll_in
 
 @mcp.tool()
 async def opn_firmware_cve_audit(
-    ctx: Context, site: SiteName = "", max_checks: int = 2, poll_interval_seconds: int = 2
+    ctx: Context,
+    site: SiteName = "",
+    max_checks: BoundedFirmwareChecks = 2,
+    poll_interval_seconds: BoundedFirmwarePollInterval = 2,
 ) -> dict[str, Any]:
     """Run the NATIVE OPNsense firmware package/CVE audit (FreeBSD VuXML).
 
@@ -227,6 +230,12 @@ async def opn_firmware_cve_audit(
     only fresh log evidence is accepted. A clean result requires explicit
     '0 problem(s)' evidence. This is NOT opn_security_audit, which performs
     heuristic configuration checks.
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
+        max_checks: Number of checks in this call; must be 1..3. Optional (default: 2).
+        poll_interval_seconds: Seconds between checks; must be 1..3. Optional (default: 2).
     """
     if not 1 <= max_checks <= 3 or not 1 <= poll_interval_seconds <= 3:
         raise ValueError("max_checks and poll_interval_seconds must each be 1..3")
@@ -256,7 +265,11 @@ async def opn_firmware_cve_audit(
 
 @mcp.tool()
 async def opn_firmware_cve_audit_result(
-    ctx: Context, job_id: str, site: SiteName = "", max_checks: int = 2, poll_interval_seconds: int = 2
+    ctx: Context,
+    job_id: str,
+    site: SiteName = "",
+    max_checks: BoundedFirmwareChecks = 2,
+    poll_interval_seconds: BoundedFirmwarePollInterval = 2,
 ) -> dict[str, Any]:
     """Collect a started native OPNsense VuXML package/CVE audit.
 
@@ -270,6 +283,13 @@ async def opn_firmware_cve_audit_result(
     A process/container restart discards session correlation: old results
     are intentionally 'unavailable', never a false clean report. Start a
     new audit only after verifying firmware is idle.
+
+    Args:
+        job_id: Identifier of a previously started job, obtained from the start operation. Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
+        max_checks: Number of checks in this call; must be 1..3. Optional (default: 2).
+        poll_interval_seconds: Seconds between checks; must be 1..3. Optional (default: 2).
     """
     if not 1 <= max_checks <= 3 or not 1 <= poll_interval_seconds <= 3:
         raise ValueError("max_checks and poll_interval_seconds must each be 1..3")
@@ -282,7 +302,10 @@ async def opn_firmware_cve_audit_result(
 
 @mcp.tool()
 async def opn_firmware_health_audit(
-    ctx: Context, site: SiteName = "", max_checks: int = 2, poll_interval_seconds: int = 2
+    ctx: Context,
+    site: SiteName = "",
+    max_checks: BoundedFirmwareChecks = 2,
+    poll_interval_seconds: BoundedFirmwarePollInterval = 2,
 ) -> dict[str, Any]:
     """Run OPNsense's NATIVE firmware integrity/dependency health audit.
 
@@ -301,6 +324,12 @@ async def opn_firmware_health_audit(
     marker and completion before parsing. If still running, use the job_id
     with opn_firmware_health_audit_result. Never initiate overlapping firmware
     operations. Anomalies require administrator review, not automatic repairs.
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
+        max_checks: Number of checks in this call; must be 1..3. Optional (default: 2).
+        poll_interval_seconds: Seconds between checks; must be 1..3. Optional (default: 2).
     """
     if not 1 <= max_checks <= 3 or not 1 <= poll_interval_seconds <= 3:
         raise ValueError("max_checks and poll_interval_seconds must each be 1..3")
@@ -331,7 +360,11 @@ async def opn_firmware_health_audit(
 
 @mcp.tool()
 async def opn_firmware_health_audit_result(
-    ctx: Context, job_id: str, site: SiteName = "", max_checks: int = 2, poll_interval_seconds: int = 2
+    ctx: Context,
+    job_id: str,
+    site: SiteName = "",
+    max_checks: BoundedFirmwareChecks = 2,
+    poll_interval_seconds: BoundedFirmwarePollInterval = 2,
 ) -> dict[str, Any]:
     """Collect a running native OPNsense firmware health audit by its MCP job ID.
 
@@ -339,6 +372,13 @@ async def opn_firmware_health_audit_result(
     HEALTH marker and completion marker. It refuses to reuse an old or
     unrelated audit log; sessions cannot survive MCP restarts. A completed
     integrity check is NOT a security, CVE or full operational health verdict.
+
+    Args:
+        job_id: Identifier of a previously started job, obtained from the start operation. Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
+        max_checks: Number of checks in this call; must be 1..3. Optional (default: 2).
+        poll_interval_seconds: Seconds between checks; must be 1..3. Optional (default: 2).
     """
     if not 1 <= max_checks <= 3 or not 1 <= poll_interval_seconds <= 3:
         raise ValueError("max_checks and poll_interval_seconds must each be 1..3")

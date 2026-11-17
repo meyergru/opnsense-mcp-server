@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.8.7] - 2026-11-17
+
+### MCP tool contract and diagnostics
+- Make the `site` argument of `opn_mcp_info` **required and nonempty**
+  in the MCP tool input schema. Agents must call `opn_list_targets` and
+  pass a real target alias instead of calling the tool with an ambiguous default.
+- Document the six return fields and their semantics, especially that
+  `maintenance_mode` is independent of `write_mode`, the reported
+  firmware/API details are cached state, and `savepoint_support` refers
+  to firewall rule rollback, not ZFS snapshots.
+- Audit all 150 site-bound MCP tools and document every input parameter
+  in a machine-readable Google-style `Args:` section. FastMCP propagates
+  these descriptions into the tools exposed to OpenWebUI and Qwen.
+- Describe exact search/pagination caps (mostly 500, PF states 1000),
+  required object identifiers, and explicit mutation prerequisites instead
+  of relying on the model to discover them from failed calls.
+- Publish the firmware/audit polling limits (1..3 checks and 1..3 seconds)
+  as both parameter help and Pydantic JSON-Schema min/max constraints.
+- Add a catalog-wide regression test for every parameter description and
+  required/optional flag, plus explicit MCP-schema bounds assertions.
+- Do not change firmware, API authorization or runtime write policy.
+
+### Release safety
+- The published v0.8.6 image remains unchanged. Publication of v0.8.7
+  and moving the `:dev` image alias require explicit manual approval.
+
 ## [0.8.6] - 2026-11-17
 
 ### Maintenance authorization

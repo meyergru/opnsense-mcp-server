@@ -21,6 +21,40 @@ A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible 
 
 **151 MCP tools:** including single-site Kea, radvd, Unbound, WireGuard and Firewall 26.7 resource operations; see the [tool reference](#available-tools-151).
 
+## MCP tool parameter contract (0.8.7)
+
+All 150 site-bound tools now expose explicit parameter descriptions through
+their generated MCP input schemas, not just prose in this README. A regression
+test checks all 151 registered tools, including the non-site-bound
+`opn_list_targets`, verifying for **every parameter** the presence of
+machine-readable help and the correct JSON Schema `required` setting.
+Firmware status-polling tools additionally expose exact integer bounds:
+`max_checks` and `poll_interval_seconds` must each be 1..3.
+
+Most tools keep `site` optional *only* for a deployment configured with
+exactly one target. If two or more OPNsense sites are configured, call
+`opn_list_targets` and pass the exact `site` on every site-bound call.
+`opn_mcp_info` is stricter: its site is always required, even for
+a single-target installation.
+
+## MCP runtime information (`opn_mcp_info`)
+
+Call `opn_list_targets` and then `opn_mcp_info(site="opnsense.mgsoft")`
+with a real site alias. **The site argument is mandatory and nonempty
+from 0.8.7 onward**, even if only one firewall is configured; the
+server has site-specific API client state, so there is no global default
+for this diagnostic tool.
+
+This read-only operation reports `mcp_version` (server version),
+`write_mode` (general site write permission), `maintenance_mode`
+(separate approved snapshot/firmware write permission), `opnsense_version`
+(cached detected major.minor, possibly null), `api_style` (current API
+endpoint naming), and `savepoint_support` (cached availability of
+**firewall rule** automatic rollback, possibly null until probed).
+It does **not** probe current firmware, verify configured API privileges,
+or confirm live maintenance readiness. `write_mode=false` is compatible
+with `maintenance_mode=true`; this is deliberate.
+
 ## Native firmware audit semantics (0.8.3)
 
 - `opn_firmware_cve_audit` queries the native OPNsense/FreeBSD VuXML

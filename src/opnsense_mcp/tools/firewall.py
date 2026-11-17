@@ -58,6 +58,15 @@ async def opn_list_firewall_rules(
 
     Use this to inspect the rule overview, not to infer write capability.
     Returns: dict with 'rows' (list of rules) and 'rowCount' (total).
+
+    Args:
+        search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
+            depends on the tool/backend. Optional (default: "").
+        limit: Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     return await api.post(
@@ -78,6 +87,15 @@ async def opn_list_firewall_aliases(
     Use this when you need to see which aliases are defined, their types,
     or what IP addresses/networks they resolve to.
     Returns: dict with 'rows' (list of aliases) and 'rowCount' (total).
+
+    Args:
+        search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
+            depends on the tool/backend. Optional (default: "").
+        limit: Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     return await api.post(
@@ -102,6 +120,19 @@ async def opn_firewall_log(
     troubleshoot connectivity issues, or audit firewall activity.
     All filter parameters are optional substring matches applied client-side.
     Returns: dict with 'entries' (list of log rows) and 'total' (count after filtering).
+
+    Args:
+        source_ip: Optional source-IP log filter. Optional (default: "").
+        destination_ip: Optional destination-IP log filter. Optional (default: "").
+        action: Requested firewall action or operation; use exact values described above. Optional (default:
+            "").
+        interface: OPNsense interface identifier (e.g. lan, wan, opt1); select the correct site's interface.
+            Optional (default: "").
+        limit: Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     raw = await api.get("firewall.log")
@@ -137,6 +168,13 @@ async def opn_confirm_changes(ctx: Context, revision: str, site: SiteName = "") 
     Only relevant on OPNsense < 26.7. Newer versions have no savepoint API; there
     the write tools return an empty revision and this call is a no-op.
     Returns: dict with confirmation status, or status 'not_applicable'.
+
+    Args:
+        revision: Revision token returned by the preceding firewall rule apply operation; used to confirm its
+            60-second savepoint rollback window on pre-26.7 firewalls. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     mgr = get_savepoint_manager(ctx, site)
     return await mgr.confirm(revision)
@@ -162,6 +200,13 @@ async def opn_toggle_firewall_rule(
     that could lock out management. opn_download_config is blocked over HTTP.
     Use opn_list_firewall_rules first to find the UUID of the rule.
     Returns: dict with 'revision' (str) for confirming and 'uuid' (str).
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     mgr = get_savepoint_manager(ctx, site)
@@ -240,6 +285,34 @@ async def opn_add_firewall_rule(
     - description: human-readable rule description
 
     Returns: dict with 'revision' (str), 'uuid' (str), and 'result' (str).
+
+    Args:
+        action: Requested firewall action or operation; use exact values described above. Optional (default:
+            "pass").
+        direction: Direction of network traffic matched by the rule; use supported values. Optional (default:
+            "in").
+        interface: OPNsense interface identifier (e.g. lan, wan, opt1); select the correct site's interface.
+            Optional (default: "lan").
+        ip_protocol: IP-family / packet protocol selection; follow declared values. Optional (default: "inet").
+        protocol: Transport protocol selector; follow the formats in the tool description. Optional (default:
+            "any").
+        source_net: Source address/network expression or alias matched by the rule. Optional (default: "any").
+        source_not: Whether to negate the source match. Optional (default: False).
+        source_port: Source port or range to match. Optional (default: "").
+        destination_net: Destination address/network expression or alias matched by the rule. Optional (default:
+            "any").
+        destination_not: Whether to negate the destination match. Optional (default: False).
+        destination_port: Destination port or range to match/forward. Optional (default: "").
+        gateway: Gateway reference for policy routing, if used. Optional (default: "").
+        log: Whether to log matching traffic; see apply behavior. Optional (default: False).
+        quick: Whether the firewall rule is quick-match. Optional (default: True).
+        sequence: Rule order/position selector; use the tool's supported format. Optional (default: 1).
+        categories: Selected rule-category UUIDs, or empty input to clear them where supported. Optional
+            (default: "").
+        description: User-facing description stored with the affected object. Optional (default: "").
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     if action not in _VALID_ACTIONS:
         return {"error": f"Invalid action '{action}'. Must be one of: pass, block, reject"}
@@ -320,6 +393,13 @@ async def opn_delete_firewall_rule(
     that could lock out management. opn_download_config is blocked over HTTP.
     Use opn_list_firewall_rules first to find the UUID of the rule to delete.
     Returns: dict with 'revision' (str) for confirming and 'result' (str).
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     mgr = get_savepoint_manager(ctx, site)
@@ -403,6 +483,38 @@ async def opn_update_firewall_rule(
     - enabled: enable/disable the rule
 
     Returns: dict with 'revision' (str), 'uuid' (str), and 'result' (str).
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        action: Requested firewall action or operation; use exact values described above. Optional (default:
+            None).
+        direction: Direction of network traffic matched by the rule; use supported values. Optional (default:
+            None).
+        interface: OPNsense interface identifier (e.g. lan, wan, opt1); select the correct site's interface.
+            Optional (default: None).
+        ip_protocol: IP-family / packet protocol selection; follow declared values. Optional (default: None).
+        protocol: Transport protocol selector; follow the formats in the tool description. Optional (default:
+            None).
+        source_net: Source address/network expression or alias matched by the rule. Optional (default: None).
+        source_not: Whether to negate the source match. Optional (default: None).
+        source_port: Source port or range to match. Optional (default: None).
+        destination_net: Destination address/network expression or alias matched by the rule. Optional (default:
+            None).
+        destination_not: Whether to negate the destination match. Optional (default: None).
+        destination_port: Destination port or range to match/forward. Optional (default: None).
+        gateway: Gateway reference for policy routing, if used. Optional (default: None).
+        log: Whether to log matching traffic; see apply behavior. Optional (default: None).
+        quick: Whether the firewall rule is quick-match. Optional (default: None).
+        sequence: Rule order/position selector; use the tool's supported format. Optional (default: None).
+        categories: Selected rule-category UUIDs, or empty input to clear them where supported. Optional
+            (default: None).
+        description: User-facing description stored with the affected object. Optional (default: None).
+        enabled: Desired enabled state (true or false), not an instruction to invert the current value; see tool
+            description for apply/reconfigure requirements. Optional (default: None).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     if action is not None and action not in _VALID_ACTIONS:
         return {"error": f"Invalid action '{action}'. Must be one of: pass, block, reject"}
@@ -500,6 +612,15 @@ async def opn_add_alias(
     - description: human-readable description
 
     Returns: dict with 'result' (str) and 'uuid' (str) of the new alias.
+
+    Args:
+        name: Name of the selected or newly created configuration object. Required.
+        alias_type: Firewall alias type; see supported values above. Optional (default: "host").
+        content: Contents of the configuration object; format depends on selected type. Optional (default: "").
+        description: User-facing description stored with the affected object. Optional (default: "").
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     if alias_type not in _VALID_ALIAS_TYPES:
         return {
@@ -564,6 +685,20 @@ async def opn_update_alias(
     - enabled: enable/disable the alias
 
     Returns: dict with 'result' (str) and 'uuid' (str).
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        name: Name of the selected or newly created configuration object. Optional (default: None).
+        content: Contents of the configuration object; format depends on selected type. Optional (default:
+            None).
+        description: User-facing description stored with the affected object. Optional (default: None).
+        alias_type: Firewall alias type; see supported values above. Optional (default: None).
+        enabled: Desired enabled state (true or false), not an instruction to invert the current value; see tool
+            description for apply/reconfigure requirements. Optional (default: None).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     if name is not None and not _ALIAS_NAME_RE.match(name):
         return {
@@ -618,6 +753,13 @@ async def opn_delete_alias(
 
     Use opn_list_firewall_aliases first to find the UUID.
     Returns: dict with 'result' (str) and 'uuid' (str).
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     api.require_writes()
@@ -643,6 +785,13 @@ async def opn_toggle_alias(
     This does NOT use savepoint protection — aliases are metadata definitions.
     Use opn_list_firewall_aliases first to find the UUID.
     Returns: dict with 'result' (str) and 'uuid' (str).
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     api.require_writes()
@@ -671,6 +820,15 @@ async def opn_list_nat_rules(
     opn_get_config_section('nat') to see all NAT configuration.
 
     Returns: dict with 'rows' (list of NAT rules) and 'rowCount' (total).
+
+    Args:
+        search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
+            depends on the tool/backend. Optional (default: "").
+        limit: Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     return await api.post(
@@ -710,6 +868,19 @@ async def opn_add_nat_rule(
     - description: human-readable description
 
     Returns: dict with 'revision' (str), 'uuid' (str), and 'result' (str).
+
+    Args:
+        destination_port: Destination port or range to match/forward. Optional (default: "").
+        target_ip: IP address of the upstream/NAT target (not an MCP destination). Optional (default: "").
+        interface: OPNsense interface identifier (e.g. lan, wan, opt1); select the correct site's interface.
+            Optional (default: "wan").
+        protocol: Transport protocol selector; follow the formats in the tool description. Optional (default:
+            "TCP").
+        target_port: Port of the upstream/NAT target. Optional (default: "").
+        description: User-facing description stored with the affected object. Optional (default: "").
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     if not destination_port:
         return {"error": "destination_port is required"}
@@ -794,6 +965,23 @@ async def opn_update_nat_rule(
     - enabled: enable/disable the rule
 
     Returns: dict with 'revision' (str), 'uuid' (str), and 'result' (str).
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        interface: OPNsense interface identifier (e.g. lan, wan, opt1); select the correct site's interface.
+            Optional (default: None).
+        protocol: Transport protocol selector; follow the formats in the tool description. Optional (default:
+            None).
+        destination_port: Destination port or range to match/forward. Optional (default: None).
+        target_ip: IP address of the upstream/NAT target (not an MCP destination). Optional (default: None).
+        target_port: Port of the upstream/NAT target. Optional (default: None).
+        description: User-facing description stored with the affected object. Optional (default: None).
+        enabled: Desired enabled state (true or false), not an instruction to invert the current value; see tool
+            description for apply/reconfigure requirements. Optional (default: None).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     if protocol is not None and protocol not in _VALID_NAT_PROTOCOLS:
         return {
@@ -858,6 +1046,13 @@ async def opn_delete_nat_rule(
     that could lock out management. opn_download_config is blocked over HTTP.
     Use opn_list_nat_rules first to find the UUID of the rule to delete.
     Returns: dict with 'revision' (str) for confirming and 'result' (str).
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     mgr = get_savepoint_manager(ctx, site)
@@ -892,6 +1087,15 @@ async def opn_list_firewall_categories(
     Use this when you need to see which categories exist, check their names
     and colors, or find category UUIDs for assigning to rules.
     Returns: dict with 'rows' (list of categories) and 'rowCount' (total).
+
+    Args:
+        search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
+            depends on the tool/backend. Optional (default: "").
+        limit: Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 100).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     return await api.post(
@@ -917,6 +1121,13 @@ async def opn_add_firewall_category(
     - color: hex color code without '#' (e.g. 'ff0000' for red, default '000000')
 
     Returns: dict with 'result' (str), 'uuid' (str), and 'name' (str).
+
+    Args:
+        name: Name of the selected or newly created configuration object. Required.
+        color: Exactly six hexadecimal digits without '#', e.g. 'ff0000'; optional (default: '000000').
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     if not name or not _CATEGORY_NAME_RE.match(name):
         return {
@@ -962,6 +1173,13 @@ async def opn_delete_firewall_category(
     configuration backup (for example via the OPNsense GUI) before any change
     that could lock out management. opn_download_config is blocked over HTTP.
     Returns: dict with 'revision' (str) for confirming and 'result' (str).
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     mgr = get_savepoint_manager(ctx, site)
@@ -1008,6 +1226,15 @@ async def opn_set_rule_categories(
       or empty string to clear all categories
 
     Returns: dict with 'revision' (str) for confirming and 'uuid' (str).
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        categories: Selected rule-category UUIDs, or empty input to clear them where supported. Optional
+            (default: "").
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     mgr = get_savepoint_manager(ctx, site)
@@ -1100,6 +1327,13 @@ async def opn_add_icmpv6_rules(
 
     Returns: dict with 'revision' (str), 'rules' (list of created UUIDs),
     and instructions to confirm.
+
+    Args:
+        interface: OPNsense interface identifier (e.g. lan, wan, opt1); select the correct site's interface.
+            Optional (default: "lan").
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     mgr = get_savepoint_manager(ctx, site)

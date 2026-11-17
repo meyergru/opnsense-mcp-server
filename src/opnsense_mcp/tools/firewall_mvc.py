@@ -102,6 +102,16 @@ async def opn_firewall_list_objects(
     For filter rules on 26.7, the backend can include legacy/non-MVC entries;
     they are searchable but not editable through the MVC CRUD endpoints.
     Search results may include automatically generated NAT rules as well.
+
+    Args:
+        kind: Type of firewall object to access; use one of the declared enum values. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
+        search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
+            depends on the tool/backend. Optional (default: "").
+        limit: Requested row count must be an integer in 1..500; invalid values fail before the API request.
+            Optional (default: 100).
     """
     _kind(kind)
     if not 1 <= limit <= 500 or len(search) > 512:
@@ -122,6 +132,14 @@ async def opn_firewall_get_object(
 
     Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. Read this object's
     model fields before a targeted patch. 'uuid' is an object UUID.
+
+    Args:
+        kind: Type of firewall object to access; use one of the declared enum values. Required.
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     return await _get(get_api(ctx, site), kind, uuid)
 
@@ -138,6 +156,14 @@ async def opn_firewall_create_object(
     Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. 'fields' is a mapping
     from exact installed MVC field names to strings; unknown fields are rejected. Consult existing objects
     and the target's model rather than guessing fields.
+
+    Args:
+        kind: Type of firewall object to access; use one of the declared enum values. Required.
+        fields: Structured mapping of fields to apply to the selected object; keys must be supported by the
+            selected resource. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     resource = _kind(kind)
     api = get_api(ctx, site)
@@ -162,6 +188,15 @@ async def opn_firewall_patch_object(
     Only explicit fields are sent; OPNsense setBase merges supplied nodes,
     preserving fields not requested. Reject unknown fields and legacy entries.
     A concurrent change from outside the MCP server may still race this read.
+
+    Args:
+        kind: Type of firewall object to access; use one of the declared enum values. Required.
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        changes: Structured mapping of intended changes, not an unrestricted REST operation. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     resource = _kind(kind)
     values = _fields(changes)
@@ -188,6 +223,14 @@ async def opn_firewall_delete_object(
     opn_firewall_list_objects; deletion is staged, not applied.
 
     OPNsense performs reference checks for aliases, categories and groups.
+
+    Args:
+        kind: Type of firewall object to access; use one of the declared enum values. Required.
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     resource = _kind(kind)
     api = get_api(ctx, site)
@@ -215,6 +258,16 @@ async def opn_firewall_set_enabled(
 
     DNAT's argument is 'disabled' and is therefore inverted; other rule
     controllers accept 'enabled'. Supplying 0/1 makes retries idempotent.
+
+    Args:
+        kind: Type of firewall object to access; use one of the declared enum values. Required.
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        enabled: Desired enabled state (true or false), not an instruction to invert the current value; see tool
+            description for apply/reconfigure requirements. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     resource = _kind(kind)
     if not resource.toggle:
@@ -241,6 +294,16 @@ async def opn_firewall_set_logging(
 
     Only kind values supporting rule logging: filter, dnat, snat, one_to_one, npt. 'enabled' is the
     desired Boolean state; no automatic apply.
+
+    Args:
+        kind: Type of firewall object to access; use one of the declared enum values. Required.
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        enabled: Desired enabled state (true or false), not an instruction to invert the current value; see tool
+            description for apply/reconfigure requirements. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     resource = _kind(kind)
     if not resource.logging:
@@ -263,6 +326,14 @@ async def opn_firewall_move_rule(
     rule UUID strings; 'before_uuid' is the destination rule UUID. No automatic apply.
 
     OPNsense validates ordering and priority groups; cannot move legacy rules.
+
+    Args:
+        kind: Type of firewall object to access; use one of the declared enum values. Required.
+        uuids: List of 1-50 distinct UUIDs of orderable MVC rules; exclude the destination UUID. Required.
+        before_uuid: Destination MVC rule UUID before which the selected rules are moved. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     resource = _kind(kind)
     if not resource.movable:
@@ -287,6 +358,13 @@ async def opn_firewall_apply_changes(ctx: Context, site: SiteName = "", confirm:
     No 60-second savepoint rollback exists on OPNsense 26.7+. Requires
     site's write permission AND confirm=true. This is deliberately separate
     from every create/patch/delete/toggle/move operation.
+
+    Args:
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
+        confirm: Explicit acknowledgement for this state-changing operation; false never initiates the action.
+            Optional (default: False).
     """
     api = get_api(ctx, site)
     api.require_writes()
@@ -299,7 +377,13 @@ async def opn_firewall_apply_changes(ctx: Context, site: SiteName = "", confirm:
 
 @mcp.tool()
 async def opn_firewall_get_source_nat_settings(ctx: Context, site: SiteName = "") -> dict[str, Any]:
-    """Read 26.7 Source NAT general mode/settings; not the list of SNAT rules."""
+    """Read 26.7 Source NAT general mode/settings; not the list of SNAT rules.
+
+    Args:
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
+    """
     return await get_api(ctx, site).get("fw26.source_nat.get_settings")
 
 
@@ -307,7 +391,14 @@ async def opn_firewall_get_source_nat_settings(ctx: Context, site: SiteName = ""
 async def opn_firewall_patch_source_nat_settings(
     ctx: Context, changes: dict[str, str], site: SiteName = ""
 ) -> dict[str, Any]:
-    """Patch Source NAT general settings after verifying the 26.7 schema; no apply."""
+    """Patch Source NAT general settings after verifying the 26.7 schema; no apply.
+
+    Args:
+        changes: Structured mapping of intended changes, not an unrestricted REST operation. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
+    """
     values = _fields(changes)
     api = get_api(ctx, site)
     api.require_writes()
@@ -323,19 +414,38 @@ async def opn_firewall_patch_source_nat_settings(
 
 @mcp.tool()
 async def opn_firewall_get_rule_stats(ctx: Context, site: SiteName = "") -> dict[str, Any]:
-    """Read live per-rule packet/byte counters from pf."""
+    """Read live per-rule packet/byte counters from pf.
+
+    Args:
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
+    """
     return await get_api(ctx, site).get("fw26.filter.rule_stats")
 
 
 @mcp.tool()
 async def opn_firewall_get_interface_options(ctx: Context, site: SiteName = "") -> dict[str, Any]:
-    """Read interface/group selectors used by Firewall 26.7 rules."""
+    """Read interface/group selectors used by Firewall 26.7 rules.
+
+    Args:
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
+    """
     return await get_api(ctx, site).get("fw26.filter.get_interfaces")
 
 
 @mcp.tool()
 async def opn_firewall_alias_references(ctx: Context, ip: str, site: SiteName = "") -> dict[str, Any]:
-    """Find aliases referencing a literal IPv4/IPv6 address or network."""
+    """Find aliases referencing a literal IPv4/IPv6 address or network.
+
+    Args:
+        ip: IP address used by this operation; check its required family and format. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
+    """
     try:
         ipaddress.ip_network(ip, strict=False)
     except ValueError as exc:
@@ -345,7 +455,14 @@ async def opn_firewall_alias_references(ctx: Context, ip: str, site: SiteName = 
 
 @mcp.tool()
 async def opn_firewall_list_alias_table(ctx: Context, alias: str, site: SiteName = "") -> dict[str, Any]:
-    """Read resolved IP/table contents of one named firewall alias."""
+    """Read resolved IP/table contents of one named firewall alias.
+
+    Args:
+        alias: Exact configured firewall alias name whose resolved table/IP contents should be read. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
+    """
     if not _ALIAS_RE.fullmatch(alias):
         raise ValueError("Invalid alias name")
     return await get_api(ctx, site).get("fw26.alias.table_contents", path_suffix=alias)
@@ -353,7 +470,13 @@ async def opn_firewall_list_alias_table(ctx: Context, alias: str, site: SiteName
 
 @mcp.tool()
 async def opn_firewall_legacy_rule_counts(ctx: Context, site: SiteName = "") -> dict[str, Any]:
-    """Read counts of old legacy firewall and outbound NAT rules; no migration."""
+    """Read counts of old legacy firewall and outbound NAT rules; no migration.
+
+    Args:
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
+    """
     api = get_api(ctx, site)
     return {
         "legacy_rules": await api.get("fw26.migration.count_rules"),
@@ -363,7 +486,15 @@ async def opn_firewall_legacy_rule_counts(ctx: Context, site: SiteName = "") -> 
 
 @mcp.tool()
 async def opn_firewall_reconfigure_aliases(ctx: Context, site: SiteName = "", confirm: bool = False) -> dict[str, Any]:
-    """Explicitly refresh aliases after changes; may refresh firewall tables."""
+    """Explicitly refresh aliases after changes; may refresh firewall tables.
+
+    Args:
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
+        confirm: Explicit acknowledgement for this state-changing operation; false never initiates the action.
+            Optional (default: False).
+    """
     api = get_api(ctx, site)
     api.require_writes()
     if not confirm:
@@ -373,7 +504,15 @@ async def opn_firewall_reconfigure_aliases(ctx: Context, site: SiteName = "", co
 
 @mcp.tool()
 async def opn_firewall_reconfigure_groups(ctx: Context, site: SiteName = "", confirm: bool = False) -> dict[str, Any]:
-    """Explicitly reconfigure firewall interface groups; may affect traffic."""
+    """Explicitly reconfigure firewall interface groups; may affect traffic.
+
+    Args:
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
+        confirm: Explicit acknowledgement for this state-changing operation; false never initiates the action.
+            Optional (default: False).
+    """
     api = get_api(ctx, site)
     api.require_writes()
     if not confirm:

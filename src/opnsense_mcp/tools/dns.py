@@ -40,6 +40,15 @@ async def opn_list_dns_overrides(
     Use this when you need to see which hostnames are overridden to specific
     IP addresses in the local DNS resolver.
     Returns: dict with 'rows' (list of overrides) and 'rowCount' (total).
+
+    Args:
+        search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
+            depends on the tool/backend. Optional (default: "").
+        limit: Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     return await api.post(
@@ -67,6 +76,15 @@ async def opn_list_dns_forwards(
     Use this when you need to check which domains are forwarded to specific
     upstream DNS servers or DNS-over-TLS resolvers.
     Returns: dict with 'rows' (list of forward zones) and 'rowCount' (total).
+
+    Args:
+        search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
+            depends on the tool/backend. Optional (default: "").
+        limit: Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     return await api.post(
@@ -89,6 +107,11 @@ async def opn_dns_stats(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     Use this when you need to check DNS resolver performance, cache hit rates,
     or troubleshoot DNS resolution issues.
     Returns: dict with resolver statistics fields.
+
+    Args:
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     return await api.get("unbound.stats")
@@ -111,6 +134,11 @@ async def opn_reconfigure_unbound(ctx: Context, site: SiteName = "") -> dict[str
     NOTE: This does not use savepoint protection. DNS changes take effect
     immediately and cannot be auto-reverted. Verify settings before calling.
     Returns: dict with 'status' indicating success or failure.
+
+    Args:
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     api.require_writes()
@@ -151,6 +179,16 @@ async def opn_add_dns_override(
     - description: optional description
 
     Returns: dict with 'result', 'uuid', 'hostname', 'server', and 'applied' status.
+
+    Args:
+        hostname: Hostname or domain identifier for this operation; see tool description for expected format.
+            Required.
+        domain: Domain portion of the DNS record; see examples in the tool description. Required.
+        server: DNS server or target address used by this operation (see tool description). Required.
+        description: User-facing description stored with the affected object. Optional (default: "").
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     if not hostname or not _HOSTNAME_RE.match(hostname):
         return {"error": f"Invalid hostname '{hostname}'. Must be alphanumeric with hyphens."}
@@ -223,6 +261,22 @@ async def opn_update_dns_override(
     - enabled: enable/disable the override
 
     Returns: dict with 'result' (str), 'uuid' (str), and 'applied' status.
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        hostname: Hostname or domain identifier for this operation; see tool description for expected format.
+            Optional (default: None).
+        domain: Domain portion of the DNS record; see examples in the tool description. Optional (default:
+            None).
+        server: DNS server or target address used by this operation (see tool description). Optional (default:
+            None).
+        description: User-facing description stored with the affected object. Optional (default: None).
+        enabled: Desired enabled state (true or false), not an instruction to invert the current value; see tool
+            description for apply/reconfigure requirements. Optional (default: None).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     if hostname is not None and not _HOSTNAME_RE.match(hostname):
         return {"error": f"Invalid hostname '{hostname}'. Must be alphanumeric with hyphens."}
@@ -275,6 +329,13 @@ async def opn_delete_dns_override(
     DNS changes cannot be auto-reverted — verify the UUID before calling.
     Use opn_list_dns_overrides first to find the UUID.
     Returns: dict with 'result' (str), 'uuid' (str), and 'applied' status.
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     api.require_writes()
@@ -355,6 +416,15 @@ async def opn_list_dnsbl(
     providers are active, and what allowlist/blocklist entries exist.
     Use opn_get_dnsbl with a UUID from the results for full details.
     Returns: dict with 'rows' (list of blocklist configs) and 'rowCount' (total).
+
+    Args:
+        search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
+            depends on the tool/backend. Optional (default: "").
+        limit: Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     return await api.post(
@@ -384,6 +454,13 @@ async def opn_get_dnsbl(
 
     Returns: dict with 'selected_providers', 'available_providers',
     'allowlists', 'blocklists', 'wildcards', and config fields.
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     raw = await api.get("unbound.get_dnsbl", path_suffix=uuid)
@@ -467,6 +544,25 @@ async def opn_set_dnsbl(
     - description: human-readable description
 
     Returns: dict with 'result', 'dnsbl_status', and 'service_status'.
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        enabled: Desired enabled state (true or false), not an instruction to invert the current value; see tool
+            description for apply/reconfigure requirements. Optional (default: None).
+        providers: DNSBL provider shortcodes, using the documented format. Optional (default: "").
+        custom_urls: Custom DNSBL URL entries, using the documented separators. Optional (default: "").
+        allowlists: DNSBL allow-list entries, using the documented separators. Optional (default: "").
+        blocklists: DNSBL block-list entries, using the documented separators. Optional (default: "").
+        wildcards: DNSBL wildcard entries, using the documented separators. Optional (default: "").
+        source_nets: Source network(s) used in this configuration; follow the documented delimiter. Optional
+            (default: "").
+        nxdomain: Whether blocked DNS responses should return NXDOMAIN. Optional (default: None).
+        cache_ttl: Cache time-to-live; units and limits depend on the backend. Optional (default: None).
+        description: User-facing description stored with the affected object. Optional (default: None).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     api.require_writes()
@@ -535,6 +631,15 @@ async def opn_add_dnsbl_allowlist(
 
     Returns: dict with 'added' (list), 'already_present' (list),
     'dnsbl_status', and 'service_status'.
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        domains: Nonempty comma- or newline-separated domain names to add/remove; duplicates are handled
+            without clearing other allowlist entries. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     if not domains.strip():
         return {"error": "No domains provided."}
@@ -598,6 +703,15 @@ async def opn_remove_dnsbl_allowlist(
 
     Returns: dict with 'removed' (list), 'not_found' (list),
     'dnsbl_status', and 'service_status'.
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        domains: Nonempty comma- or newline-separated domain names to add/remove; duplicates are handled
+            without clearing other allowlist entries. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     if not domains.strip():
         return {"error": "No domains provided."}
@@ -654,6 +768,11 @@ async def opn_update_dnsbl(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     NOTE: This does not use savepoint protection. DNS changes take effect
     immediately and cannot be auto-reverted.
     Returns: dict with 'dnsbl_status' and 'service_status'.
+
+    Args:
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     api.require_writes()

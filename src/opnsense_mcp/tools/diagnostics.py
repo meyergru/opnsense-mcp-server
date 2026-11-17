@@ -42,6 +42,13 @@ async def opn_ping(
     measure round-trip latency, or diagnose network connectivity issues.
     The ping runs on the firewall itself, not locally.
     Returns: dict with ping results including loss percentage and RTT stats.
+
+    Args:
+        host: Host or IP address to check from the selected firewall, not the local MCP host. Required.
+        count: Number of ping requests; the implementation silently clamps values to the range 1..10 (default: 3).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     if err := _validate_hostname(host):
         return {"error": err}
@@ -101,6 +108,15 @@ async def opn_traceroute(
     protocol is exactly ICMP, UDP or TCP; ip_version is a STRING '4' or '6'
     (not an integer). host is a hostname or IP address.
     Returns: dict with 'result' (str) and 'response' (list of hops).
+
+    Args:
+        host: Host or IP address to check from the selected firewall, not the local MCP host. Required.
+        protocol: Transport protocol selector; follow the formats in the tool description. Optional (default:
+            "ICMP").
+        ip_version: IP family selector (IPv4/IPv6); use declared values. Optional (default: "4").
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     if err := _validate_hostname(host):
         return {"error": err}
@@ -143,6 +159,15 @@ async def opn_dns_lookup(
     perspective, verify Unbound is resolving correctly, or check if a
     specific DNS server returns expected results.
     Returns: dict with 'result' (str) and 'response' (DNS query results).
+
+    Args:
+        hostname: Hostname or domain identifier for this operation; see tool description for expected format.
+            Required.
+        server: DNS server or target address used by this operation (see tool description). Optional (default:
+            "").
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     if err := _validate_hostname(hostname):
         return {"error": err}
@@ -168,6 +193,15 @@ async def opn_pf_states(
     Use this when you need to see active connections through the firewall,
     debug NAT issues, or identify which hosts are communicating.
     Returns: dict with 'rows' (list of state entries) and 'rowCount' (total).
+
+    Args:
+        search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
+            depends on the tool/backend. Optional (default: "").
+        limit: Requested row count; use a positive integer. Values above 1000 are capped at 1000 by the tool.
+            Optional (default: 200).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     return await api.post(

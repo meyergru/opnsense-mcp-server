@@ -30,6 +30,10 @@ async def opn_wireguard_status(ctx: Context, site: SiteName = "") -> dict[str, A
     management uses this VPN, or which site is LOCAL/REMOTE, ask the user
     before changing the configuration. Requires os-wireguard.
     Returns: dict with tunnel and peer details including endpoints and transfer stats.
+
+    Args:
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.get("wireguard.service.show")
@@ -50,6 +54,10 @@ async def opn_ipsec_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     Phase 1 (IKE negotiation) and Phase 2 (ESP/AH tunnels).
     Note: Requires IPsec to be configured. Based on strongSwan (OPNsense 23.1+).
     Returns: dict with 'service_status', 'phase1' (IKE sessions), and 'phase2' (tunnels).
+
+    Args:
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     _search = {"current": 1, "rowCount": 500, "searchPhrase": ""}
@@ -77,6 +85,10 @@ async def opn_openvpn_status(ctx: Context, site: SiteName = "") -> dict[str, Any
     connected clients, active VPN routes, or troubleshoot OpenVPN tunnels.
     Note: OpenVPN is built-in (no plugin needed) but must be configured.
     Returns: dict with 'instances', 'sessions' (connected clients), and 'routes'.
+
+    Args:
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     _search = {"current": 1, "rowCount": 500, "searchPhrase": ""}

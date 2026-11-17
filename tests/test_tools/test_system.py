@@ -405,7 +405,7 @@ class TestOpnMcpInfo:
     """Tests for opn_mcp_info."""
 
     async def test_returns_expected_keys(self, mock_api, mock_ctx):
-        result = await opn_mcp_info(mock_ctx)
+        result = await opn_mcp_info(mock_ctx, site="local")
         assert "mcp_version" in result
         assert "write_mode" in result
         assert "opnsense_version" in result
@@ -413,42 +413,42 @@ class TestOpnMcpInfo:
 
     async def test_reports_savepoint_support(self, mock_api, mock_ctx):
         """Rollback availability must be queryable before the first write, not after."""
-        result = await opn_mcp_info(mock_ctx)
+        result = await opn_mcp_info(mock_ctx, site="local")
         assert "savepoint_support" in result
         assert result["savepoint_support"] is None
 
     async def test_reports_savepoint_support_once_probed(self, mock_api, mock_ctx):
         mock_ctx.lifespan_context["savepoint_mgr"]._supported = False
-        result = await opn_mcp_info(mock_ctx)
+        result = await opn_mcp_info(mock_ctx, site="local")
         assert result["savepoint_support"] is False
 
     async def test_returns_version_string(self, mock_api, mock_ctx):
-        result = await opn_mcp_info(mock_ctx)
+        result = await opn_mcp_info(mock_ctx, site="local")
         assert isinstance(result["mcp_version"], str)
         assert result["mcp_version"]  # non-empty
 
     async def test_write_mode_disabled(self, mock_api, mock_ctx):
-        result = await opn_mcp_info(mock_ctx)
+        result = await opn_mcp_info(mock_ctx, site="local")
         assert result["write_mode"] is False
 
     async def test_write_mode_enabled(self, mock_api_writes, mock_ctx_writes):
-        result = await opn_mcp_info(mock_ctx_writes)
+        result = await opn_mcp_info(mock_ctx_writes, site="local")
         assert result["write_mode"] is True
 
     async def test_opnsense_version_detected(self, mock_api, mock_ctx):
-        result = await opn_mcp_info(mock_ctx)
+        result = await opn_mcp_info(mock_ctx, site="local")
         assert result["opnsense_version"] == "25.1"
 
     async def test_opnsense_version_not_detected(self, mock_api, mock_ctx):
         mock_api._detected_version = None
-        result = await opn_mcp_info(mock_ctx)
+        result = await opn_mcp_info(mock_ctx, site="local")
         assert result["opnsense_version"] is None
 
     async def test_api_style_camelcase(self, mock_api, mock_ctx):
-        result = await opn_mcp_info(mock_ctx)
+        result = await opn_mcp_info(mock_ctx, site="local")
         assert result["api_style"] == "camelCase"
 
     async def test_api_style_snake_case(self, mock_api, mock_ctx):
         mock_api._use_snake_case = True
-        result = await opn_mcp_info(mock_ctx)
+        result = await opn_mcp_info(mock_ctx, site="local")
         assert result["api_style"] == "snake_case"

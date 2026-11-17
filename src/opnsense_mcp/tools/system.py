@@ -11,7 +11,7 @@ from fastmcp import Context
 from opnsense_mcp import __version__
 from opnsense_mcp.config_cache import is_sensitive_tag, xml_local_name
 from opnsense_mcp.server import get_api, get_config_cache, get_savepoint_manager, mcp
-from opnsense_mcp.tool_types import SiteName
+from opnsense_mcp.tool_types import RequiredSiteName, SiteName
 
 _SENSITIVE_GATE_ERROR = {
     "error": (
@@ -98,6 +98,10 @@ async def opn_system_status(ctx: Context, site: SiteName = "") -> dict[str, Any]
     or verify the OPNsense appliance is reachable and responding.
     Returns: dict with firmware/product info. On OPNsense 26.x+, product fields
     are nested under a 'product' key; earlier versions have them at the top level.
+
+    Args:
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.get("firmware.status")
@@ -114,6 +118,10 @@ async def opn_check_firmware_updates(ctx: Context, site: SiteName = "") -> dict[
     The check contacts the configured firmware mirrors and updates local
     update-check metadata on OPNsense. It does NOT install packages, apply
     configuration changes, or reboot. The API call may take several seconds.
+
+    Args:
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.post("firmware.status")
@@ -138,6 +146,14 @@ async def opn_list_services(
     Use this when you need to check which services are running, stopped, or
     available on the OPNsense instance.
     Returns: dict with 'rows' (list of services) and 'rowCount' (total).
+
+    Args:
+        search: Optional search/filter phrase; empty returns results without additional filtering. Optional
+            (default: "").
+        limit:  Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.post(
@@ -153,6 +169,10 @@ async def opn_gateway_status(ctx: Context, site: SiteName = "") -> dict[str, Any
     Use this when you need to check if WAN gateways are up, their latency,
     packet loss, or failover state.
     Returns: dict with gateway items including status, loss, and delay fields.
+
+    Args:
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.get("gateway.status")
@@ -173,6 +193,12 @@ async def opn_download_config(
     By default, sensitive data (passwords, keys, secrets) is redacted.
     include_sensitive=true requires OPNSENSE_MCP_ALLOW_SENSITIVE=true.
     Returns: dict with 'config_xml' (str), 'stripped' (bool), 'size_bytes' (int).
+
+    Args:
+        include_sensitive: Request unredacted credentials; unavailable for remote HTTP MCP even when true.
+            Optional (default: False).
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     if _raw_config_export_blocked():
         return {"error": "Raw configuration export is disabled for remote MCP clients"}
@@ -221,6 +247,12 @@ async def opn_scan_config(ctx: Context, force: bool = False, site: SiteName = ""
 
     Returns: dict with 'firmware', 'plugins', 'dhcp', 'dns', 'interfaces',
     'services', and 'config_sections' (list of available sections with sizes).
+
+    Args:
+        force: Re-download configuration XML and refresh the cached inventory when true; false uses an existing
+            non-stale cache (default: False).
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     cache = get_config_cache(ctx, site)
@@ -250,6 +282,14 @@ async def opn_get_config_section(
     Sensitive values are redacted by default; include_sensitive=true requires
     OPNSENSE_MCP_ALLOW_SENSITIVE=true in the server environment.
     Returns: dict with 'section' name and 'data' (structured config data).
+
+    Args:
+        section: Exact configuration section from opn_scan_config's config_sections list, e.g. system,
+            interfaces, filter or nat. Required.
+        include_sensitive: Request unredacted credentials; unavailable for remote HTTP MCP even when true.
+            Optional (default: False).
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     if _raw_config_export_blocked():
         return {"error": "Raw configuration sections are disabled for remote MCP clients"}
@@ -272,17 +312,27 @@ async def opn_get_config_section(
 
 
 @mcp.tool()
-async def opn_mcp_info(ctx: Context, site: SiteName = "") -> dict[str, Any]:
-    """Get MCP server version and runtime configuration.
+async def opn_mcp_info(ctx: Context, site: RequiredSiteName) -> dict[str, Any]:
+    """Get read-only MCP runtime information for ONE explicitly selected OPNsense site.
 
-    Use this to check the MCP server version, whether write mode is enabled,
-    maintenance mode is enabled, the detected OPNsense API version, and whether firewall writes still get
-    savepoint/rollback protection.
-    Returns: dict with 'mcp_version', 'write_mode', 'opnsense_version',
-    'api_style' and 'savepoint_support'. 'savepoint_support' is true when the
-    60-second auto-revert is available, false when OPNsense no longer offers it
-    (26.7+ removed it upstream, so firewall changes are immediate and permanent),
-    and null when no firewall write has probed for it yet.
+    REQUIRED site: first call opn_list_targets, then pass the exact nonempty
+    site alias (for example, site="opnsense.mgsoft"). Never call without site:
+    it is a site-bound inspection, not a global capability discovery tool.
+
+    Returns mcp_version (global server version); write_mode (general writes
+    enabled for this site's API client); maintenance_mode (separate reviewed
+    snapshot/firmware maintenance opt-in); opnsense_version (detected major.minor
+    or null before version detection); api_style (current API route selection:
+    camelCase or snake_case); savepoint_support (firewall *rule* savepoint
+    rollback support, true/false after probing, null until probed).
+
+    The response reads existing in-memory client state: it does not contact the
+    firewall, check firmware repositories, validate PVE permissions, or test
+    maintenance write capability. In particular, write_mode=false does not
+    imply maintenance_mode=false. Firewall savepoints are NOT ZFS snapshots.
+
+    Args:
+        site: Required nonempty site alias from opn_list_targets; do not omit or pass an empty value. Required.
     """
     api = get_api(ctx, site)
     version = api.detected_version

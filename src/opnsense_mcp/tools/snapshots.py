@@ -23,6 +23,10 @@ async def opn_snapshot_supported(ctx: Context, site: SiteName = "") -> dict[str,
 
     Returns OPNsense's 'supported' flag. UFS installations do not support
     snapshots and must not be assumed to have this recovery mechanism.
+
+    Args:
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     return await get_api(ctx, site).get("snapshots.is_supported")
 
@@ -33,13 +37,23 @@ async def opn_list_snapshots(ctx: Context, site: SiteName = "") -> dict[str, Any
 
     Does not create, activate or delete a snapshot. Inspect the entries to
     verify that a snapshot was created before proceeding with changes.
+
+    Args:
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     return await get_api(ctx, site).get("snapshots.search")
 
 
 @mcp.tool()
 async def opn_get_snapshot(ctx: Context, uuid: str, site: SiteName = "") -> dict[str, Any]:
-    """Inspect one ZFS snapshot by its UUID without changing it."""
+    """Inspect one ZFS snapshot by its UUID without changing it.
+
+    Args:
+        uuid: UUID of the existing object on this site; obtain it from the matching list/search tool. Required.
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
+    """
     if not re.fullmatch(r"[a-fA-F0-9-]{8,64}", uuid):
         return {"error": "Invalid snapshot UUID"}
     return await get_api(ctx, site).get("snapshots.get", path_suffix=uuid)
@@ -53,6 +67,13 @@ async def opn_create_snapshot(ctx: Context, name: str, site: SiteName = "", note
     name and optional note, without an existing UUID (new snapshot, not clone).
     This does NOT activate the snapshot or cause any reboot. Caller should use
     opn_list_snapshots to verify successful creation.
+
+    Args:
+        name: Name of the new ZFS boot-environment snapshot (letters, digits, underscore, dot and hyphen only; no
+            slash). Required.
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
+        note: Optional human-readable ZFS snapshot note, maximum 1024 characters (default: "").
     """
     if not _NAME_PATTERN.fullmatch(name) or name in {".", ".."}:
         return {"error": "Invalid snapshot name (letters, digits, underscore, dot and hyphen only)"}
