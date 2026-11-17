@@ -10,7 +10,7 @@ from fastmcp import Context
 
 from opnsense_mcp.api_client import OPNsenseAPIError
 from opnsense_mcp.server import get_api, mcp
-from opnsense_mcp.tool_types import SiteName
+from opnsense_mcp.tool_types import BoundedFirmwareChecks, BoundedFirmwarePollInterval, SiteName
 
 
 def _backend_is_idle(status: dict[str, Any]) -> bool:
@@ -61,8 +61,8 @@ async def opn_monitor_firmware_update(
     ctx: Context,
     site: SiteName = "",
     previous_version: str = "",
-    max_checks: int = 3,
-    poll_interval_seconds: int = 2,
+    max_checks: BoundedFirmwareChecks = 3,
+    poll_interval_seconds: BoundedFirmwarePollInterval = 2,
 ) -> dict[str, Any]:
     """Briefly monitor an existing firmware update, tolerating network outages.
 
@@ -82,8 +82,8 @@ async def opn_monitor_firmware_update(
             configured. Optional (default: "").
         previous_version: Previously installed firmware version used for comparison; empty means no version
             comparison. Optional (default: "").
-        max_checks: Upper bound on the number of status polls within this one tool call. Optional (default: 3).
-        poll_interval_seconds: Delay between consecutive bounded status polls in seconds. Optional (default: 2).
+        max_checks: Number of checks in this call; must be 1..3. Optional (default: 3).
+        poll_interval_seconds: Seconds between checks; must be 1..3. Optional (default: 2).
     """
     if not 1 <= max_checks <= 3:
         raise ValueError("max_checks must be between 1 and 3")
