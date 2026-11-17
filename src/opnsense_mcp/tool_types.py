@@ -20,3 +20,16 @@ SiteName = Annotated[
         )
     ),
 ]
+
+
+RequiredSiteName = Annotated[
+    str,
+    Field(
+        min_length=1,
+        description=(
+            "REQUIRED nonempty exact OPNsense target site alias. "
+            "Call opn_list_targets to discover valid names, then pass one explicitly. "
+            "Never omit site or pass an empty string, including single-target deployments."
+        ),
+    ),
+]
