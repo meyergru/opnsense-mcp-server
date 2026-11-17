@@ -74,6 +74,7 @@ async def test_snapshot_name_rejected_before_network(mock_api_writes, mock_ctx_w
     mock_api_writes.get.assert_not_awaited()
     mock_api_writes.post.assert_not_awaited()
 
+
 async def test_snapshot_creation_allowed_by_narrow_maintenance_policy(mock_api, mock_ctx):
     mock_api._config = replace(mock_api._config, maintenance_enabled=True)
     mock_api.get = AsyncMock(return_value={"supported": True})
