@@ -26,6 +26,7 @@ from opnsense_mcp.config import (
     OPNsenseConfig,
     allow_sensitive_enabled,
     load_config,
+    maintenance_enabled,
     mcp_read_only_enabled,
 )
 from opnsense_mcp.config_cache import ConfigCache
@@ -154,6 +155,7 @@ class TargetRegistry:
                 api_secret=values["API_SECRET"],
                 verify_ssl=ssl_value == "true",
                 allow_writes=not mcp_read_only_enabled(name),
+                maintenance_enabled=maintenance_enabled(),
                 additional_ca_file=ca_file,
                 allow_sensitive=allow_sensitive_enabled(),
             )
