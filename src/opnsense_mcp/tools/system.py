@@ -150,7 +150,8 @@ async def opn_list_services(
     Args:
         search: Optional search/filter phrase; empty returns results without additional filtering. Optional
             (default: "").
-        limit: Maximum requested entry count; the server may impose a stricter cap. Optional (default: 50).
+        limit:  Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
         site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
             deployment. Optional (default: "").
     """
