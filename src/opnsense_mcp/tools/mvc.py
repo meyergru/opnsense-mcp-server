@@ -274,8 +274,8 @@ async def opn_wireguard_list_peers(
         site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
             configured. Optional (default: "").
         search: Optional search string or filter; empty means no additional filtering. Optional (default: "").
-        limit: Maximum requested number of entries; the server may enforce a stricter cap. Optional (default:
-            100).
+        limit:  Requested row count must be an integer in 1..500; invalid values fail before the API request.
+            Optional (default: 100).
     """
     return await _list(get_api(ctx, site), "wireguard", "peer", search, limit)
 
@@ -540,8 +540,8 @@ async def opn_kea_list(
         site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
             configured. Optional (default: "").
         search: Optional search string or filter; empty means no additional filtering. Optional (default: "").
-        limit: Maximum requested number of entries; the server may enforce a stricter cap. Optional (default:
-            100).
+        limit:  Requested row count must be an integer in 1..500; invalid values fail before the API request.
+            Optional (default: 100).
     """
     return await _list(get_api(ctx, site), "kea", resource, search, limit)
 
@@ -794,8 +794,8 @@ async def opn_unbound_list(
         site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
             configured. Optional (default: "").
         search: Optional search string or filter; empty means no additional filtering. Optional (default: "").
-        limit: Maximum requested number of entries; the server may enforce a stricter cap. Optional (default:
-            100).
+        limit:  Requested row count must be an integer in 1..500; invalid values fail before the API request.
+            Optional (default: 100).
     """
     return await _list(get_api(ctx, site), "unbound", resource, search, limit)
 
@@ -973,8 +973,8 @@ async def opn_kea_list_leases6(
 
     Args:
         search: Optional search string or filter; empty means no additional filtering. Optional (default: "").
-        limit: Maximum requested number of entries; the server may enforce a stricter cap. Optional (default:
-            100).
+        limit:  Requested row count must be an integer in 1..500; invalid values fail before the API request.
+            Optional (default: 100).
         site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
             configured. Optional (default: "").
     """
