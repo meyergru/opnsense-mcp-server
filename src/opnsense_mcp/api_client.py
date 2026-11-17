@@ -151,6 +151,8 @@ WRITE_OPERATIONS: frozenset[tuple[str, str]] = frozenset(
         *MVC_WRITES,
         *FIREWALL_WRITES,
         ("POST", "firmware.update"),
+        ("POST", "firmware.upgrade"),
+        ("POST", "firmware.reboot"),
         ("POST", "firewall.savepoint"),
         ("POST", "firewall.apply"),
         ("POST", "firewall.cancel_rollback"),
@@ -212,6 +214,18 @@ WRITE_OPERATIONS: frozenset[tuple[str, str]] = frozenset(
 )
 
 
+# Narrow maintenance exception: does NOT enable other WRITE operations.
+# All entries must also be in WRITE_OPERATIONS and the fixed endpoint registry.
+MAINTENANCE_WRITE_OPERATIONS: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("POST", "snapshots.add"),
+        ("POST", "firmware.update"),
+        ("POST", "firmware.upgrade"),
+        ("POST", "firmware.reboot"),
+    }
+)
+
+
 def operation_effect(method: str, endpoint: str) -> OperationEffect:
     """Classify a specific API operation, not an endpoint path or HTTP verb.
 
@@ -236,7 +250,6 @@ BLOCKED_ENDPOINTS: frozenset[str] = frozenset(
         "core/system/halt",
         "core/system/reboot",
         "core/firmware/poweroff",
-        "core/firmware/upgrade",
     }
 )
 
@@ -247,6 +260,8 @@ ENDPOINT_REGISTRY: dict[str, tuple[str, str]] = {
     "firmware.audit": ("core/firmware/audit", "core/firmware/audit"),
     "firmware.health": ("core/firmware/health", "core/firmware/health"),
     "firmware.update": ("core/firmware/update", "core/firmware/update"),
+    "firmware.upgrade": ("core/firmware/upgrade", "core/firmware/upgrade"),
+    "firmware.reboot": ("core/firmware/reboot", "core/firmware/reboot"),
     "firmware.running": ("core/firmware/running", "core/firmware/running"),
     "firmware.upgradestatus": ("core/firmware/upgradestatus", "core/firmware/upgradestatus"),
     # ZFS boot-environment snapshots
@@ -721,6 +736,12 @@ class OPNsenseAPI:
             )
             raise WriteDisabledError(msg)
 
+    def require_write_operation(self, endpoint: str) -> None:
+        """Authorize one known POST write before tool preflight reads or network traffic."""
+        if ("POST", endpoint) not in WRITE_OPERATIONS:
+            raise WriteDisabledError(f"Unknown write operation: {endpoint}")
+        self._authorize_operation("POST", endpoint)
+
     def _authorize_operation(self, method: str, endpoint: str) -> None:
         """Prevent unclassified/mutating calls before any network activity."""
         # Retain the unconditional blocklist, including for writable targets.
@@ -733,7 +754,10 @@ class OPNsenseAPI:
                     "Unclassified API operation denied by read-only safety policy: "
                     f"{method} {endpoint} (even for writable sites)"
                 )
-            if not self._config.allow_writes:
+            allowed_maintenance = (
+                self._config.maintenance_enabled and (method, endpoint) in MAINTENANCE_WRITE_OPERATIONS
+            )
+            if not self._config.allow_writes and not allowed_maintenance:
                 raise WriteDisabledError(f"{method} operation not permitted in read-only mode: {endpoint}")
 
     async def get(
