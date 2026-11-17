@@ -329,8 +329,8 @@ async def opn_firewall_move_rule(
 
     Args:
         kind: Type of firewall object to access; use one of the declared enum values. Required.
-        uuids: Input value for uuids as described above; use the declared list[str] type. Required.
-        before_uuid: Input value for before uuid as described above; use the declared str type. Required.
+        uuids: List of 1-50 distinct UUIDs of orderable MVC rules; exclude the destination UUID. Required.
+        before_uuid: Destination MVC rule UUID before which the selected rules are moved. Required.
         site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
             only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
             (default: "").
@@ -458,7 +458,7 @@ async def opn_firewall_list_alias_table(ctx: Context, alias: str, site: SiteName
     """Read resolved IP/table contents of one named firewall alias.
 
     Args:
-        alias: Input value for alias as described above; use the declared str type. Required.
+        alias: Exact configured firewall alias name whose resolved table/IP contents should be read. Required.
         site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
             only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
             (default: "").
