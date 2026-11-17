@@ -60,8 +60,8 @@ async def opn_list_kea_leases(
     Args:
         search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
             depends on the tool/backend. Optional (default: "").
-        limit: Maximum number of entries requested; the tool or backend may impose a smaller cap. Optional
-            (default: 50).
+        limit: Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
         site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
             only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
             (default: "").
@@ -100,8 +100,8 @@ async def opn_list_dnsmasq_leases(
     Args:
         search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
             depends on the tool/backend. Optional (default: "").
-        limit: Maximum number of entries requested; the tool or backend may impose a smaller cap. Optional
-            (default: 50).
+        limit: Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
         site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
             only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
             (default: "").
@@ -148,8 +148,8 @@ async def opn_list_dnsmasq_ranges(
     Args:
         search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
             depends on the tool/backend. Optional (default: "").
-        limit: Maximum number of entries requested; the tool or backend may impose a smaller cap. Optional
-            (default: 50).
+        limit: Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
         site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
             only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
             (default: "").
