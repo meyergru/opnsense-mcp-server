@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from unittest.mock import AsyncMock
 
 import pytest
@@ -72,3 +73,11 @@ async def test_snapshot_name_rejected_before_network(mock_api_writes, mock_ctx_w
     assert "error" in result
     mock_api_writes.get.assert_not_awaited()
     mock_api_writes.post.assert_not_awaited()
+
+async def test_snapshot_creation_allowed_by_narrow_maintenance_policy(mock_api, mock_ctx):
+    mock_api._config = replace(mock_api._config, maintenance_enabled=True)
+    mock_api.get = AsyncMock(return_value={"supported": True})
+    mock_api.post = AsyncMock(return_value={"status": "ok"})
+    result = await opn_create_snapshot(mock_ctx, name="26.7.8_2")
+    assert result["status"] == "ok"
+    mock_api.post.assert_awaited_once_with("snapshots.add", {"name": "26.7.8_2", "note": ""})
