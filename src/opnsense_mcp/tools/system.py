@@ -98,6 +98,10 @@ async def opn_system_status(ctx: Context, site: SiteName = "") -> dict[str, Any]
     or verify the OPNsense appliance is reachable and responding.
     Returns: dict with firmware/product info. On OPNsense 26.x+, product fields
     are nested under a 'product' key; earlier versions have them at the top level.
+
+    Args:
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.get("firmware.status")
@@ -114,6 +118,10 @@ async def opn_check_firmware_updates(ctx: Context, site: SiteName = "") -> dict[
     The check contacts the configured firmware mirrors and updates local
     update-check metadata on OPNsense. It does NOT install packages, apply
     configuration changes, or reboot. The API call may take several seconds.
+
+    Args:
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.post("firmware.status")
@@ -138,6 +146,13 @@ async def opn_list_services(
     Use this when you need to check which services are running, stopped, or
     available on the OPNsense instance.
     Returns: dict with 'rows' (list of services) and 'rowCount' (total).
+
+    Args:
+        search: Optional search/filter phrase; empty returns results without additional filtering. Optional
+            (default: "").
+        limit: Maximum requested entry count; the server may impose a stricter cap. Optional (default: 50).
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.post(
@@ -153,6 +168,10 @@ async def opn_gateway_status(ctx: Context, site: SiteName = "") -> dict[str, Any
     Use this when you need to check if WAN gateways are up, their latency,
     packet loss, or failover state.
     Returns: dict with gateway items including status, loss, and delay fields.
+
+    Args:
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.get("gateway.status")
@@ -173,6 +192,12 @@ async def opn_download_config(
     By default, sensitive data (passwords, keys, secrets) is redacted.
     include_sensitive=true requires OPNSENSE_MCP_ALLOW_SENSITIVE=true.
     Returns: dict with 'config_xml' (str), 'stripped' (bool), 'size_bytes' (int).
+
+    Args:
+        include_sensitive: Request unredacted credentials; unavailable for remote HTTP MCP even when true.
+            Optional (default: False).
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     if _raw_config_export_blocked():
         return {"error": "Raw configuration export is disabled for remote MCP clients"}
@@ -221,6 +246,11 @@ async def opn_scan_config(ctx: Context, force: bool = False, site: SiteName = ""
 
     Returns: dict with 'firmware', 'plugins', 'dhcp', 'dns', 'interfaces',
     'services', and 'config_sections' (list of available sections with sizes).
+
+    Args:
+        force: Value for force; use the supported format and values described above. Optional (default: False).
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     api = get_api(ctx, site)
     cache = get_config_cache(ctx, site)
@@ -250,6 +280,13 @@ async def opn_get_config_section(
     Sensitive values are redacted by default; include_sensitive=true requires
     OPNSENSE_MCP_ALLOW_SENSITIVE=true in the server environment.
     Returns: dict with 'section' name and 'data' (structured config data).
+
+    Args:
+        section: Value for section; use the supported format and values described above. Required.
+        include_sensitive: Request unredacted credentials; unavailable for remote HTTP MCP even when true.
+            Optional (default: False).
+        site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
+            deployment. Optional (default: "").
     """
     if _raw_config_export_blocked():
         return {"error": "Raw configuration sections are disabled for remote MCP clients"}
@@ -290,6 +327,9 @@ async def opn_mcp_info(ctx: Context, site: RequiredSiteName) -> dict[str, Any]:
     firewall, check firmware repositories, validate PVE permissions, or test
     maintenance write capability. In particular, write_mode=false does not
     imply maintenance_mode=false. Firewall savepoints are NOT ZFS snapshots.
+
+    Args:
+        site: Required nonempty site alias from opn_list_targets; do not omit or pass an empty value. Required.
     """
     api = get_api(ctx, site)
     version = api.detected_version
