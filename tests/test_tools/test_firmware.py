@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -11,7 +12,9 @@ from opnsense_mcp.tools.firmware import (
     opn_firmware_update_progress,
     opn_firmware_update_running,
     opn_monitor_firmware_update,
+    opn_reboot,
     opn_start_firmware_update,
+    opn_start_firmware_upgrade,
 )
 
 
@@ -29,46 +32,126 @@ async def test_raw_progress_read_only(mock_api, mock_ctx):
     mock_api.get.assert_awaited_once_with("firmware.upgradestatus")
 
 
-async def test_update_start_requires_site_writes(mock_api, mock_ctx):
+@pytest.fixture
+def maintenance(mock_api, mock_ctx):
+    """Read-only API with only firmware-maintenance writes enabled."""
+    mock_api._config = replace(mock_api._config, maintenance_enabled=True)
+    return mock_api, mock_ctx
+
+
+async def test_update_start_requires_permission(mock_api, mock_ctx):
+    mock_api.get = AsyncMock()
     mock_api.post = AsyncMock()
     with pytest.raises(WriteDisabledError):
         await opn_start_firmware_update(mock_ctx, confirm=True)
+    mock_api.get.assert_not_awaited()
     mock_api.post.assert_not_awaited()
 
 
 async def test_update_start_requires_confirmation(mock_api_writes, mock_ctx_writes):
+    mock_api_writes.get = AsyncMock()
     mock_api_writes.post = AsyncMock()
     result = await opn_start_firmware_update(mock_ctx_writes)
     assert "error" in result
+    mock_api_writes.get.assert_not_awaited()
     mock_api_writes.post.assert_not_awaited()
 
 
-@pytest.mark.parametrize(
-    "status",
-    [
-        {"status": "update"},
-        {"status": "update", "status_reboot": "1", "needs_reboot": "0"},
-        {"status": "update", "status_reboot": "0", "needs_reboot": "1"},
-        {"status": "upgrade", "status_reboot": "0", "needs_reboot": "0"},
-    ],
-)
-async def test_update_start_denies_ambiguous_reboot(mock_api_writes, mock_ctx_writes, status):
-    mock_api_writes.post = AsyncMock(return_value=status)
-    result = await opn_start_firmware_update(mock_ctx_writes, confirm=True)
+@pytest.mark.parametrize("status", ["none", "upgrade", "error", None])
+async def test_update_denies_non_update_status(maintenance, status):
+    api, ctx = maintenance
+    api.get = AsyncMock(return_value={"status": "0"})
+    api.post = AsyncMock(return_value={"status": status})
+    result = await opn_start_firmware_update(ctx, confirm=True)
     assert "error" in result
-    mock_api_writes.post.assert_awaited_once_with("firmware.status")
+    api.post.assert_awaited_once_with("firmware.status")
 
 
-async def test_update_start_only_after_explicit_no_reboot(mock_api_writes, mock_ctx_writes):
-    mock_api_writes.post = AsyncMock(
+@pytest.mark.parametrize("running", ["1", "yes", None])
+async def test_update_denies_non_idle_backend(maintenance, running):
+    api, ctx = maintenance
+    api.get = AsyncMock(return_value={"status": running})
+    api.post = AsyncMock()
+    result = await opn_start_firmware_update(ctx, confirm=True)
+    assert "error" in result
+    api.post.assert_not_awaited()
+
+
+async def test_update_allows_reboot_required_on_maintenance_site(maintenance):
+    api, ctx = maintenance
+    api.get = AsyncMock(return_value={"status": "0"})
+    api.post = AsyncMock(
         side_effect=[
-            {"status": "update", "status_reboot": "0", "needs_reboot": "0"},
+            {"status": "update", "status_reboot": "1", "needs_reboot": 1},
             {"status": "ok", "msg_uuid": "job-123"},
         ]
     )
-    result = await opn_start_firmware_update(mock_ctx_writes, confirm=True)
+    result = await opn_start_firmware_update(ctx, confirm=True)
     assert result["job"]["msg_uuid"] == "job-123"
-    assert mock_api_writes.post.await_args_list[1].args == ("firmware.update",)
+    assert [call.args[0] for call in api.post.await_args_list] == ["firmware.status", "firmware.update"]
+
+
+async def test_major_upgrade_requires_upgrade_status(maintenance):
+    api, ctx = maintenance
+    api.get = AsyncMock(return_value={"status": "0"})
+    api.post = AsyncMock(return_value={"status": "update"})
+    result = await opn_start_firmware_upgrade(ctx, confirm=True)
+    assert "error" in result
+    api.post.assert_awaited_once_with("firmware.status")
+
+
+async def test_major_upgrade_starts_only_on_explicit_status(maintenance):
+    api, ctx = maintenance
+    api.get = AsyncMock(return_value={"status": "0"})
+    api.post = AsyncMock(
+        side_effect=[{"status": "upgrade", "status_reboot": "1"}, {"status": "ok", "msg_uuid": "major-123"}]
+    )
+    result = await opn_start_firmware_upgrade(ctx, confirm=True)
+    assert result["job"]["msg_uuid"] == "major-123"
+    assert [call.args[0] for call in api.post.await_args_list] == ["firmware.status", "firmware.upgrade"]
+
+
+async def test_major_upgrade_requires_confirmation(maintenance):
+    api, ctx = maintenance
+    api.get = AsyncMock()
+    api.post = AsyncMock()
+    assert "error" in await opn_start_firmware_upgrade(ctx)
+    api.get.assert_not_awaited()
+    api.post.assert_not_awaited()
+
+
+async def test_reboot_requires_backend_reboot_marker(maintenance):
+    api, ctx = maintenance
+    api.get = AsyncMock(side_effect=[{"status": "0"}, {"status": "done"}])
+    api.post = AsyncMock()
+    assert "error" in await opn_reboot(ctx, confirm=True)
+    api.post.assert_not_awaited()
+
+
+async def test_reboot_requires_confirmation(maintenance):
+    api, ctx = maintenance
+    api.get = AsyncMock()
+    api.post = AsyncMock()
+    assert "error" in await opn_reboot(ctx)
+    api.get.assert_not_awaited()
+    api.post.assert_not_awaited()
+
+
+async def test_reboot_submits_only_with_marker_and_idle_backend(maintenance):
+    api, ctx = maintenance
+    api.get = AsyncMock(side_effect=[{"status": "0"}, {"status": "reboot", "log": "***REBOOT***"}])
+    api.post = AsyncMock(return_value={"status": "ok", "msg_uuid": "reboot-123"})
+    result = await opn_reboot(ctx, confirm=True)
+    assert result["job"]["msg_uuid"] == "reboot-123"
+    api.post.assert_awaited_once_with("firmware.reboot")
+
+
+async def test_reboot_denies_active_backend(maintenance):
+    api, ctx = maintenance
+    api.get = AsyncMock(return_value={"status": "1"})
+    api.post = AsyncMock()
+    assert "error" in await opn_reboot(ctx, confirm=True)
+    api.post.assert_not_awaited()
 
 
 async def test_monitor_running_is_bounded_and_never_writes(mock_api, mock_ctx):
