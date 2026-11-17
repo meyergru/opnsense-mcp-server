@@ -19,6 +19,10 @@ async def opn_interface_stats(ctx: Context, site: SiteName = "") -> dict[str, An
     Use this when you need to see network utilization, check for interface
     errors, or compare traffic across interfaces.
     Returns: dict keyed by interface name with statistics fields.
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.get("interface.statistics")
@@ -35,6 +39,10 @@ async def opn_arp_table(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     is required. Vendor information may be missing or inaccurate and does not
     prove the identity of a device.
     Returns: dict containing 'rows' (ARP entries) and 'rowCount' when the API returns an array.
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     api = get_api(ctx, site)
     return structured_table_result(await api.get("interface.arp"))
@@ -48,6 +56,10 @@ async def opn_ndp_table(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     address, identify IPv6-enabled devices on a network segment, or troubleshoot
     IPv6 neighbor reachability. This is the IPv6 equivalent of the ARP table.
     Returns: dict containing 'rows' (NDP entries) and 'rowCount' when the API returns an array.
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     api = get_api(ctx, site)
     return structured_table_result(await api.get("interface.ndp"))
@@ -63,6 +75,10 @@ async def opn_ipv6_status(ctx: Context, site: SiteName = "") -> dict[str, Any]:
 
     Returns: dict with 'interfaces' (list of per-interface IPv6 info) and
     'summary' (counts of configured/unconfigured interfaces).
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     from opnsense_mcp.server import get_config_cache
 
@@ -180,6 +196,13 @@ async def opn_list_static_routes(
     networks are routed through which gateways, or troubleshoot routing issues.
     Note: This shows configured static routes, not the full kernel routing table.
     Returns: dict with 'rows' (list of static routes) and 'rowCount' (total).
+
+    Args:
+        search: Optional search string or filter; empty means no additional filtering. Optional (default: "").
+        limit: Maximum requested number of entries; the server may enforce a stricter cap. Optional (default:
+            50).
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     api = get_api(ctx, site)
     return await api.post(
