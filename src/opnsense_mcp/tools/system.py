@@ -11,7 +11,7 @@ from fastmcp import Context
 from opnsense_mcp import __version__
 from opnsense_mcp.config_cache import is_sensitive_tag, xml_local_name
 from opnsense_mcp.server import get_api, get_config_cache, get_savepoint_manager, mcp
-from opnsense_mcp.tool_types import SiteName
+from opnsense_mcp.tool_types import RequiredSiteName, SiteName
 
 _SENSITIVE_GATE_ERROR = {
     "error": (
@@ -272,17 +272,24 @@ async def opn_get_config_section(
 
 
 @mcp.tool()
-async def opn_mcp_info(ctx: Context, site: SiteName = "") -> dict[str, Any]:
-    """Get MCP server version and runtime configuration.
+async def opn_mcp_info(ctx: Context, site: RequiredSiteName) -> dict[str, Any]:
+    """Get read-only MCP runtime information for ONE explicitly selected OPNsense site.
 
-    Use this to check the MCP server version, whether write mode is enabled,
-    maintenance mode is enabled, the detected OPNsense API version, and whether firewall writes still get
-    savepoint/rollback protection.
-    Returns: dict with 'mcp_version', 'write_mode', 'opnsense_version',
-    'api_style' and 'savepoint_support'. 'savepoint_support' is true when the
-    60-second auto-revert is available, false when OPNsense no longer offers it
-    (26.7+ removed it upstream, so firewall changes are immediate and permanent),
-    and null when no firewall write has probed for it yet.
+    REQUIRED site: first call opn_list_targets, then pass the exact nonempty
+    site alias (for example, site="opnsense.mgsoft"). Never call without site:
+    it is a site-bound inspection, not a global capability discovery tool.
+
+    Returns mcp_version (global server version); write_mode (general writes
+    enabled for this site's API client); maintenance_mode (separate reviewed
+    snapshot/firmware maintenance opt-in); opnsense_version (detected major.minor
+    or null before version detection); api_style (current API route selection:
+    camelCase or snake_case); savepoint_support (firewall *rule* savepoint
+    rollback support, true/false after probing, null until probed).
+
+    The response reads existing in-memory client state: it does not contact the
+    firewall, check firmware repositories, validate PVE permissions, or test
+    maintenance write capability. In particular, write_mode=false does not
+    imply maintenance_mode=false. Firewall savepoints are NOT ZFS snapshots.
     """
     api = get_api(ctx, site)
     version = api.detected_version
