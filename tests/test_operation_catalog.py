@@ -258,6 +258,7 @@ async def test_native_firmware_cve_audit_resolves_to_real_endpoint_in_read_only_
     assert result["msg_uuid"] == "test-vuxml-job"
     mock_api._client.post.assert_awaited_once_with("/core/firmware/audit", json=None)
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("endpoint", ["firmware.upgrade", "firmware.reboot"])
 async def test_new_maintenance_endpoints_resolve_correctly(mock_api_writes, endpoint):
