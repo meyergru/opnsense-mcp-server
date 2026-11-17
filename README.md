@@ -1,5 +1,7 @@
 # OPNsense MCP Server
 
+**Release 0.8.8:** updated FastMCP 4.1.x dependency and pip upgrades in both Docker build stages. Rebuild publishes immutable versioned and rolling `:dev` images; Portainer redeploy remains manual.
+
 A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible AI clients, including **OpenWebUI**, to several **named OPNsense firewalls** over their REST APIs. This is a fork of [lucamarien/opnsense-mcp-server](https://github.com/lucamarien/opnsense-mcp-server), with the original MIT license retained.
 
 > [!CAUTION]

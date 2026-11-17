@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.8.8] - 2026-11-17
+
+### Dependencies and images
+- Accept compatible FastMCP 4.1.x patch releases instead of pinning 4.1.6.
+- Upgrade pip in both Docker build and runtime stages.
+- Rebuild and publish versioned 0.8.8, commit-specific, and rolling `:dev` images.
+- Preserve current MCP tool semantics and independent write authorization.
+
 ## [0.8.7] - 2026-11-17
 
 ### MCP tool contract and diagnostics
