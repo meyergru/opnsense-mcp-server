@@ -148,6 +148,7 @@ async def test_limited_diagnostics_allowed_in_read_only_mode(mock_api, endpoint)
     assert result == {"status": "ok"}
     mock_api._client.post.assert_awaited_once()
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "endpoint",
