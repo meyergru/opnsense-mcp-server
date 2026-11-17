@@ -26,6 +26,11 @@ async def opn_list_dhcp_leases(ctx: Context, site: SiteName = "") -> dict[str, A
     ISC DHCP is legacy and being phased out — most 26.x instances use dnsmasq or Kea.
     Use opn_scan_config first to check which DHCP backend is active.
     Returns: dict with DHCP lease entries including address, mac, and hostname fields.
+
+    Args:
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     return structured_table_result(await api.get("dhcpv4.leases.search"))
@@ -51,6 +56,15 @@ async def opn_list_kea_leases(
     Kea is the modern replacement for ISC DHCP, recommended for HA setups.
     Use opn_scan_config first to check which DHCP backend is active.
     Returns: dict with 'rows' (list of leases) and 'rowCount' (total).
+
+    Args:
+        search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
+            depends on the tool/backend. Optional (default: "").
+        limit: Maximum number of entries requested; the tool or backend may impose a smaller cap. Optional
+            (default: 50).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     return structured_table_result(
@@ -82,6 +96,15 @@ async def opn_list_dnsmasq_leases(
     DHCPv4 and DHCPv6. IPv6 leases appear alongside IPv4 leases in the results.
     Use opn_scan_config first to check which DHCP backend is active.
     Returns: dict with 'rows' (list of leases) and 'rowCount' (total).
+
+    Args:
+        search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
+            depends on the tool/backend. Optional (default: "").
+        limit: Maximum number of entries requested; the tool or backend may impose a smaller cap. Optional
+            (default: 50).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     return structured_table_result(
@@ -121,6 +144,15 @@ async def opn_list_dnsmasq_ranges(
 
     Note: Requires the dnsmasq DNS/DHCP server (os-dnsmasq-dns or built-in).
     Returns: dict with 'rows' (list of ranges) and 'rowCount' (total).
+
+    Args:
+        search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
+            depends on the tool/backend. Optional (default: "").
+        limit: Maximum number of entries requested; the tool or backend may impose a smaller cap. Optional
+            (default: 50).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     return await api.post(
@@ -257,6 +289,26 @@ async def opn_update_dnsmasq_range(
     - enabled: enable/disable the range
 
     Returns: dict with 'result' (str), 'uuid' (str), and 'reconfigure_status'.
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        interface: OPNsense interface identifier (e.g. lan, wan, opt1); select the correct site's interface.
+            Optional (default: None).
+        start_addr: First address or interface-relative suffix of the DHCP allocation range. Optional (default:
+            None).
+        end_addr: Last address or interface-relative suffix of the DHCP allocation range. Optional (default:
+            None).
+        prefix_len: Prefix length for IPv6 range where relevant. Optional (default: None).
+        ra_mode: Router Advertisement mode for the selected dnsmasq range; avoid overlapping RA daemons.
+            Optional (default: None).
+        lease_time: Lease duration formatted as accepted by the DHCP backend. Optional (default: None).
+        description: User-facing description stored with the affected object. Optional (default: None).
+        enabled: Desired enabled state (true or false), not an instruction to invert the current value; see tool
+            description for apply/reconfigure requirements. Optional (default: None).
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     api.require_writes()
@@ -308,6 +360,13 @@ async def opn_delete_dnsmasq_range(
     The deletion is applied immediately (dnsmasq is reconfigured automatically).
     Use opn_list_dnsmasq_ranges first to find the UUID.
     Returns: dict with 'result' (str), 'uuid' (str), and 'reconfigure_status'.
+
+    Args:
+        uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
+            tool before editing or deleting. Required.
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     api.require_writes()
@@ -341,6 +400,11 @@ async def opn_reconfigure_dnsmasq(ctx: Context, site: SiteName = "") -> dict[str
 
     Note: Requires the dnsmasq DNS/DHCP server.
     Returns: dict with 'status' indicating success or failure.
+
+    Args:
+        site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
+            only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
+            (default: "").
     """
     api = get_api(ctx, site)
     api.require_writes()
