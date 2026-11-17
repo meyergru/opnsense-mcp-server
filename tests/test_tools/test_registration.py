@@ -191,3 +191,13 @@ class TestToolRegistration:
             if tool.name == "opn_list_targets":
                 continue
             assert "site" in tool.parameters["properties"], f"{tool.name} has no site selector"
+
+    async def test_mcp_info_site_is_schema_required_and_nonempty(self):
+        """Invalid/ambiguous target selection must fail in the tool input schema."""
+        from opnsense_mcp.server import mcp
+
+        tools = {tool.name: tool for tool in await mcp.list_tools()}
+        info = tools["opn_mcp_info"]
+        assert "site" in info.parameters["required"]
+        assert info.parameters["properties"]["site"]["minLength"] == 1
+        assert "opn_list_targets" in info.parameters["properties"]["site"]["description"]
