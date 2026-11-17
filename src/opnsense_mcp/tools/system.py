@@ -248,7 +248,8 @@ async def opn_scan_config(ctx: Context, force: bool = False, site: SiteName = ""
     'services', and 'config_sections' (list of available sections with sizes).
 
     Args:
-        force: Re-download configuration XML and refresh the cached inventory when true; false uses an existing non-stale cache (default: False).
+        force: Re-download configuration XML and refresh the cached inventory when true; false uses an existing
+            non-stale cache (default: False).
         site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
             deployment. Optional (default: "").
     """
@@ -282,7 +283,8 @@ async def opn_get_config_section(
     Returns: dict with 'section' name and 'data' (structured config data).
 
     Args:
-        section: Exact configuration section from opn_scan_config's config_sections list, e.g. system, interfaces, filter or nat. Required.
+        section: Exact configuration section from opn_scan_config's config_sections list, e.g. system,
+            interfaces, filter or nat. Required.
         include_sensitive: Request unredacted credentials; unavailable for remote HTTP MCP even when true.
             Optional (default: False).
         site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
