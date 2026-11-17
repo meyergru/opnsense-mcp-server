@@ -14,8 +14,17 @@ This project follows [Semantic Versioning](https://semver.org/).
   `maintenance_mode` is independent of `write_mode`, the reported
   firmware/API details are cached state, and `savepoint_support` refers
   to firewall rule rollback, not ZFS snapshots.
-- Add MCP-schema regression tests; no firmware, API authorization, or
-  runtime write policy changes.
+- Audit all 150 site-bound MCP tools and document every input parameter
+  in a machine-readable Google-style `Args:` section. FastMCP propagates
+  these descriptions into the tools exposed to OpenWebUI and Qwen.
+- Describe exact search/pagination caps (mostly 500, PF states 1000),
+  required object identifiers, and explicit mutation prerequisites instead
+  of relying on the model to discover them from failed calls.
+- Publish the firmware/audit polling limits (1..3 checks and 1..3 seconds)
+  as both parameter help and Pydantic JSON-Schema min/max constraints.
+- Add a catalog-wide regression test for every parameter description and
+  required/optional flag, plus explicit MCP-schema bounds assertions.
+- Do not change firmware, API authorization or runtime write policy.
 
 ### Release safety
 - The published v0.8.6 image remains unchanged. Publication of v0.8.7
