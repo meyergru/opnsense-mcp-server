@@ -149,8 +149,8 @@ async def opn_haproxy_search(
     Args:
         resource_type: Exact HAProxy resource type selector; use one of the declared values. Required.
         search: Optional search string or filter; empty means no additional filtering. Optional (default: "").
-        limit: Maximum requested number of entries; the server may enforce a stricter cap. Optional (default:
-            50).
+        limit:  Requested row count; use a positive integer. Values above 500 are capped at 500 by the tool.
+            Optional (default: 50).
         site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
             configured. Optional (default: "").
     """
