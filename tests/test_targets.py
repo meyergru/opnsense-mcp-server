@@ -268,6 +268,7 @@ def test_missing_additional_ca_rejected_at_preflight():
         with pytest.raises(ValueError, match="ADDITIONAL_CA_FILE"):
             TargetRegistry.configs_from_environment()
 
+
 @pytest.mark.asyncio
 async def test_maintenance_flag_is_global_but_does_not_enable_general_writes():
     env = {**_env(), "OPNSENSE_MCP_MAINTENANCE_ENABLED": "true"}
