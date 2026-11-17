@@ -16,7 +16,8 @@ SiteName = Annotated[
         description=(
             "Configured OPNsense target site name, not a hostname or URL. "
             "Call opn_list_targets to discover exact valid names. "
-            "Empty string selects the sole site only when exactly one target is configured. With multiple targets, site must be the exact nonempty name from opn_list_targets."
+            "Empty string selects the sole site only when exactly one target is configured. "
+            "With multiple targets, site must be the exact nonempty name from opn_list_targets."
         )
     ),
 ]
