@@ -635,7 +635,8 @@ async def opn_add_dnsbl_allowlist(
     Args:
         uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
             tool before editing or deleting. Required.
-        domains: Input value for domains as described above; use the declared str type. Required.
+        domains: Nonempty comma- or newline-separated domain names to add/remove; duplicates are handled
+            without clearing other allowlist entries. Required.
         site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
             only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
             (default: "").
@@ -706,7 +707,8 @@ async def opn_remove_dnsbl_allowlist(
     Args:
         uuid: UUID of the existing object on the selected site; obtain it from the corresponding list/search
             tool before editing or deleting. Required.
-        domains: Input value for domains as described above; use the declared str type. Required.
+        domains: Nonempty comma- or newline-separated domain names to add/remove; duplicates are handled
+            without clearing other allowlist entries. Required.
         site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
             only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
             (default: "").
