@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from unittest.mock import MagicMock
 
 import pytest
@@ -9,6 +10,8 @@ import pytest
 from opnsense_mcp.api_client import (
     DIAGNOSTIC_OPERATIONS,
     ENDPOINT_REGISTRY,
+    MAINTENANCE_WRITE_OPERATIONS,
+    WRITE_OPERATIONS,
     READ_ONLY_GET_ENDPOINTS,
     READ_ONLY_POST_ENDPOINTS,
     OperationEffect,
@@ -144,3 +147,46 @@ async def test_limited_diagnostics_allowed_in_read_only_mode(mock_api, endpoint)
     result = await mock_api.post(endpoint)
     assert result == {"status": "ok"}
     mock_api._client.post.assert_awaited_once()
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "endpoint",
+    ["snapshots.add", "firmware.update", "firmware.upgrade", "firmware.reboot"],
+)
+async def test_maintenance_allowlist_allows_only_reviewed_post_endpoints(mock_api, endpoint):
+    mock_api._config = replace(mock_api._config, maintenance_enabled=True)
+    response = MagicMock()
+    response.status_code = 200
+    response.json.return_value = {"status": "ok"}
+    mock_api._client.post.return_value = response
+    result = await mock_api.post(endpoint)
+    assert result == {"status": "ok"}
+    mock_api._client.post.assert_awaited_once()
+    assert ("POST", endpoint) in MAINTENANCE_WRITE_OPERATIONS
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("endpoint", ["firewall.apply", "unbound.service.reconfigure", "dyndns.accounts.del"])
+async def test_maintenance_does_not_enable_other_writes(mock_api, endpoint):
+    mock_api._config = replace(mock_api._config, maintenance_enabled=True)
+    with pytest.raises(WriteDisabledError, match="read-only"):
+        await mock_api.post(endpoint)
+    mock_api._client.post.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("endpoint", ["firmware.update", "firmware.upgrade", "firmware.reboot", "snapshots.add"])
+async def test_maintenance_opt_in_disabled_by_default(mock_api, endpoint):
+    with pytest.raises(WriteDisabledError, match="read-only"):
+        await mock_api.post(endpoint)
+    mock_api._client.post.assert_not_awaited()
+
+
+def test_maintenance_operations_are_finite_and_classified():
+    assert MAINTENANCE_WRITE_OPERATIONS <= WRITE_OPERATIONS
+    assert MAINTENANCE_WRITE_OPERATIONS == {
+        ("POST", "snapshots.add"),
+        ("POST", "firmware.update"),
+        ("POST", "firmware.upgrade"),
+        ("POST", "firmware.reboot"),
+    }
