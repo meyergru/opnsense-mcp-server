@@ -13,15 +13,9 @@ from opnsense_mcp.server import get_api, mcp
 from opnsense_mcp.tool_types import SiteName
 
 
-def _no_reboot_update_available(status: dict[str, Any]) -> bool:
-    """Deny update when reboot information is missing or not unequivocally no."""
-    return (
-        status.get("status") == "update"
-        and status.get("status_reboot") in (0, "0", False)
-        and status.get("needs_reboot") in (0, "0", False)
-        and "status_reboot" in status
-        and "needs_reboot" in status
-    )
+def _backend_is_idle(status: dict[str, Any]) -> bool:
+    """Require an explicit idle firmware backend indicator (unknown = refuse)."""
+    return status.get("status") in (0, "0", False)
 
 
 @mcp.tool()
@@ -177,30 +171,83 @@ async def opn_monitor_firmware_update(
 
 @mcp.tool()
 async def opn_start_firmware_update(ctx: Context, confirm: bool = False, site: SiteName = "") -> dict[str, Any]:
-    """Start an OPNsense minor/package firmware update asynchronously.
+    """Start a regular OPNsense firmware update, including one requiring reboot.
 
-    Requires this site's write permission and confirm=true. Immediately
-    refreshes firmware status, and proceeds only if updates are available
-    with *explicit* no-reboot indicators. Does not create a snapshot,
-    install plugins individually, trigger an explicit reboot or run a major
-    version upgrade. Create/verify a ZFS snapshot first if desired.
+    Requires explicit confirm=true and normal write OR maintenance permission.
+    Rechecks the firmware repository status and requires status='update'.
+    If 'upgrade' is reported, use opn_start_firmware_upgrade instead.
+    A ZFS snapshot should be created and verified by the caller beforehand.
 
-    Note: OPNsense firmware backend owns the upgrade process; the MCP
-    server CANNOT guarantee that services stay up or a reboot never occurs.
-    The result 'status=ok' with msg_uuid only means the job was STARTED.
-    Poll opn_firmware_update_progress, then recheck firmware status.
+    This starts an asynchronous backend job, not a completed update. It may
+    itself reboot the firewall; temporary API outages are expected. Never
+    resubmit a job merely because the connection dropped. Monitor progress
+    and verify the installed version and remaining updates independently.
     """
     api = get_api(ctx, site)
-    api.require_writes()
+    api.require_write_operation("firmware.update")
     if not confirm:
         return {"error": "Explicit confirm=true required to start a firmware update"}
+    running = await api.get("firmware.running")
+    if not _backend_is_idle(running):
+        return {"error": "Firmware backend is not confirmed idle; update refused", "running": running.get("status")}
     fresh_status = await api.post("firmware.status")
-    if not _no_reboot_update_available(fresh_status):
+    if fresh_status.get("status") != "update":
         return {
-            "error": "Update refused: not an available minor update with explicitly no reboot needed",
+            "error": "Regular update refused: fresh firmware status is not 'update'",
             "firmware_status": fresh_status.get("status"),
-            "status_reboot": fresh_status.get("status_reboot"),
-            "needs_reboot": fresh_status.get("needs_reboot"),
         }
     result = await api.post("firmware.update")
-    return {"job": result, "note": "Update started; poll opn_firmware_update_progress for completion"}
+    return {"job": result, "note": "Update submitted; monitor progress, reboot and installed version"}
+
+
+@mcp.tool()
+async def opn_start_firmware_upgrade(ctx: Context, confirm: bool = False, site: SiteName = "") -> dict[str, Any]:
+    """Start a major-release OPNsense firmware upgrade asynchronously.
+
+    Requires explicit confirm=true and normal write OR maintenance permission.
+    Only permitted when a fresh firmware check reports status='upgrade' and
+    the firmware backend is confirmed idle. The installer may reboot itself,
+    and the firewall API can be unreachable for an extended period.
+    Create and verify a snapshot first. Do not retry on timeout.
+    """
+    api = get_api(ctx, site)
+    api.require_write_operation("firmware.upgrade")
+    if not confirm:
+        return {"error": "Explicit confirm=true required to start a major firmware upgrade"}
+    running = await api.get("firmware.running")
+    if not _backend_is_idle(running):
+        return {"error": "Firmware backend is not confirmed idle; upgrade refused", "running": running.get("status")}
+    fresh_status = await api.post("firmware.status")
+    if fresh_status.get("status") != "upgrade":
+        return {
+            "error": "Major upgrade refused: fresh firmware status is not 'upgrade'",
+            "firmware_status": fresh_status.get("status"),
+        }
+    result = await api.post("firmware.upgrade")
+    return {"job": result, "note": "Major upgrade submitted; monitor progress, reboot and installed version"}
+
+
+@mcp.tool()
+async def opn_reboot(ctx: Context, confirm: bool = False, site: SiteName = "") -> dict[str, Any]:
+    """Explicitly reboot a firewall only after firmware reports a reboot marker.
+
+    Requires confirm=true, maintenance/write permission, a confirmed idle
+    backend and 'reboot' from the firmware progress endpoint. The global log
+    cannot be correlated with a job UUID, so callers must independently verify
+    that this reboot pertains to the intended maintenance operation.
+    """
+    api = get_api(ctx, site)
+    api.require_write_operation("firmware.reboot")
+    if not confirm:
+        return {"error": "Explicit confirm=true required to reboot OPNsense"}
+    running = await api.get("firmware.running")
+    if not _backend_is_idle(running):
+        return {"error": "Firmware backend is not confirmed idle; reboot refused", "running": running.get("status")}
+    progress = await api.get("firmware.upgradestatus")
+    if progress.get("status") != "reboot":
+        return {
+            "error": "Explicit reboot refused: firmware backend has no reboot marker",
+            "progress_status": progress.get("status"),
+        }
+    result = await api.post("firmware.reboot")
+    return {"job": result, "note": "Reboot submitted; API loss does not prove failure"}
