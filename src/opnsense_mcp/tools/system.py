@@ -276,7 +276,7 @@ async def opn_mcp_info(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Get MCP server version and runtime configuration.
 
     Use this to check the MCP server version, whether write mode is enabled,
-    the detected OPNsense API version, and whether firewall writes still get
+    maintenance mode is enabled, the detected OPNsense API version, and whether firewall writes still get
     savepoint/rollback protection.
     Returns: dict with 'mcp_version', 'write_mode', 'opnsense_version',
     'api_style' and 'savepoint_support'. 'savepoint_support' is true when the
@@ -289,6 +289,7 @@ async def opn_mcp_info(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     return {
         "mcp_version": __version__,
         "write_mode": api._config.allow_writes,
+        "maintenance_mode": api._config.maintenance_enabled,
         "opnsense_version": f"{version[0]}.{version[1]}" if version else None,
         "api_style": "snake_case" if api._use_snake_case else "camelCase",
         "savepoint_support": get_savepoint_manager(ctx, site).supported,
