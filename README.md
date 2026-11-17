@@ -21,6 +21,24 @@ A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible 
 
 **151 MCP tools:** including single-site Kea, radvd, Unbound, WireGuard and Firewall 26.7 resource operations; see the [tool reference](#available-tools-151).
 
+## MCP runtime information (`opn_mcp_info`)
+
+Call `opn_list_targets` and then `opn_mcp_info(site="opnsense.mgsoft")`
+with a real site alias. **The site argument is mandatory and nonempty
+from 0.8.7 onward**, even if only one firewall is configured; the
+server has site-specific API client state, so there is no global default
+for this diagnostic tool.
+
+This read-only operation reports `mcp_version` (server version),
+`write_mode` (general site write permission), `maintenance_mode`
+(separate approved snapshot/firmware write permission), `opnsense_version`
+(cached detected major.minor, possibly null), `api_style` (current API
+endpoint naming), and `savepoint_support` (cached availability of
+**firewall rule** automatic rollback, possibly null until probed).
+It does **not** probe current firmware, verify configured API privileges,
+or confirm live maintenance readiness. `write_mode=false` is compatible
+with `maintenance_mode=true`; this is deliberate.
+
 ## Native firmware audit semantics (0.8.3)
 
 - `opn_firmware_cve_audit` queries the native OPNsense/FreeBSD VuXML
