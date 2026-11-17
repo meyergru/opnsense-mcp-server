@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.8.6] - 2026-11-17
+
+### Maintenance authorization
+- Add `OPNSENSE_MCP_MAINTENANCE_ENABLED` (default `false`), an explicit
+  central exception to read-only for only four reviewed POST operations:
+  `snapshots.add`, `firmware.update`, `firmware.upgrade`, `firmware.reboot`.
+- Keep all unrelated write operations denied while `OPNSENSE_MCP_READ_ONLY=true`.
+  This global maintenance flag enables the four operations on all named sites;
+  enabling it does not distinguish individual MCP users.
+
+### Firmware and reboot tools
+- Allow regular firmware updates even when the fresh status indicates reboot.
+- Introduce `opn_start_firmware_upgrade` for major upgrades and
+  `opn_reboot` for explicit reboot after the firmware backend reports a
+  reboot marker.
+- Require `confirm=true`, a confirmed idle firmware backend and a fresh
+  matching update/upgrade status before starting installation.
+- Preserve bounded read-only monitoring, no automatic retries, and
+  separate verification of installed version and remaining updates.
+
+### Release safety
+- No Proxmox code, deployed Portainer stack, or firewall configuration changed.
+- The example Compose remains pinned to previously published 0.8.5; publish
+  0.8.6 manually after review and CI, then explicitly opt in to maintenance.
+
 ## [0.8.5] - 2026-11-13
 
 ### Security
