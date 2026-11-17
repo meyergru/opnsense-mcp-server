@@ -75,6 +75,16 @@ CI runs pytest, Ruff, mypy, security/dependency checks and a real Docker HTTP sm
 3. Configure `OPNSENSE_SITES` and the matching `OPNSENSE_<SITE>_URL`, `_API_KEY`, `_API_SECRET`, `_VERIFY_SSL` variables in the Stack. No separate TOML or secrets files are required.
 4. Generate a random 64-character hexadecimal MCP token with `openssl rand -hex 32`; enter it as `OPNSENSE_MCP_AUTH_TOKEN`.
 5. After CI succeeds, start the [manual GHCR release workflow](.github/workflows/publish-ghcr.yml) on **`main`** (Actions → Publish reviewed MCP image to GHCR → Run workflow). For this release it publishes `ghcr.io/meyergru/opnsense-mcp-server:0.8.6`, the commit-specific `sha-<commit>` image, and the compatibility tag `:dev`, then creates GitHub pre-release `v0.8.6` with changelog notes. Pushing/merging alone publishes nothing; each version can be released only once. Prefer a commit-specific tag or digest for deployments.
+The Compose template uses the **mutable** `:dev` alias, which is updated only
+by a manually successful GHCR release. This lets you leave the image line
+unchanged between versions. **Portainer does not automatically replace an
+already running container**; explicitly pull the updated image and redeploy
+when desired. Watchtower remains disabled. To pin/rollback to a reviewed
+version instead, replace `:dev` with its immutable version tag or digest.
+`OPNSENSE_MCP_MAINTENANCE_ENABLED=false` still forbids the approved
+firmware/snapshot maintenance writes, even with powerful upstream API credentials.
+The image tag itself never grants operation privileges.
+
 6. Before starting against live firewalls, enforce VM-level inbound and outbound restrictions and the OPNsense API privileges.
 7. In OpenWebUI, configure a **Streamable HTTP MCP** connection to `http://<mcp-host>:8000/mcp` with header `Authorization: Bearer <MCP_TOKEN>`. Internal DNS must resolve `mcp` if you use that hostname.
 8. Use `opn_list_targets()`, then a harmless check such as `opn_system_status(site="local")`.

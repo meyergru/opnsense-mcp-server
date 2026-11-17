@@ -1,11 +1,12 @@
 # Portainer Stack for dedicated VM "mcp".
-# Published images are pinned; changing this tag is an explicit deployment decision.
+# The moving :dev tag follows the latest manually published release.
+# No container is updated automatically: Portainer must pull/redeploy explicitly.
 # All target settings and tokens deliberately live in this Compose file.
 name: opnsense-mcp
 
 services:
   opnsense-mcp:
-    image: ghcr.io/meyergru/opnsense-mcp-server:0.8.5
+    image: ghcr.io/meyergru/opnsense-mcp-server:dev
     restart: unless-stopped
     init: true
 
