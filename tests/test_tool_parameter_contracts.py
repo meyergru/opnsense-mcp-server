@@ -53,11 +53,7 @@ async def test_every_tool_parameter_is_described_and_requiredness_matches_python
             assert member_name not in checked, f"Duplicate tool {member_name}"
             checked.add(member_name)
             signature = inspect.signature(func)
-            expected = {
-                param.name
-                for param in signature.parameters.values()
-                if param.name != "ctx"
-            }
+            expected = {param.name for param in signature.parameters.values() if param.name != "ctx"}
             required = {
                 param.name
                 for param in signature.parameters.values()
