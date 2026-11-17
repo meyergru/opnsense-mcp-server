@@ -170,7 +170,8 @@ async def opn_confirm_changes(ctx: Context, revision: str, site: SiteName = "") 
     Returns: dict with confirmation status, or status 'not_applicable'.
 
     Args:
-        revision: Input value for revision as described above; use the declared str type. Required.
+        revision: Revision token returned by the preceding firewall rule apply operation; used to confirm its
+            60-second savepoint rollback window on pre-26.7 firewalls. Required.
         site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
             only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
             (default: "").
@@ -1123,8 +1124,7 @@ async def opn_add_firewall_category(
 
     Args:
         name: Name of the selected or newly created configuration object. Required.
-        color: Input value for color as described above; use the declared str type. Optional (default:
-            "000000").
+        color: Exactly six hexadecimal digits without '#', e.g. 'ff0000'; optional (default: '000000').
         site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
             only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
             (default: "").
