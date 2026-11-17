@@ -69,10 +69,10 @@ async def opn_create_snapshot(ctx: Context, name: str, site: SiteName = "", note
     opn_list_snapshots to verify successful creation.
 
     Args:
-        name: Selected configuration object name. Required.
+        name: Name of the new ZFS boot-environment snapshot (letters, digits, underscore, dot and hyphen only; no slash). Required.
         site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
             deployment. Optional (default: "").
-        note: Value for note; use the supported format and values described above. Optional (default: "").
+        note: Optional human-readable ZFS snapshot note, maximum 1024 characters (default: "").
     """
     if not _NAME_PATTERN.fullmatch(name) or name in {".", ".."}:
         return {"error": "Invalid snapshot name (letters, digits, underscore, dot and hyphen only)"}
