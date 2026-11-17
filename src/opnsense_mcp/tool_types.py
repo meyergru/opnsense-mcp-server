@@ -34,3 +34,22 @@ RequiredSiteName = Annotated[
         ),
     ),
 ]
+
+
+BoundedFirmwareChecks = Annotated[
+    int,
+    Field(
+        ge=1,
+        le=3,
+        description="Number of firmware/audit status polls, an integer from 1 to 3 inclusive.",
+    ),
+]
+
+BoundedFirmwarePollInterval = Annotated[
+    int,
+    Field(
+        ge=1,
+        le=3,
+        description="Seconds between firmware/audit polls, an integer from 1 to 3 inclusive.",
+    ),
+]
