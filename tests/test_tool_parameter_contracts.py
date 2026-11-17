@@ -79,3 +79,20 @@ async def test_mcp_info_has_mandatory_nonempty_site_in_actual_mcp_schema() -> No
     assert "site" in info_schema["required"]
     assert info_schema["properties"]["site"]["minLength"] == 1
     assert "opn_list_targets" in info_schema["properties"]["site"]["description"]
+
+
+async def test_bounded_polling_parameters_are_validated_in_actual_mcp_input_schema() -> None:
+    tools = {tool.name: tool for tool in await mcp.list_tools()}
+    for name in (
+        "opn_monitor_firmware_update",
+        "opn_firmware_cve_audit",
+        "opn_firmware_cve_audit_result",
+        "opn_firmware_health_audit",
+        "opn_firmware_health_audit_result",
+    ):
+        schema = tools[name].parameters
+        for param in ("max_checks", "poll_interval_seconds"):
+            field = schema["properties"][param]
+            assert field["type"] == "integer", f"{name}.{param}"
+            assert field["minimum"] == 1, f"{name}.{param}"
+            assert field["maximum"] == 3, f"{name}.{param}"
