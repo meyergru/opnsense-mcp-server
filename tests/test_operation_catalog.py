@@ -67,6 +67,8 @@ def test_every_classified_operation_has_a_resolvable_path():
     classified = {endpoint for _, endpoint in _catalog()}
     assert classified <= ENDPOINT_REGISTRY.keys() | dynamic
     assert ("POST", "firmware.update") in WRITE_OPERATIONS
+    assert ("POST", "firmware.upgrade") in WRITE_OPERATIONS
+    assert ("POST", "firmware.reboot") in WRITE_OPERATIONS
     assert ENDPOINT_REGISTRY["firmware.update"] == (
         "core/firmware/update",
         "core/firmware/update",
@@ -255,3 +257,15 @@ async def test_native_firmware_cve_audit_resolves_to_real_endpoint_in_read_only_
 
     assert result["msg_uuid"] == "test-vuxml-job"
     mock_api._client.post.assert_awaited_once_with("/core/firmware/audit", json=None)
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("endpoint", ["firmware.upgrade", "firmware.reboot"])
+async def test_new_maintenance_endpoints_resolve_correctly(mock_api_writes, endpoint):
+    response = MagicMock()
+    response.status_code = 200
+    response.json.return_value = {"status": "ok", "msg_uuid": "job"}
+    mock_api_writes._client.post.return_value = response
+    result = await mock_api_writes.post(endpoint)
+    assert result["msg_uuid"] == "job"
+    expected = endpoint.replace(".", "/")
+    mock_api_writes._client.post.assert_awaited_once_with(f"/core/{expected}", json=None)
