@@ -197,8 +197,8 @@ async def opn_pf_states(
     Args:
         search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
             depends on the tool/backend. Optional (default: "").
-        limit: Maximum number of entries requested; the tool or backend may impose a smaller cap. Optional
-            (default: 200).
+        limit: Requested row count; use a positive integer. Values above 1000 are capped at 1000 by the tool.
+            Optional (default: 200).
         site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
             only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
             (default: "").
