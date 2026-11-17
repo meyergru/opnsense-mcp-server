@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.8.9] - 2026-11-17
+
+### Dependencies
+- Allow FastMCP >=4.1,<5, including the latest 4.2.x minor updates.
+- Rebuild and publish the complete multiarch images and rolling :dev tag.
+- Retain existing MCP tool behavior and permission gates.
+
 ## [0.8.8] - 2026-11-17
 
 ### Dependencies and images
