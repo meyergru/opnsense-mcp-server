@@ -45,8 +45,7 @@ async def opn_ping(
 
     Args:
         host: Host or IP address to check from the selected firewall, not the local MCP host. Required.
-        count: Requested number of ping probes (see default); the backend may cap the request. Optional
-            (default: 3).
+        count: Number of ping requests; the implementation silently clamps values to the range 1..10 (default: 3).
         site: Exact configured target alias; discover valid aliases using opn_list_targets. Empty selects the
             only site in a single-target deployment; with multiple sites pass a name explicitly. Optional
             (default: "").
