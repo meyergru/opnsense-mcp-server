@@ -942,7 +942,8 @@ async def opn_service_apply(ctx: Context, service: ApplyServiceName, site: SiteN
     This tool does not orchestrate the other site or guarantee reconnection.
 
     Args:
-        service: Service whose pending configuration changes will be applied: wireguard, kea, radvd or unbound. Applying may restart the service and interrupt traffic. Required.
+        service: Service whose pending configuration changes will be applied: wireguard, kea, radvd or unbound.
+            Applying may restart the service and interrupt traffic. Required.
         site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
             configured. Optional (default: "").
     """
@@ -1004,7 +1005,8 @@ async def opn_kea_delete_lease(ctx: Context, ip: str, site: SiteName = "") -> di
     to valid_lifetime. A successful response has status='ok'.
 
     Args:
-        ip: Existing Kea DHCP lease IP address (IPv4 or IPv6). Deletes only that runtime lease, not a reservation; choose the matching Kea backend. Required.
+        ip: Existing Kea DHCP lease IP address (IPv4 or IPv6). Deletes only that runtime lease, not a
+            reservation; choose the matching Kea backend. Required.
         site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
             configured. Optional (default: "").
     """
@@ -1037,7 +1039,8 @@ async def opn_mvc_get_settings(ctx: Context, subsystem: SettingsSubsystemName, s
     Read this before patching settings to discover available field names.
 
     Args:
-        subsystem: Choose exactly kea_dhcpv4, kea_dhcpv6, kea_ctrl_agent, kea_ddns, radvd, unbound or wireguard. Required.
+        subsystem: Choose exactly kea_dhcpv4, kea_dhcpv6, kea_ctrl_agent, kea_ddns, radvd, unbound or wireguard.
+            Required.
         site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
             configured. Optional (default: "").
     """
@@ -1070,7 +1073,8 @@ async def opn_mvc_patch_settings(
     Changes are restricted to pre-existing fields of the chosen settings model.
 
     Args:
-        subsystem: Choose exactly kea_dhcpv4, kea_dhcpv6, kea_ctrl_agent, kea_ddns, radvd, unbound or wireguard. Required.
+        subsystem: Choose exactly kea_dhcpv4, kea_dhcpv6, kea_ctrl_agent, kea_ddns, radvd, unbound or wireguard.
+            Required.
         changes: Mapping of intended changes for the selected resource, not unrestricted API access. Required.
         site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
             configured. Optional (default: "").
