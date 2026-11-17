@@ -49,7 +49,7 @@ async def opn_get_snapshot(ctx: Context, uuid: str, site: SiteName = "") -> dict
 async def opn_create_snapshot(ctx: Context, name: str, site: SiteName = "", note: str = "") -> dict[str, Any]:
     """Create a new ZFS boot-environment snapshot with the requested name.
 
-    Requires write access on this site. Uses POST /api/core/snapshots/add with
+    Requires normal write access OR explicit maintenance permission. Uses POST /api/core/snapshots/add with
     name and optional note, without an existing UUID (new snapshot, not clone).
     This does NOT activate the snapshot or cause any reboot. Caller should use
     opn_list_snapshots to verify successful creation.
@@ -59,7 +59,7 @@ async def opn_create_snapshot(ctx: Context, name: str, site: SiteName = "", note
     if len(note) > 1024:
         return {"error": "Snapshot note is too long (max 1024 characters)"}
     api = get_api(ctx, site)
-    api.require_writes()
+    api.require_write_operation("snapshots.add")
     support = await api.get("snapshots.is_supported")
     if support.get("supported") is not True:
         return {"error": "ZFS snapshots are not confirmed supported on this site", "details": support}
