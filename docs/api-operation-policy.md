@@ -6,12 +6,12 @@ or future releases.
 
 ## Coverage
 
-- **299** registered logical endpoints in `ENDPOINT_REGISTRY`: 115 original/static mappings, 115 generated reviewed MVC mappings for Kea/radvd/Unbound/WireGuard (including separate Kea IPv4/IPv6 lease deletion controllers), and 69 generated reviewed Firewall 26.7 mappings.
+- **301** registered logical endpoints in `ENDPOINT_REGISTRY`: 117 original/static mappings, 115 generated reviewed MVC mappings for Kea/radvd/Unbound/WireGuard (including separate Kea IPv4/IPv6 lease deletion controllers), and 69 generated reviewed Firewall 26.7 mappings.
 - **36** dynamically constructed HAProxy resource endpoints (nine resource
   kinds × get/add/set/del), with validated resource identifiers.
 - Some logical endpoints have **multiple differently classified HTTP
   operations** (e.g. GET vs POST `core/firmware/status`).
-- **149 MCP tools** are a separate count: a single tool may call several
+- **151 MCP tools** are a separate count: a single tool may call several
   API operations, and a single operation may serve multiple tools.
 
 The current policy is defined in `api_client.py`:
@@ -20,7 +20,7 @@ The current policy is defined in `api_client.py`:
 | --- | --- | --- |
 | `READ` | Reviewed read/search operation, keyed by method + logical endpoint | Yes |
 | `DIAGNOSTIC` | Reviewed bounded diagnostic/check, possibly with ephemeral side effects | Yes |
-| `WRITE` | Explicitly reviewed state/configuration-changing operation | No |
+| `WRITE` | Explicitly reviewed state/configuration-changing operation | Only if broadly writable, or included in the maintenance allowlist with explicit opt-in |
 | Unclassified | No matching entry in any reviewed list | **No, even on writable sites** |
 
 All three public API accessors (`get`, `post`, `get_text`) enforce this
@@ -32,11 +32,17 @@ Named site permissions are controlled via Compose:
 
 ```yaml
 OPNSENSE_MCP_READ_ONLY: "true"
+OPNSENSE_MCP_MAINTENANCE_ENABLED: "false"  # must explicitly enable
 # OPNSENSE_LOCAL_READ_ONLY: "false"  # optional explicit override for local
 ```
 
-The default is read-only. Choosing `false` allows the **listed** WRITE
+The default is read-only. Choosing `READ_ONLY=false` allows the reviewed WRITE
 operations for that site; unknown operations are never automatically allowed.
+`OPNSENSE_MCP_MAINTENANCE_ENABLED=true` independently allows exactly four
+reviewed POST writes on all configured sites, even when general read-only remains
+true: `snapshots.add`, `firmware.update`, `firmware.upgrade`, `firmware.reboot`.
+This grants maintenance capabilities to every MCP client possessing the bearer
+token; it does not offer per-user or per-run authorization.
 
 ## Ambiguous or special operations requiring explicit review
 
@@ -45,8 +51,10 @@ operations for that site; unknown operations are never automatically allowed.
 | GET `firmware.status` | READ | Read last check result |
 | GET `firmware.running`, `firmware.upgradestatus` | READ | Read backend execution state and log; neither confirms a specific job ID |
 | GET `snapshots.is_supported`, `snapshots.search`, `snapshots.get` | READ | Check availability, list or inspect ZFS boot environments |
-| POST `snapshots.add` | WRITE | Create a new boot-environment snapshot without activating it |
-| POST `firmware.update` | WRITE | Start minor/package update asynchronously; limited by confirmation and explicit no-reboot check |
+| POST `snapshots.add` | WRITE (maintenance opt-in) | Create a new boot-environment snapshot without activating it |
+| POST `firmware.update` | WRITE (maintenance opt-in) | Start regular update asynchronously; requires confirm, confirmed idle backend and fresh `status=update`, including reboot-needed updates |
+| POST `firmware.upgrade` | WRITE (maintenance opt-in) | Start major upgrade asynchronously; requires confirm, confirmed idle backend and fresh `status=upgrade` |
+| POST `firmware.reboot` | WRITE (maintenance opt-in) | Explicit reboot; requires confirm, idle backend and firmware progress reboot marker |
 | POST `firmware.status` | DIAGNOSTIC | Refresh update metadata via `firmware probe`, without package installation |
 | GET `haproxy.service.configtest` | DIAGNOSTIC | Run a syntax check, not activate a config |
 | POST `diagnostics.ping.set/start/remove` | DIAGNOSTIC | Creates/starts/removes temporary jobs and sends network probes; explicitly allowed in read-only mode |

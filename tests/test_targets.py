@@ -267,3 +267,24 @@ def test_missing_additional_ca_rejected_at_preflight():
     with patch.dict("os.environ", env, clear=True):
         with pytest.raises(ValueError, match="ADDITIONAL_CA_FILE"):
             TargetRegistry.configs_from_environment()
+
+
+@pytest.mark.asyncio
+async def test_maintenance_flag_is_global_but_does_not_enable_general_writes():
+    env = {**_env(), "OPNSENSE_MCP_MAINTENANCE_ENABLED": "true"}
+    with patch.dict("os.environ", env, clear=True):
+        registry = TargetRegistry.from_environment()
+    try:
+        for site in registry.names:
+            config = registry.resolve(site).api._config
+            assert config.allow_writes is False
+            assert config.maintenance_enabled is True
+    finally:
+        await registry.close()
+
+
+@pytest.mark.parametrize("setting", ["garbage", "enable", ""])
+def test_reject_invalid_maintenance_setting(setting):
+    env = {**_env(), "OPNSENSE_MCP_MAINTENANCE_ENABLED": setting}
+    with patch.dict("os.environ", env, clear=True), pytest.raises(ConfigError, match="MAINTENANCE_ENABLED"):
+        TargetRegistry.from_environment()

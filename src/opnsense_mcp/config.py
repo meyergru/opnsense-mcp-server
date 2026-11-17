@@ -9,6 +9,7 @@ Environment variables:
     OPNSENSE_MCP_ALLOW_SENSITIVE: Permit include_sensitive=true on config tools
         (default: false)
     OPNSENSE_MCP_READ_ONLY: Default read-only policy for named targets (default: true)
+    OPNSENSE_MCP_MAINTENANCE_ENABLED: Allow four reviewed maintenance writes (default: false)
     OPNSENSE_<SITE>_READ_ONLY: Optional site override of global read-only policy
 """
 
@@ -36,6 +37,7 @@ class OPNsenseConfig:
     api_secret: str
     verify_ssl: bool
     allow_writes: bool
+    maintenance_enabled: bool = False
     additional_ca_file: str = ""
     allow_sensitive: bool = False
 
@@ -74,6 +76,12 @@ def mcp_read_only_enabled(site: str = "") -> bool:
         if raw is not None:
             return _parse_bool(raw.strip(), name)
     return global_read_only
+
+
+def maintenance_enabled() -> bool:
+    """Enable only the explicit maintenance allowlist, independently of broad writes."""
+    name = "OPNSENSE_MCP_MAINTENANCE_ENABLED"
+    return _parse_bool(os.environ.get(name, "false").strip(), name)
 
 
 def allow_sensitive_enabled() -> bool:
@@ -124,6 +132,7 @@ def load_config() -> OPNsenseConfig:
         api_secret=api_secret,
         verify_ssl=verify_ssl,
         allow_writes=allow_writes,
+        maintenance_enabled=maintenance_enabled(),
         additional_ca_file=ca_file,
         allow_sensitive=allow_sensitive_enabled(),
     )

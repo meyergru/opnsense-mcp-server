@@ -23,6 +23,8 @@ class TestToolRegistration:
             "opn_firmware_update_progress",
             "opn_monitor_firmware_update",
             "opn_start_firmware_update",
+            "opn_start_firmware_upgrade",
+            "opn_reboot",
             "opn_list_targets",
             "opn_list_services",
             "opn_gateway_status",
@@ -178,7 +180,7 @@ class TestToolRegistration:
         from opnsense_mcp.server import mcp
 
         tools = await mcp.list_tools()
-        assert len(tools) == 149, f"Expected 149 tools, got {len(tools)}"
+        assert len(tools) == 151, f"Expected 151 tools, got {len(tools)}"
 
     async def test_every_opnsense_tool_has_site_parameter(self):
         """Every site-bound tool must expose an explicit target selector."""

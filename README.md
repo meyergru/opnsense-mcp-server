@@ -19,7 +19,7 @@ A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible 
 > decision to trust the source, dependencies, runtime and clients. If that trust
 > is not justified, **do not deploy or connect this server to any firewall**.
 
-**149 MCP tools:** including single-site Kea, radvd, Unbound, WireGuard and Firewall 26.7 resource operations; see the [tool reference](#available-tools-149).
+**151 MCP tools:** including single-site Kea, radvd, Unbound, WireGuard and Firewall 26.7 resource operations; see the [tool reference](#available-tools-151).
 
 ## Native firmware audit semantics (0.8.3)
 
@@ -74,7 +74,7 @@ CI runs pytest, Ruff, mypy, security/dependency checks and a real Docker HTTP sm
 2. Review [compose.yaml](compose.yaml), then paste it into a **Portainer Web editor Stack** (not a Git-backed Stack) on your dedicated `mcp` VM.
 3. Configure `OPNSENSE_SITES` and the matching `OPNSENSE_<SITE>_URL`, `_API_KEY`, `_API_SECRET`, `_VERIFY_SSL` variables in the Stack. No separate TOML or secrets files are required.
 4. Generate a random 64-character hexadecimal MCP token with `openssl rand -hex 32`; enter it as `OPNSENSE_MCP_AUTH_TOKEN`.
-5. After CI succeeds, start the [manual GHCR release workflow](.github/workflows/publish-ghcr.yml) on **`main`** (Actions → Publish reviewed MCP image to GHCR → Run workflow). For this release it publishes `ghcr.io/meyergru/opnsense-mcp-server:0.8.5`, the commit-specific `sha-<commit>` image, and the compatibility tag `:dev`, then creates GitHub pre-release `v0.8.5` with changelog notes. Pushing/merging alone publishes nothing; each version can be released only once. Prefer a commit-specific tag or digest for deployments.
+5. After CI succeeds, start the [manual GHCR release workflow](.github/workflows/publish-ghcr.yml) on **`main`** (Actions → Publish reviewed MCP image to GHCR → Run workflow). For this release it publishes `ghcr.io/meyergru/opnsense-mcp-server:0.8.6`, the commit-specific `sha-<commit>` image, and the compatibility tag `:dev`, then creates GitHub pre-release `v0.8.6` with changelog notes. Pushing/merging alone publishes nothing; each version can be released only once. Prefer a commit-specific tag or digest for deployments.
 6. Before starting against live firewalls, enforce VM-level inbound and outbound restrictions and the OPNsense API privileges.
 7. In OpenWebUI, configure a **Streamable HTTP MCP** connection to `http://<mcp-host>:8000/mcp` with header `Authorization: Bearer <MCP_TOKEN>`. Internal DNS must resolve `mcp` if you use that hostname.
 8. Use `opn_list_targets()`, then a harmless check such as `opn_system_status(site="local")`.
@@ -88,6 +88,7 @@ environment:
   OPNSENSE_MCP_PORT: "8000"
   OPNSENSE_MCP_MAX_RESULT_BYTES: "16384"
   OPNSENSE_MCP_READ_ONLY: "true"
+  OPNSENSE_MCP_MAINTENANCE_ENABLED: "false"  # opt-in: snapshot/update/upgrade/reboot only
   OPNSENSE_MCP_ALLOW_SENSITIVE: "false"  # global; no raw XML export over HTTP
   OPNSENSE_MCP_AUTH_TOKEN: "replace-with-64-random-hex-characters"
 
@@ -116,6 +117,7 @@ environment:
 | `OPNSENSE_MCP_AUTH_TOKEN` | *none* | Required for HTTP; 32–256 permitted ASCII token characters. |
 | `OPNSENSE_MCP_MAX_RESULT_BYTES` | `16384` | Tool response limit, 1,024–131,072 bytes. |
 | `OPNSENSE_MCP_READ_ONLY` | `true` | Global read-only policy for all named targets. |
+| `OPNSENSE_MCP_MAINTENANCE_ENABLED` | `false` | Opt in to four reviewed maintenance writes without enabling other writes. Global to all named sites. |
 | `OPNSENSE_<SITE>_READ_ONLY` | *inherits global* | Optional per-site override (`true` / `false`). |
 | `OPNSENSE_MCP_ALLOW_SENSITIVE` | `false` | Allow `include_sensitive=true` in config tools; applies to all targets. |
 | `OPNSENSE_SITES` | *unset* | Comma-separated names, e.g. `local,remote`. |
@@ -151,7 +153,7 @@ opnsense-mcp
 
 Do **not** use the original author's `uhlenheide` Docker Hub image for this fork.
 
-## Available Tools (149)
+## Available Tools (151)
 
 ### Target selection (1 tool)
 
@@ -181,7 +183,7 @@ Do **not** use the original author's `uhlenheide` Docker Hub image for this fork
 | `opn_get_snapshot` | Inspect an existing snapshot by UUID. Read-only. |
 | `opn_create_snapshot` | Create one named snapshot. **WRITE**; verifies ZFS support, never activates it, no reboot. Caller verifies creation separately. |
 
-### Firmware maintenance (6 tools)
+### Firmware maintenance (10 tools)
 
 | Tool | Description |
 | --- | --- |
@@ -192,7 +194,9 @@ Do **not** use the original author's `uhlenheide` Docker Hub image for this fork
 | `opn_firmware_update_running` | Read firmware backend running indicator (low-level). |
 | `opn_firmware_update_progress` | Read the raw upgrade status/log (low-level). |
 | `opn_monitor_firmware_update` | **Recommended monitor:** poll in a bounded call (1–3 checks), tolerate temporary network outages, report backend completion/reboot requirement, and attempt to verify the installed version. Repeat the monitor call for longer updates; it never starts updates or reboots. |
-| `opn_start_firmware_update` | **WRITE:** start a minor/package update only with `confirm=true` and explicit no-reboot indicators from a fresh firmware check. Returns the asynchronous job response, not completion. Does not create a snapshot or initiate a major upgrade. |
+| `opn_start_firmware_update` | **MAINTENANCE WRITE:** start a regular update with `confirm=true`, confirmed idle backend, fresh `status=update`; reboot-needed updates permitted. Asynchronous job submission, not completion. |
+| `opn_start_firmware_upgrade` | **MAINTENANCE WRITE:** major upgrade with `confirm=true`, confirmed idle backend, fresh `status=upgrade`. Long API outages and automatic reboot are possible. |
+| `opn_reboot` | **MAINTENANCE WRITE:** explicit reboot with `confirm=true`, confirmed idle backend and `reboot` marker from firmware progress. May interrupt the MCP connection. |
 
 The firmware monitor cannot correlate `upgradestatus` to the job UUID: a `backend_done` state is not proof that the specific requested update succeeded. The OPNsense firmware controller can itself reboot or interrupt services during updating; the MCP server cannot promise a no-reboot outcome. Compare the version and check for remaining updates after completion. Transient connection loss yields `temporarily_unreachable`, **not** an inferred update failure.
 
@@ -293,7 +297,7 @@ controller-by-controller omissions and risks, see
 
 ### Kea, radvd, Unbound and WireGuard MVC objects (35 tools)
 
-The new MVC tools provide **single-site** list/get/add/patch/delete operations. Qwen selects sites and orders cross-site changes; the MCP server does not execute an implicit multi-site workflow. All writes honor the global and per-site `READ_ONLY` controls and never automatically reconfigure services.
+The new MVC tools provide **single-site** list/get/add/patch/delete operations. Qwen selects sites and orders cross-site changes; the MCP server does not execute an implicit multi-site workflow. General writes honor the global and per-site `READ_ONLY` controls; the four explicitly allowlisted maintenance writes require their separate opt-in and never automatically reconfigure unrelated services.
 
 | Area | Tools |
 | --- | --- |
@@ -362,13 +366,13 @@ HAProxy inspection and legacy administration tools (requires os-haproxy plugin).
 
 ## Read-only policy and legacy write functions
 
-In **named-target mode**, `OPNSENSE_MCP_READ_ONLY=true` (default) prevents configuration changes on every site. The optional `OPNSENSE_<SITE>_READ_ONLY` setting overrides the global choice for one explicitly named target. For example, `OPNSENSE_LOCAL_READ_ONLY=false` permits write-classified operations *only on `local`* when the global setting is true. The user must deliberately opt into this risk; the MCP bearer token grants access to the entire server and is **not** a per-user authorization mechanism.
+In **named-target mode**, `OPNSENSE_MCP_READ_ONLY=true` (default) prevents all general configuration writes on every site. A separate global `OPNSENSE_MCP_MAINTENANCE_ENABLED=true` permits *only* snapshot creation, regular firmware update, major firmware upgrade and firmware reboot, all still requiring tool-specific guards and confirmation. The optional `OPNSENSE_<SITE>_READ_ONLY` setting overrides the global choice for one explicitly named target. For example, `OPNSENSE_LOCAL_READ_ONLY=false` permits write-classified operations *only on `local`* when the global setting is true. The user must deliberately opt into this risk; the MCP bearer token grants access to the entire server and is **not** a per-user authorization mechanism.
 
 The API client explicitly classifies **operations**, not HTTP methods: a read or diagnostic operation can use GET or POST. A potentially mutating operation is denied before any network request in read-only mode, even when it uses GET. **Unknown operations are denied on all sites**, including those deliberately configured as writable. The complete reviewed operation catalogue and exceptions are described in [API operation policy](docs/api-operation-policy.md). Read-only classification includes limited diagnostics such as the firmware repository check, which refreshes probe metadata but does not install packages.
 
-The firmware update check (`opn_check_firmware_updates`) is allowed in named-target mode: it refreshes firmware check metadata without installing packages. The actual firmware update and upgrade endpoints remain blocked.
+The firmware update check (`opn_check_firmware_updates`) is allowed without write permission: it refreshes metadata without installing packages. The four reviewed maintenance WRITE operations require either normal write access or the explicit `OPNSENSE_MCP_MAINTENANCE_ENABLED=true` opt-in; the latter never unlocks any other configuration changes.
 
-Write tools remain visible in the inherited tool catalog but are **not executable on read-only targets**. If a site is explicitly configured as writable, these tools become callable subject to the absolute endpoint blocklist, target API permissions, and individual tool checks; OPNsense 26.7+ has no automatic firewall rollback. Some state-changing diagnostics (such as job-based ping/traceroute) can also be denied by the central policy, until they have been individually reviewed.
+Other write tools remain visible in the inherited tool catalog but are **not executable on read-only targets**. If a site is explicitly configured as writable, these tools become callable subject to the absolute endpoint blocklist, target API permissions, and individual tool checks; OPNsense 26.7+ has no automatic firewall rollback. Some state-changing diagnostics (such as job-based ping/traceroute) can also be denied by the central policy, until they have been individually reviewed.
 
 For **legacy single-target stdio only**, the inherited `OPNSENSE_ALLOW_WRITES=true` option still exists. Do not enable this for an AI-connected production firewall. In OPNsense **26.7+**, the older savepoint/60-second rollback API was removed; potentially disruptive changes will not automatically revert.
 

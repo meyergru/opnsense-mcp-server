@@ -21,8 +21,11 @@ services:
       OPNSENSE_MCP_HOST: "0.0.0.0"
       OPNSENSE_MCP_PORT: "8000"
       OPNSENSE_MCP_MAX_RESULT_BYTES: "16384"
-      # Global operation policy: true means no configuration changes on any site.
+      # Global read-only policy for all unrelated configuration writes.
       OPNSENSE_MCP_READ_ONLY: "true"
+      # Explicit opt-in: only ZFS snapshot create, regular/major firmware update and firmware reboot.
+      # Turn true only when ready to permit Qwen to perform maintenance on ALL named sites.
+      OPNSENSE_MCP_MAINTENANCE_ENABLED: "false"
       # Global opt-in for unredacted config.xml in legacy stdio mode only.
       # Keep disabled; HTTP MCP blocks raw config exports regardless.
       OPNSENSE_MCP_ALLOW_SENSITIVE: "false"
