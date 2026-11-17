@@ -241,6 +241,10 @@ async def opn_wireguard_generate_psk(ctx: Context, site: SiteName = "") -> dict[
     firewall is managed through the VPN being changed, ask the user first.
     Update and apply the REMOTE endpoint before the LOCAL endpoint.
     It expires after 30 minutes or a container restart.
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     # Resolve the selected site; no site changes are made while generating.
     get_api(ctx, site)
@@ -265,6 +269,13 @@ async def opn_wireguard_list_peers(
     This configuration listing alone does not prove whether management
     access to a target traverses the VPN being changed. Ask the user
     before coordinated cross-site changes if the access path is unclear.
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
+        search: Optional search string or filter; empty means no additional filtering. Optional (default: "").
+        limit: Maximum requested number of entries; the server may enforce a stricter cap. Optional (default:
+            100).
     """
     return await _list(get_api(ctx, site), "wireguard", "peer", search, limit)
 
@@ -275,6 +286,12 @@ async def opn_wireguard_get_peer(ctx: Context, uuid: str, site: SiteName = "") -
 
     Do not infer which endpoint is LOCAL/REMOTE solely from peer fields or
     site labels. Clarify the management access path before modifying a tunnel.
+
+    Args:
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _get(get_api(ctx, site), "wireguard", "peer", uuid)
 
@@ -291,6 +308,14 @@ async def opn_wireguard_add_peer(
     REMOTE (reached through the affected VPN) and which is independently LOCAL.
     If unsure, ask the user before changes. Coordinate REMOTE before LOCAL;
     see opn_service_apply's WireGuard management-path warning.
+
+    Args:
+        fields: Mapping of supported configuration fields for the selected object, not unrestricted API access.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
+        psk_ref: Reference to a pre-shared key for WireGuard; handle secret material carefully. Optional
+            (default: "").
     """
     return await _add(get_api(ctx, site), "wireguard", "peer", fields, psk_ref)
 
@@ -308,6 +333,15 @@ async def opn_wireguard_patch_peer(
     management connection may drop after REMOTE apply; do not check its status
     until the LOCAL side has also been corrected and applied. If the
     management path or LOCAL/REMOTE roles are unclear, ask the user first.
+
+    Args:
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        changes: Mapping of intended changes for the selected resource, not unrestricted API access. Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
+        psk_ref: Reference to a pre-shared key for WireGuard; handle secret material carefully. Optional
+            (default: "").
     """
     return await _patch(get_api(ctx, site), "wireguard", "peer", uuid, changes, psk_ref)
 
@@ -320,6 +354,12 @@ async def opn_wireguard_delete_peer(ctx: Context, uuid: str, site: SiteName = ""
     may sever management access. Establish LOCAL/REMOTE management paths
     first; if unknown, ask the user before changing anything. See
     opn_service_apply for sequencing and no-intermediate-poll guidance.
+
+    Args:
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _delete(get_api(ctx, site), "wireguard", "peer", uuid)
 
@@ -333,6 +373,14 @@ async def opn_wireguard_toggle_peer(ctx: Context, uuid: str, enabled: bool, site
     For remotely managed VPN links, establish the LOCAL/REMOTE management
     path first (ask if unclear); apply REMOTE before LOCAL and do not poll
     unreachable REMOTE during the transition. See opn_service_apply.
+
+    Args:
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        enabled: Desired enabled state (not a blind toggle); apply/reconfigure requirements are tool-specific.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _toggle(get_api(ctx, site), "wireguard", "peer", uuid, enabled)
 
@@ -343,6 +391,10 @@ async def opn_wireguard_list_instances(ctx: Context, site: SiteName = "") -> dic
 
     The list cannot establish whether management access uses a WireGuard
     tunnel. Ask the user before a cross-site change if topology is uncertain.
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _list(get_api(ctx, site), "wireguard", "instance", "", 100)
 
@@ -353,6 +405,12 @@ async def opn_wireguard_get_instance(ctx: Context, uuid: str, site: SiteName = "
 
     This does not prove whether a target's management path crosses this VPN;
     clarify LOCAL/REMOTE roles with the user before applying risky changes.
+
+    Args:
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _get(get_api(ctx, site), "wireguard", "instance", uuid)
 
@@ -364,6 +422,14 @@ async def opn_wireguard_toggle_instance(ctx: Context, uuid: str, enabled: bool, 
     This can affect the VPN management path after apply. Determine LOCAL and
     REMOTE from actual access topology, ask if unclear, and coordinate REMOTE
     apply before LOCAL without intermediate REMOTE status polls.
+
+    Args:
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        enabled: Desired enabled state (not a blind toggle); apply/reconfigure requirements are tool-specific.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _toggle(get_api(ctx, site), "wireguard", "instance", uuid, enabled)
 
@@ -377,6 +443,13 @@ async def opn_wireguard_patch_instance(
     Changing an instance carrying access to a REMOTE firewall may cut the
     management tunnel once applied. Identify LOCAL/REMOTE (ask if uncertain),
     apply REMOTE before LOCAL, and avoid status polling REMOTE between applies.
+
+    Args:
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        changes: Mapping of intended changes for the selected resource, not unrestricted API access. Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _patch(get_api(ctx, site), "wireguard", "instance", uuid, changes)
 
@@ -390,6 +463,12 @@ async def opn_wireguard_add_instance(ctx: Context, fields: dict[str, str], site:
     For any later cross-site activation affecting a management VPN, determine
     LOCAL/REMOTE via the actual access path first, ask if unclear, and apply
     REMOTE before LOCAL; see opn_service_apply for the connectivity caveat.
+
+    Args:
+        fields: Mapping of supported configuration fields for the selected object, not unrestricted API access.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     api = get_api(ctx, site)
     api.require_writes()
@@ -420,6 +499,12 @@ async def opn_wireguard_delete_instance(ctx: Context, uuid: str, site: SiteName 
     Deleting an instance used to manage a REMOTE firewall can disconnect it
     after apply. Identify the actual management path (ask if uncertain);
     coordinate REMOTE before LOCAL, with no interim REMOTE status polling.
+
+    Args:
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _delete(get_api(ctx, site), "wireguard", "instance", uuid)
 
@@ -449,6 +534,14 @@ async def opn_kea_list(
     patch, explicitly call opn_service_apply(service="kea", site="<site>").
     This lists configured reservations, not live DHCP leases (which have
     separate opn_list_kea_leases and opn_kea_list_leases6 tools).
+
+    Args:
+        resource: Exact configuration resource selector; use one of the declared values. Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
+        search: Optional search string or filter; empty means no additional filtering. Optional (default: "").
+        limit: Maximum requested number of entries; the server may enforce a stricter cap. Optional (default:
+            100).
     """
     return await _list(get_api(ctx, site), "kea", resource, search, limit)
 
@@ -468,6 +561,13 @@ async def opn_kea_get(ctx: Context, resource: KeaResourceName, uuid: str, site: 
     returned by opn_kea_list(resource="reservation4"). The result contains
     fields such as "hw_address" and "ip_address" (subject to the installed
     OPNsense model). Use reservation6 for DHCPv6 reservations.
+
+    Args:
+        resource: Exact configuration resource selector; use one of the declared values. Required.
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _get(get_api(ctx, site), "kea", resource, uuid)
 
@@ -489,6 +589,13 @@ async def opn_kea_add(
     Fields must be valid for the target OPNsense version (e.g. "hw_address",
     "ip_address"); they are checked against that site's actual MVC form.
     Use opn_service_apply(service="kea", site="<site>") after success.
+
+    Args:
+        resource: Exact configuration resource selector; use one of the declared values. Required.
+        fields: Mapping of supported configuration fields for the selected object, not unrestricted API access.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _add(get_api(ctx, site), "kea", resource, fields)
 
@@ -513,6 +620,14 @@ async def opn_kea_patch(
     No automatic apply: afterwards call opn_service_apply(service="kea",
     site="<site>") separately. Do not confuse configured reservations
     with DHCP lease records.
+
+    Args:
+        resource: Exact configuration resource selector; use one of the declared values. Required.
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        changes: Mapping of intended changes for the selected resource, not unrestricted API access. Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _patch(get_api(ctx, site), "kea", resource, uuid, changes)
 
@@ -531,6 +646,13 @@ async def opn_kea_delete(ctx: Context, resource: KeaResourceName, uuid: str, sit
     To delete a DHCPv4 static reservation use resource="reservation4" and
     its UUID from opn_kea_list, not a live lease identifier. This does not
     apply changes; use opn_service_apply(service="kea", site="<site>").
+
+    Args:
+        resource: Exact configuration resource selector; use one of the declared values. Required.
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _delete(get_api(ctx, site), "kea", resource, uuid)
 
@@ -545,6 +667,11 @@ async def opn_radvd_list(ctx: Context, site: SiteName = "", search: str = "") ->
     Check opn_list_services and per-interface RA settings; do not
     merge both sources as if they were simultaneously authoritative.
     Never enable competing RA transmitters on the same interface.
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
+        search: Optional search string or filter; empty means no additional filtering. Optional (default: "").
     """
     return await _list(get_api(ctx, site), "radvd", "entry", search, 100)
 
@@ -559,6 +686,12 @@ async def opn_radvd_get(ctx: Context, uuid: str, site: SiteName = "") -> dict[st
     Check opn_list_services and per-interface RA settings; do not
     merge both sources as if they were simultaneously authoritative.
     Never enable competing RA transmitters on the same interface.
+
+    Args:
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _get(get_api(ctx, site), "radvd", "entry", uuid)
 
@@ -573,6 +706,12 @@ async def opn_radvd_add(ctx: Context, fields: dict[str, str], site: SiteName = "
     inactive. Check opn_list_services and interface-specific settings.
     Do not configure competing RA daemons on the same interface.
     This only stages a change; applying radvd is a separate operation.
+
+    Args:
+        fields: Mapping of supported configuration fields for the selected object, not unrestricted API access.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _add(get_api(ctx, site), "radvd", "entry", fields)
 
@@ -587,6 +726,13 @@ async def opn_radvd_patch(ctx: Context, uuid: str, changes: dict[str, str], site
     inactive. Check opn_list_services and interface-specific settings.
     Do not configure competing RA daemons on the same interface.
     This only stages a change; applying radvd is a separate operation.
+
+    Args:
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        changes: Mapping of intended changes for the selected resource, not unrestricted API access. Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _patch(get_api(ctx, site), "radvd", "entry", uuid, changes)
 
@@ -601,6 +747,12 @@ async def opn_radvd_delete(ctx: Context, uuid: str, site: SiteName = "") -> dict
     inactive. Check opn_list_services and interface-specific settings.
     Do not configure competing RA daemons on the same interface.
     This only stages a change; applying radvd is a separate operation.
+
+    Args:
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _delete(get_api(ctx, site), "radvd", "entry", uuid)
 
@@ -615,6 +767,14 @@ async def opn_radvd_toggle(ctx: Context, uuid: str, enabled: bool, site: SiteNam
     inactive. Check opn_list_services and interface-specific settings.
     Do not configure competing RA daemons on the same interface.
     This only stages a change; applying radvd is a separate operation.
+
+    Args:
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        enabled: Desired enabled state (not a blind toggle); apply/reconfigure requirements are tool-specific.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _toggle(get_api(ctx, site), "radvd", "entry", uuid, enabled)
 
@@ -628,6 +788,14 @@ async def opn_unbound_list(
     Valid resource values: host (host overrides), forward (forward zones), host_alias (aliases of
     overrides), acl (access controls), dnsbl (blocklist configurations). The 'search' parameter searches
     these configured objects; it is not an arbitrary API endpoint.
+
+    Args:
+        resource: Exact configuration resource selector; use one of the declared values. Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
+        search: Optional search string or filter; empty means no additional filtering. Optional (default: "").
+        limit: Maximum requested number of entries; the server may enforce a stricter cap. Optional (default:
+            100).
     """
     return await _list(get_api(ctx, site), "unbound", resource, search, limit)
 
@@ -643,6 +811,13 @@ async def opn_unbound_get(
 
     resource must be host, forward, host_alias, acl or dnsbl. Use the UUID from
     opn_unbound_list(resource=<same-value>). 'uuid' is a configuration object UUID, not an IP address.
+
+    Args:
+        resource: Exact configuration resource selector; use one of the declared values. Required.
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _get(get_api(ctx, site), "unbound", resource, uuid)
 
@@ -660,6 +835,13 @@ async def opn_unbound_add(
     model field names to strings; fields are checked against this site's installed MVC model. Do not guess
     field names or infer them from other OPNsense versions. Apply later with
     opn_service_apply(service='unbound').
+
+    Args:
+        resource: Exact configuration resource selector; use one of the declared values. Required.
+        fields: Mapping of supported configuration fields for the selected object, not unrestricted API access.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _add(get_api(ctx, site), "unbound", resource, fields)
 
@@ -673,6 +855,14 @@ async def opn_unbound_patch(
     resource must be host, forward, host_alias, acl or dnsbl. Obtain the UUID and current field names with
     opn_unbound_list and opn_unbound_get; 'changes' maps only fields to modify to string values. Apply
     later with opn_service_apply(service='unbound').
+
+    Args:
+        resource: Exact configuration resource selector; use one of the declared values. Required.
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        changes: Mapping of intended changes for the selected resource, not unrestricted API access. Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _patch(get_api(ctx, site), "unbound", resource, uuid, changes)
 
@@ -688,6 +878,13 @@ async def opn_unbound_delete(
 
     resource must be host, forward, host_alias, acl or dnsbl. Obtain the UUID using opn_unbound_list; this
     stages deletion only. Apply later with opn_service_apply(service='unbound').
+
+    Args:
+        resource: Exact configuration resource selector; use one of the declared values. Required.
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _delete(get_api(ctx, site), "unbound", resource, uuid)
 
@@ -704,6 +901,15 @@ async def opn_unbound_toggle(
 
     resource must be host, forward, host_alias, acl or dnsbl. 'enabled' is a Boolean target state
     (true/false), not a toggle command; apply later with opn_service_apply(service='unbound').
+
+    Args:
+        resource: Exact configuration resource selector; use one of the declared values. Required.
+        uuid: UUID of the existing object on this site, obtained from the matching list or search tool.
+            Required.
+        enabled: Desired enabled state (not a blind toggle); apply/reconfigure requirements are tool-specific.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await _toggle(get_api(ctx, site), "unbound", resource, uuid, enabled)
 
@@ -734,6 +940,11 @@ async def opn_service_apply(ctx: Context, service: ApplyServiceName, site: SiteN
     access path. If uncertain whether access uses the affected VPN, or which
     side is LOCAL versus REMOTE, ask the user BEFORE changing/applying.
     This tool does not orchestrate the other site or guarantee reconnection.
+
+    Args:
+        service: Value of service for this operation; see the tool description for supported formats. Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     if service not in {"wireguard", "kea", "radvd", "unbound"}:
         raise ValueError("Unsupported service; choose wireguard, kea, radvd or unbound")
@@ -758,6 +969,13 @@ async def opn_kea_list_leases6(
     (opn_scan_config and opn_list_services are only starting points).
     Other backends may hold historical leases; do not combine them or
     infer activity solely because this endpoint returns data.
+
+    Args:
+        search: Optional search string or filter; empty means no additional filtering. Optional (default: "").
+        limit: Maximum requested number of entries; the server may enforce a stricter cap. Optional (default:
+            100).
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     if not 1 <= limit <= 500:
         raise ValueError("limit must be 1..500")
@@ -784,6 +1002,11 @@ async def opn_kea_delete_lease(ctx: Context, ip: str, site: SiteName = "") -> di
     NOT restart/reconfigure Kea after an API failure. If the installed
     API lacks deletion, report the error; leases normally expire according
     to valid_lifetime. A successful response has status='ok'.
+
+    Args:
+        ip: Value of ip for this operation; see the tool description for supported formats. Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     import ipaddress
 
@@ -812,6 +1035,12 @@ async def opn_mvc_get_settings(ctx: Context, subsystem: SettingsSubsystemName, s
     subsystem must be exactly one of: kea_dhcpv4, kea_dhcpv6,
     kea_ctrl_agent, kea_ddns, radvd, unbound, wireguard.
     Read this before patching settings to discover available field names.
+
+    Args:
+        subsystem: Value of subsystem for this operation; see the tool description for supported formats.
+            Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     if subsystem not in GLOBAL_SETTINGS:
         raise ValueError("Unsupported settings subsystem")
@@ -840,6 +1069,13 @@ async def opn_mvc_patch_settings(
     The OPNsense MVC base controller merges supplied nodes into existing model
     state. This first reads the installed model and refuses unknown root fields.
     Changes are restricted to pre-existing fields of the chosen settings model.
+
+    Args:
+        subsystem: Value of subsystem for this operation; see the tool description for supported formats.
+            Required.
+        changes: Mapping of intended changes for the selected resource, not unrestricted API access. Required.
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     if subsystem not in GLOBAL_SETTINGS:
         raise ValueError("Unsupported settings subsystem")
