@@ -20,7 +20,12 @@ def _backend_is_idle(status: dict[str, Any]) -> bool:
 
 @mcp.tool()
 async def opn_firmware_update_running(ctx: Context, site: SiteName = "") -> dict[str, Any]:
-    """Read whether the OPNsense firmware backend reports a running update."""
+    """Read whether the OPNsense firmware backend reports a running update.
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
+    """
     return await get_api(ctx, site).get("firmware.running")
 
 
@@ -31,6 +36,10 @@ async def opn_firmware_update_progress(ctx: Context, site: SiteName = "") -> dic
     Status is usually 'running', 'done', 'reboot' or 'error'. An accepted
     update job is not proof of completion. Do not trigger further updates
     while the previous job is running or when status requires reboot.
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     return await get_api(ctx, site).get("firmware.upgradestatus")
 
@@ -67,6 +76,14 @@ async def opn_monitor_firmware_update(
     firmware backend emitted ***DONE***; it does not prove that a particular
     job succeeded or that packages changed. Supply previous_version to get a
     comparison with the currently installed version when accessible.
+
+    Args:
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
+        previous_version: Previously installed firmware version used for comparison; empty means no version
+            comparison. Optional (default: "").
+        max_checks: Upper bound on the number of status polls within this one tool call. Optional (default: 3).
+        poll_interval_seconds: Delay between consecutive bounded status polls in seconds. Optional (default: 2).
     """
     if not 1 <= max_checks <= 3:
         raise ValueError("max_checks must be between 1 and 3")
@@ -182,6 +199,11 @@ async def opn_start_firmware_update(ctx: Context, confirm: bool = False, site: S
     itself reboot the firewall; temporary API outages are expected. Never
     resubmit a job merely because the connection dropped. Monitor progress
     and verify the installed version and remaining updates independently.
+
+    Args:
+        confirm: Explicit confirmation before this operation; false blocks mutation. Optional (default: False).
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     api = get_api(ctx, site)
     api.require_write_operation("firmware.update")
@@ -209,6 +231,11 @@ async def opn_start_firmware_upgrade(ctx: Context, confirm: bool = False, site: 
     the firmware backend is confirmed idle. The installer may reboot itself,
     and the firewall API can be unreachable for an extended period.
     Create and verify a snapshot first. Do not retry on timeout.
+
+    Args:
+        confirm: Explicit confirmation before this operation; false blocks mutation. Optional (default: False).
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     api = get_api(ctx, site)
     api.require_write_operation("firmware.upgrade")
@@ -235,6 +262,11 @@ async def opn_reboot(ctx: Context, confirm: bool = False, site: SiteName = "") -
     backend and 'reboot' from the firmware progress endpoint. The global log
     cannot be correlated with a job UUID, so callers must independently verify
     that this reboot pertains to the intended maintenance operation.
+
+    Args:
+        confirm: Explicit confirmation before this operation; false blocks mutation. Optional (default: False).
+        site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
+            configured. Optional (default: "").
     """
     api = get_api(ctx, site)
     api.require_write_operation("firmware.reboot")
