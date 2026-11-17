@@ -110,8 +110,8 @@ async def opn_firewall_list_objects(
             (default: "").
         search: Optional filter or search phrase; an empty string requests an unfiltered result. Matching
             depends on the tool/backend. Optional (default: "").
-        limit: Maximum number of entries requested; the tool or backend may impose a smaller cap. Optional
-            (default: 100).
+        limit: Requested row count must be an integer in 1..500; invalid values fail before the API request.
+            Optional (default: 100).
     """
     _kind(kind)
     if not 1 <= limit <= 500 or len(search) > 512:
