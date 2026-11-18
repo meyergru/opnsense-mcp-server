@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.8.10] - 2026-11-18
+
+### Firmware safety
+- Fix the firmware lock preflight: upstream OPNsense 26.7 `firmware.running`
+  returns `ready` when no firmware job holds the lock and `busy` otherwise.
+- Accept confirmed `ready` for update, major-upgrade and explicit firmware
+  reboot without broadening acceptance of unknown or busy states.
+- Add regression tests covering real upstream statuses, older zero flags and
+  protection against unrecognized statuses.
+- No automatic installation or reboot; all existing authorization and
+  confirm=true gates remain in effect.
+
 ## [0.8.9] - 2026-11-17
 
 ### Dependencies

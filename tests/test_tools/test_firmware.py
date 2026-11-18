@@ -9,6 +9,7 @@ import pytest
 
 from opnsense_mcp.api_client import OPNsenseAPIError, WriteDisabledError
 from opnsense_mcp.tools.firmware import (
+    _backend_is_idle,
     opn_firmware_update_progress,
     opn_firmware_update_running,
     opn_monitor_firmware_update,
@@ -16,6 +17,16 @@ from opnsense_mcp.tools.firmware import (
     opn_start_firmware_update,
     opn_start_firmware_upgrade,
 )
+
+
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [("ready", True), ("busy", False), ("0", True), (0, True), (False, True),
+     ("1", False), (1, False), (True, False), ("idle", False),
+     ("error", False), (None, False), ("", False)],
+)
+def test_firmware_backend_idle_status_semantics(status, expected):
+    assert _backend_is_idle({"status": status}) is expected
 
 
 async def test_running_status_read_only(mock_api, mock_ctx):
@@ -67,7 +78,7 @@ async def test_update_denies_non_update_status(maintenance, status):
     api.post.assert_awaited_once_with("firmware.status")
 
 
-@pytest.mark.parametrize("running", ["1", "yes", None])
+@pytest.mark.parametrize("running", ["1", "yes", "busy", "idle", None])
 async def test_update_denies_non_idle_backend(maintenance, running):
     api, ctx = maintenance
     api.get = AsyncMock(return_value={"status": running})
@@ -75,6 +86,15 @@ async def test_update_denies_non_idle_backend(maintenance, running):
     result = await opn_start_firmware_update(ctx, confirm=True)
     assert "error" in result
     api.post.assert_not_awaited()
+
+
+async def test_update_accepts_opnsense_ready_lock(maintenance):
+    api, ctx = maintenance
+    api.get = AsyncMock(return_value={"status": "ready"})
+    api.post = AsyncMock(side_effect=[{"status": "update"}, {"status": "ok", "msg_uuid": "job-ready"}])
+    result = await opn_start_firmware_update(ctx, confirm=True)
+    assert result["job"]["msg_uuid"] == "job-ready"
+    assert [call.args[0] for call in api.post.await_args_list] == ["firmware.status", "firmware.update"]
 
 
 async def test_update_allows_reboot_required_on_maintenance_site(maintenance):
@@ -111,6 +131,15 @@ async def test_major_upgrade_starts_only_on_explicit_status(maintenance):
     assert [call.args[0] for call in api.post.await_args_list] == ["firmware.status", "firmware.upgrade"]
 
 
+async def test_major_upgrade_accepts_opnsense_ready_lock(maintenance):
+    api, ctx = maintenance
+    api.get = AsyncMock(return_value={"status": "ready"})
+    api.post = AsyncMock(side_effect=[{"status": "upgrade"}, {"status": "ok", "msg_uuid": "major-ready"}])
+    result = await opn_start_firmware_upgrade(ctx, confirm=True)
+    assert result["job"]["msg_uuid"] == "major-ready"
+    assert [call.args[0] for call in api.post.await_args_list] == ["firmware.status", "firmware.upgrade"]
+
+
 async def test_major_upgrade_requires_confirmation(maintenance):
     api, ctx = maintenance
     api.get = AsyncMock()
@@ -143,6 +172,15 @@ async def test_reboot_submits_only_with_marker_and_idle_backend(maintenance):
     api.post = AsyncMock(return_value={"status": "ok", "msg_uuid": "reboot-123"})
     result = await opn_reboot(ctx, confirm=True)
     assert result["job"]["msg_uuid"] == "reboot-123"
+    api.post.assert_awaited_once_with("firmware.reboot")
+
+
+async def test_reboot_accepts_opnsense_ready_lock_with_reboot_marker(maintenance):
+    api, ctx = maintenance
+    api.get = AsyncMock(side_effect=[{"status": "ready"}, {"status": "reboot"}])
+    api.post = AsyncMock(return_value={"status": "ok", "msg_uuid": "reboot-ready"})
+    result = await opn_reboot(ctx, confirm=True)
+    assert result["job"]["msg_uuid"] == "reboot-ready"
     api.post.assert_awaited_once_with("firmware.reboot")
 
 

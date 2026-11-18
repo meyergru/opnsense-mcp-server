@@ -14,13 +14,17 @@ from opnsense_mcp.tool_types import BoundedFirmwareChecks, BoundedFirmwarePollIn
 
 
 def _backend_is_idle(status: dict[str, Any]) -> bool:
-    """Require an explicit idle firmware backend indicator (unknown = refuse)."""
-    return status.get("status") in (0, "0", False)
+    """Only accept known free-lock statuses (OPNsense 26.7: ready; older: 0)."""
+    return status.get("status") in ("ready", 0, "0", False)
 
 
 @mcp.tool()
 async def opn_firmware_update_running(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """Read whether the OPNsense firmware backend reports a running update.
+
+    In OPNsense 26.7, status="ready" means the firmware lock is free;
+    status="busy" means the lock is held. Do not infer activity from the
+    tool name; return the actual backend state.
 
     Args:
         site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
