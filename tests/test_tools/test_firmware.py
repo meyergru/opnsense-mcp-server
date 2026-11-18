@@ -21,9 +21,20 @@ from opnsense_mcp.tools.firmware import (
 
 @pytest.mark.parametrize(
     ("status", "expected"),
-    [("ready", True), ("busy", False), ("0", True), (0, True), (False, True),
-     ("1", False), (1, False), (True, False), ("idle", False),
-     ("error", False), (None, False), ("", False)],
+    [
+        ("ready", True),
+        ("busy", False),
+        ("0", True),
+        (0, True),
+        (False, True),
+        ("1", False),
+        (1, False),
+        (True, False),
+        ("idle", False),
+        ("error", False),
+        (None, False),
+        ("", False),
+    ],
 )
 def test_firmware_backend_idle_status_semantics(status, expected):
     assert _backend_is_idle({"status": status}) is expected
