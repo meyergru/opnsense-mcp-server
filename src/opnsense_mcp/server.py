@@ -46,7 +46,12 @@ mcp.add_middleware(ErrorResultMiddleware())
 
 @mcp.tool()
 async def opn_list_targets(ctx: Context) -> dict[str, list[str]]:
-    """List configured OPNsense site names without revealing URLs or credentials."""
+    """Return configured OPNsense MCP aliases in the sites[] array.
+
+    Pass an exact sites[] string as the 'site' argument to other tools,
+    NOT a hostname, interface name, Proxmox site or arbitrary API URL.
+    This is configuration inventory, NOT a connectivity/authentication test.
+    """
     targets: TargetRegistry = ctx.lifespan_context["targets"]
     return {"sites": targets.names}
 
