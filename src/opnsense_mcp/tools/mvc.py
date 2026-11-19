@@ -240,6 +240,9 @@ async def opn_wireguard_generate_psk(ctx: Context, site: SiteName = "") -> dict[
     management routes before changing anything. If uncertain whether either
     firewall is managed through the VPN being changed, ask the user first.
     Update and apply the REMOTE endpoint before the LOCAL endpoint.
+    Returns {"psk_ref": "...", "expires_in_seconds": 1800}; pass the
+    exact psk_ref to the relevant peer add/patch on both tunnel ends.
+    The reference is not the PSK and must not be logged as a secret.
     It expires after 30 minutes or a container restart.
 
     Args:
@@ -526,6 +529,11 @@ async def opn_kea_list(
     DHCPv4: reservation4, subnet4, option4, ha_peer4.
     DHCPv6: reservation6, subnet6, option6, pd_pool6, ha_peer6.
 
+    Search responses contain rows[].uuid (an object UUID, not MAC/IP
+    or a DHCP lease ID). Use the SAME resource selector and site for the
+    matching opn_kea_get/patch/delete operation. Get returns
+    {"uuid": ..., "fields": {...}} with sanitized model fields.
+
     For a static DHCPv4 MAC reservation, call
     opn_kea_list(resource="reservation4", search="docker", site="<site>").
     Find the UUID in the returned rows, then use opn_kea_get and opn_kea_patch
@@ -557,8 +565,10 @@ async def opn_kea_get(ctx: Context, resource: KeaResourceName, uuid: str, site: 
     and the relevant interface/subnet before using these records as
     operational state. Do not mix different engines' reservation tables.
 
-    For a DHCPv4 static reservation use resource="reservation4" and the UUID
-    returned by opn_kea_list(resource="reservation4"). The result contains
+    For a DHCPv4 static reservation use resource="reservation4" and
+    opn_kea_list(resource="reservation4").rows[].uuid. Returns
+    {"uuid": ..., "fields": {...}} for the selected object. Its fields map
+    contains
     fields such as "hw_address" and "ip_address" (subject to the installed
     OPNsense model). Use reservation6 for DHCPv6 reservations.
 
@@ -667,6 +677,8 @@ async def opn_radvd_list(ctx: Context, site: SiteName = "", search: str = "") ->
     Check opn_list_services and per-interface RA settings; do not
     merge both sources as if they were simultaneously authoritative.
     Never enable competing RA transmitters on the same interface.
+    Returns search rows[].uuid for opn_radvd_get/patch/delete on the same
+    site; this is a configuration UUID, not an interface identifier.
 
     Args:
         site: Exact configured OPNsense site alias from opn_list_targets. Empty is allowed only if one site is
@@ -788,6 +800,9 @@ async def opn_unbound_list(
     Valid resource values: host (host overrides), forward (forward zones), host_alias (aliases of
     overrides), acl (access controls), dnsbl (blocklist configurations). The 'search' parameter searches
     these configured objects; it is not an arbitrary API endpoint.
+    Use rows[].uuid as the identifier for opn_unbound_get/patch/delete
+    with the same resource and site. Do not pass an override's name or IP
+    address in place of its configuration-object UUID.
 
     Args:
         resource: Exact configuration resource selector; use one of the declared values. Required.
