@@ -115,6 +115,12 @@ async def opn_check_firmware_updates(ctx: Context, site: SiteName = "") -> dict[
     GET used by opn_system_status. OPNsense runs a synchronous firmware probe
     and returns its refreshed status and available package updates.
 
+    Top-level repository status is none (no updates), update (regular
+    installation), or upgrade (major release). This is NOT the backend
+    lock status: opn_firmware_update_running returns "ready" when idle
+    or "busy" when locked on OPNsense 26.7. Nor does a repository check
+    prove a running installation or the target version already installed.
+
     The check contacts the configured firmware mirrors and updates local
     update-check metadata on OPNsense. It does NOT install packages, apply
     configuration changes, or reboot. The API call may take several seconds.
