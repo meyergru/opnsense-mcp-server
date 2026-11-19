@@ -24,7 +24,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/meyergru/opnsense-mcp-server"
-Repository = "https://github.com/lucamarien/opnsense-mcp-server"
+Repository = "https://github.com/meyergru/opnsense-mcp-server"
 Issues = "https://github.com/meyergru/opnsense-mcp-server/issues"
 Changelog = "https://github.com/meyergru/opnsense-mcp-server/blob/main/CHANGELOG.md"
 
