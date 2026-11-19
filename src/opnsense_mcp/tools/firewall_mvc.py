@@ -97,7 +97,9 @@ async def opn_firewall_list_objects(
     """List filter, dnat, snat, one_to_one, npt, alias, category or group objects.
 
     Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. 'search' is a text
-    filter. Use the returned UUID for read/edit operations.
+    filter. Use the exact rows[].uuid as a configuration object identifier
+    with the SAME kind and site for opn_firewall_get_object/patch/delete.
+    Never substitute a visible rule number, name, legacy or automatic rule ID.
 
     For filter rules on 26.7, the backend can include legacy/non-MVC entries;
     they are searchable but not editable through the MVC CRUD endpoints.
@@ -131,7 +133,10 @@ async def opn_firewall_get_object(
     """Read one editable firewall configuration object by UUID; does not mutate.
 
     Valid kind values: filter, dnat, snat, one_to_one, npt, alias, category, group. Read this object's
-    model fields before a targeted patch. 'uuid' is an object UUID.
+    model fields before a targeted patch. 'uuid' is the value
+    from opn_firewall_list_objects(kind=<same-kind>).rows[].uuid.
+    Returned model fields determine supported keys for fields/changes;
+    legacy and automatically generated entries are not editable.
 
     Args:
         kind: Type of firewall object to access; use one of the declared enum values. Required.
