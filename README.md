@@ -1,6 +1,6 @@
 # OPNsense MCP Server
 
-**Release 0.8.10:** correct OPNsense 26.7 firmware lock status handling: `ready` is idle, `busy` is running. Update/upgrade/reboot remain explicit, permission-gated operations. FastMCP `>=4.1,<5`; Portainer redeploy remains manual.
+**Release 0.8.11:** explicit consumer-facing MCP contracts for UUID provenance, resource selectors, firmware states and snapshot types. No new write authority. FastMCP >=4.1,<5; Portainer redeploy remains manual.
 
 A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible AI clients, including **OpenWebUI**, to several **named OPNsense firewalls** over their REST APIs. This is a fork of [lucamarien/opnsense-mcp-server](https://github.com/lucamarien/opnsense-mcp-server), with the original MIT license retained.
 
@@ -23,13 +23,16 @@ A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible 
 
 **151 MCP tools:** including single-site Kea, radvd, Unbound, WireGuard and Firewall 26.7 resource operations; see the [tool reference](#available-tools-151).
 
-## MCP tool parameter contract (0.8.7)
+## MCP tool parameter contract (reviewed in 0.8.11)
 
 All 150 site-bound tools now expose explicit parameter descriptions through
 their generated MCP input schemas, not just prose in this README. A regression
 test checks all 151 registered tools, including the non-site-bound
 `opn_list_targets`, verifying for **every parameter** the presence of
 machine-readable help and the correct JSON Schema `required` setting.
+The semantic contract now also states which *output field* supplies a
+downstream identifier, what a selector means, and when a list entry is
+not editable. Mere nonempty parameter descriptions are insufficient.
 Firmware status-polling tools additionally expose exact integer bounds:
 `max_checks` and `poll_interval_seconds` must each be 1..3.
 
@@ -528,3 +531,38 @@ logs; tool-audit records remain separately configurable.
 This feature requires the manually published `0.8.2` image. The checked-in
 Compose template deliberately retains its older pin until you explicitly
 change the tag in Portainer.
+
+## MCP consumer contract: identifiers and states (0.8.11)
+
+Every consumer must get identifiers from real MCP tool outputs, not guess a
+display label or depend on the underlying OPNsense API's conventions.
+
+| Next argument | Exact source | Important distinction |
+| --- | --- | --- |
+| `site` | `opn_list_targets().sites[]` | MCP alias, not PVE site, hostname or URL |
+| Kea `uuid`, `resource` | `opn_kea_list(resource).rows[].uuid`, repeat same `resource` | Object UUID is not MAC/IP or live DHCP lease ID |
+| Unbound `uuid`, `resource` | `opn_unbound_list(resource).rows[].uuid`, repeat `resource` | Object ID is not DNS hostname |
+| Firewall `uuid`, `kind` | `opn_firewall_list_objects(kind).rows[].uuid`, repeat `kind` | Legacy/automatic rule rows are not editable |
+| ZFS snapshot `uuid` | Exact UUID from `opn_list_snapshots` | Not the snapshot name, not a PVE QEMU snapshot |
+| WireGuard `psk_ref` | `opn_wireguard_generate_psk().psk_ref` | Opaque reference expires in 1800 seconds |
+
+MVC get tools return the installed version's model fields; callers must
+reuse exact field names when staging patches. Kea, radvd, Unbound and
+WireGuard changes are staged and require a separate, explicit
+`opn_service_apply`. The presence of a configured entry does not prove
+that its service provides DHCP, DNS or RA on the intended interface.
+Kea reservations and Kea live leases are separate resources.
+
+Firmware has THREE independent status concepts:
+`opn_check_firmware_updates().status` is repository availability
+(`none`, `update`, `upgrade`); `opn_firmware_update_running().status`
+reports the backend lock (`ready` free / `busy` held on 26.7);
+`opn_firmware_update_progress().status` is existing job progress
+(`running`, `done`, `reboot`, `error`). The backend state `ready`
+does not mean an update is running, nor does `done` verify that the
+target version is installed. Writes remain permission/confirmation
+gated, and successful installation requires version verification.
+
+`opn_create_snapshot` is an **OPNsense ZFS boot environment**, not a
+Proxmox QEMU disk/config snapshot. Creating a ZFS boot environment
+does not automatically activate it or perform a rollback.
