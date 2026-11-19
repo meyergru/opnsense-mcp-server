@@ -35,8 +35,10 @@ async def opn_snapshot_supported(ctx: Context, site: SiteName = "") -> dict[str,
 async def opn_list_snapshots(ctx: Context, site: SiteName = "") -> dict[str, Any]:
     """List ZFS snapshots/boot environments and their active/boot states.
 
-    Does not create, activate or delete a snapshot. Inspect the entries to
-    verify that a snapshot was created before proceeding with changes.
+    Returns OPNsense ZFS boot-environment entries (NOT Proxmox snapshots).
+    The selected entry's UUID, NOT its display name, is the input to
+    opn_get_snapshot. Verify name/state after a create action.
+    Does not create, activate, delete or roll back anything.
 
     Args:
         site: Exact configured site alias from opn_list_targets. Empty selects a site only in a single-target
@@ -47,7 +49,10 @@ async def opn_list_snapshots(ctx: Context, site: SiteName = "") -> dict[str, Any
 
 @mcp.tool()
 async def opn_get_snapshot(ctx: Context, uuid: str, site: SiteName = "") -> dict[str, Any]:
-    """Inspect one ZFS snapshot by its UUID without changing it.
+    """Inspect one OPNsense ZFS boot environment by its UUID (read-only).
+
+    Obtain UUID from opn_list_snapshots on the SAME site. Do not pass
+    the snapshot name or a Proxmox QEMU snapshot identifier.
 
     Args:
         uuid: UUID of the existing object on this site; obtain it from the matching list/search tool. Required.
@@ -65,8 +70,10 @@ async def opn_create_snapshot(ctx: Context, name: str, site: SiteName = "", note
 
     Requires normal write access OR explicit maintenance permission. Uses POST /api/core/snapshots/add with
     name and optional note, without an existing UUID (new snapshot, not clone).
-    This does NOT activate the snapshot or cause any reboot. Caller should use
-    opn_list_snapshots to verify successful creation.
+    This does NOT activate the snapshot or cause any reboot. The POST
+    result alone does not prove a usable recovery baseline: inspect
+    opn_list_snapshots to verify the name/state. This is an OPNsense
+    ZFS boot environment, NOT a full Proxmox QEMU VM disk snapshot.
 
     Args:
         name: Name of the new ZFS boot-environment snapshot (letters, digits, underscore, dot and hyphen only; no
