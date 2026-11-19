@@ -195,7 +195,9 @@ async def opn_start_firmware_update(ctx: Context, confirm: bool = False, site: S
     """Start a regular OPNsense firmware update, including one requiring reboot.
 
     Requires explicit confirm=true and normal write OR maintenance permission.
-    Rechecks the firmware repository status and requires status='update'.
+    Checks firmware.running status="ready" (OPNsense 26.7 free lock; "busy"
+    rejects) and refreshes the repository status before submission.
+    Only status='update' starts a regular installation.
     If 'upgrade' is reported, use opn_start_firmware_upgrade instead.
     A ZFS snapshot should be created and verified by the caller beforehand.
 
@@ -231,8 +233,9 @@ async def opn_start_firmware_upgrade(ctx: Context, confirm: bool = False, site: 
     """Start a major-release OPNsense firmware upgrade asynchronously.
 
     Requires explicit confirm=true and normal write OR maintenance permission.
-    Only permitted when a fresh firmware check reports status='upgrade' and
-    the firmware backend is confirmed idle. The installer may reboot itself,
+    Only permitted when a fresh opn_check_firmware_updates reports
+    status='upgrade' and firmware.running returns status="ready" (idle
+    backend lock on OPNsense 26.7). Busy or unknown states are refused. The installer may reboot itself,
     and the firewall API can be unreachable for an extended period.
     Create and verify a snapshot first. Do not retry on timeout.
 
