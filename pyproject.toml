@@ -1,6 +1,6 @@
 [project]
 name = "opnsense-mcp-server"
-version = "0.8.10"
+version = "0.8.11"
 description = "Secure MCP server for OPNsense firewall management via AI assistants"
 readme = "README.md"
 license = "MIT"
@@ -23,10 +23,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/lucamarien/opnsense-mcp-server"
+Homepage = "https://github.com/meyergru/opnsense-mcp-server"
 Repository = "https://github.com/lucamarien/opnsense-mcp-server"
-Issues = "https://github.com/lucamarien/opnsense-mcp-server/issues"
-Changelog = "https://github.com/lucamarien/opnsense-mcp-server/blob/main/CHANGELOG.md"
+Issues = "https://github.com/meyergru/opnsense-mcp-server/issues"
+Changelog = "https://github.com/meyergru/opnsense-mcp-server/blob/main/CHANGELOG.md"
 
 [project.scripts]
 opnsense-mcp = "opnsense_mcp.bootstrap:main"
