@@ -26,6 +26,13 @@ async def test_tools_expose_return_field_lineage_and_workflow_boundaries():
     schema = tools["opn_kea_list"].parameters["properties"]
     assert "opn_list_targets" in schema["site"]["description"]
     assert set(schema["resource"]["enum"]) == {
-        "subnet4", "reservation4", "option4", "ha_peer4",
-        "subnet6", "reservation6", "option6", "pd_pool6", "ha_peer6",
+        "subnet4",
+        "reservation4",
+        "option4",
+        "ha_peer4",
+        "subnet6",
+        "reservation6",
+        "option6",
+        "pd_pool6",
+        "ha_peer6",
     }
