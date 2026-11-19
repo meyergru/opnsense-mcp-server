@@ -1,4 +1,4 @@
-name: Publish reviewed OPNsense MCP image 0.8.10 to GHCR
+name: Publish reviewed OPNsense MCP image 0.8.11 to GHCR
 
 # Publish only on a reviewed publish-workflow change or manual dispatch.
 on:
