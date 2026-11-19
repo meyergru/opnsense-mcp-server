@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.8.11] - 2026-11-19
+
+### MCP consumer interface contracts
+- Declare the precise source-field provenance and selector reuse for Kea,
+  Unbound, Firewall 26.7, snapshots and WireGuard PSK references in tools.
+- Distinguish repository update availability, firmware backend lock and
+  existing job progress; distinguish OPNsense ZFS and PVE QEMU snapshots.
+- Add regression tests that inspect the actual MCP tool descriptions.
+- Correct package metadata URLs to this fork; all permissions and
+  operational behavior remain unchanged.
+
 ## [0.8.10] - 2026-11-18
 
 ### Firmware safety
