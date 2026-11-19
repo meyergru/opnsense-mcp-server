@@ -1,6 +1,5 @@
 # Portainer Stack for dedicated VM "mcp".
-# The moving :dev tag follows the latest manually published release.
-# No container is updated automatically: Portainer must pull/redeploy explicitly.
+# The moving :dev tag tracks published GHCR builds; Watchtower may recreate the container.
 # All target settings and tokens deliberately live in this Compose file.
 name: opnsense-mcp
 
@@ -62,9 +61,9 @@ services:
     pids_limit: 128
     mem_limit: 512m
 
-    # Do not let Watchtower silently replace an audited MCP image.
+    # Explicitly permit Watchtower updates; change to false if controlled rollouts are required.
     labels:
-      com.centurylinklabs.watchtower.enable: "false"
+      com.centurylinklabs.watchtower.enable: "true"
 
     # TCP reachability only. It does not prove auth or OPNsense connectivity.
     healthcheck:

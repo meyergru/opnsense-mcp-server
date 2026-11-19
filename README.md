@@ -1,5 +1,8 @@
 # OPNsense MCP Server
 
+**Current Compose update policy:** The checked-in `compose.yaml` now sets `com.centurylinklabs.watchtower.enable=true` so an externally managed Watchtower may replace the moving `:dev` image when a new build becomes available. This does **not** make the MCP server a background monitor, and does **not** change an existing Portainer container until the stack is redeployed. A version-pinned image or `watchtower.enable=false` remains the safer choice for manually audited deployments. Existing historical release notes describing manual rollouts refer to earlier versions of the template.
+
+
 **Release 0.8.11:** explicit consumer-facing MCP contracts for UUID provenance, resource selectors, firmware states and snapshot types. No new write authority. FastMCP >=4.1,<5; Portainer redeploy remains manual.
 
 A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible AI clients, including **OpenWebUI**, to several **named OPNsense firewalls** over their REST APIs. This is a fork of [lucamarien/opnsense-mcp-server](https://github.com/lucamarien/opnsense-mcp-server), with the original MIT license retained.
