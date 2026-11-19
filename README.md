@@ -3,7 +3,7 @@
 **Current Compose update policy:** The checked-in `compose.yaml` now sets `com.centurylinklabs.watchtower.enable=true` so an externally managed Watchtower may replace the moving `:dev` image when a new build becomes available. This does **not** make the MCP server a background monitor, and does **not** change an existing Portainer container until the stack is redeployed. A version-pinned image or `watchtower.enable=false` remains the safer choice for manually audited deployments. Existing historical release notes describing manual rollouts refer to earlier versions of the template.
 
 
-**Release 0.8.11:** explicit consumer-facing MCP contracts for UUID provenance, resource selectors, firmware states and snapshot types. No new write authority. FastMCP >=4.1,<5; Portainer redeploy remains manual.
+**Release 0.8.11:** explicit consumer-facing MCP contracts for UUID provenance, resource selectors, firmware states and snapshot types. No new write authority. FastMCP >=4.1,<5; current Compose permits external Watchtower updates.
 
 A Python [FastMCP](https://gofastmcp.com/) server for connecting MCP-compatible AI clients, including **OpenWebUI**, to several **named OPNsense firewalls** over their REST APIs. This is a fork of [lucamarien/opnsense-mcp-server](https://github.com/lucamarien/opnsense-mcp-server), with the original MIT license retained.
 
@@ -119,9 +119,10 @@ CI runs pytest, Ruff, mypy, security/dependency checks and a real Docker HTTP sm
 5. After CI succeeds, start the [manual GHCR release workflow](.github/workflows/publish-ghcr.yml) on **`main`** (Actions → Publish reviewed MCP image to GHCR → Run workflow). For this release it publishes `ghcr.io/meyergru/opnsense-mcp-server:0.8.6`, the commit-specific `sha-<commit>` image, and the compatibility tag `:dev`, then creates GitHub pre-release `v0.8.6` with changelog notes. Pushing/merging alone publishes nothing; each version can be released only once. Prefer a commit-specific tag or digest for deployments.
 The Compose template uses the **mutable** `:dev` alias, which is updated only
 by a manually successful GHCR release. This lets you leave the image line
-unchanged between versions. **Portainer does not automatically replace an
-already running container**; explicitly pull the updated image and redeploy
-when desired. Watchtower remains disabled. To pin/rollback to a reviewed
+unchanged between versions. **Portainer itself does not automatically replace an already running container**.
+The current Compose permits Watchtower updates of the moving :dev tag; when a
+Watchtower instance monitors it, the container may be recreated automatically.
+Without Watchtower, pull and redeploy the image manually. To pin/rollback to a reviewed
 version instead, replace `:dev` with its immutable version tag or digest.
 `OPNSENSE_MCP_MAINTENANCE_ENABLED=false` still forbids the approved
 firmware/snapshot maintenance writes, even with powerful upstream API credentials.
@@ -445,7 +446,7 @@ do not use it.**
 - **API least privilege:** Use dedicated OPNsense read-only API accounts with only the permissions required for the selected tools. OPNsense API privileges do not reliably distinguish GET from POST or harmless from mutating operations. The MCP policy adds operation-level control.
 - **Output control:** FastMCP caps tool-response size (default 16 KiB); a middleware suppresses structured responses with common secret-shaped keys. These heuristics **do not prove that all secrets are removed**.
 - **No direct SSH or shell:** Requests use the OPNsense REST API. The container is configured as non-root, with read-only root filesystem and dropped capabilities.
-- **Controlled updates:** Watchtower opt-out; the GHCR publishing workflow must be started manually. Audit dependencies and prefer SHA-tagged images rather than automatic updates.
+- **Update policy:** Current Compose explicitly permits Watchtower updates of moving :dev images. For controlled/audited rollouts, disable Watchtower on this container and pin a reviewed image version or digest. GHCR publication is independent of deployment.
 - **Wire confidentiality:** The supplied HTTP example uses **unencrypted HTTP**, including for the bearer token. Restrict it to a trusted internal network or use TLS when required.
 - **Secret exchange is a functional requirement, not universally forbidden:** See [Secret-handling boundaries](docs/secret-handling.md). Intentionally setting a DDNS password/token, provisioning a WireGuard peer on a device without MCP support (e.g. FritzBox or UniFi), changing a password or requesting a newly created API credential may require handling secret material. These operations are not inherently suspicious; the user must explicitly authorize the sensitive workflow and accept exposure to the AI client and its transport. The default output guard still prevents accidental secret-field disclosure. The current API does **not** provide a generic authorized secret-reveal tool; do not mistake documentation for an implemented capability.
 
